@@ -1,6 +1,13 @@
+"""
+Examples on how to use the atlas structure, and its coordinate system.
+"""
+# Authors : Gaelle, Mayo
+
 from ibllib.atlas.regions import BrainRegions
-from ibllib.atlas import AllenAtlas
+from ibllib.atlas import AllenAtlas, ALLEN_CCF_LANDMARKS_MLAPDV_UM
 import numpy as np
+
+
 """
 The Allen atlas organisation has 3 main components, see the
 atlas structure table: https://github.com/int-brain-lab/ibllib/blob/master/ibllib/atlas/allen_structure_tree.csv
@@ -73,3 +80,33 @@ cosmos_label = br.mappings['Cosmos']
 # which correspond to :
 br.acronym[np.unique(br.mappings['Cosmos'])]
 # ['void', 'root', 'Isocortex', 'OLF', 'HPF', 'CTXsp', 'CNU', 'TH', 'HY', 'MB', 'HB', 'CB']
+
+
+'''
+Coordinates system
+Examples showing how can one know :
+    - Which voxel is Bregma (point of origin)
+    - The resolution of each axis (e.g 25/25/25 um for the edge of each voxel in in ML/AP/DV)
+    - The sign (or direction) of axis
+'''
+
+# Find the resolution in um
+res_xyz = ba.bc.dxyz
+
+# Find the sign of each axis
+sign_xyz = np.sign(res_xyz)
+
+# Find bregma position in indices * resolution in um (not sure why this is the case)
+bregma_index = ALLEN_CCF_LANDMARKS_MLAPDV_UM['bregma'] / ba.res_um
+
+# Find bregma position in xyz in m (expect this to be 0 0 0)
+bregma_xyz = ba.bc.i2xyz(bregma_index)
+
+
+# Convert from arbitrary index to xyz position (m) position relative to bregma
+index = np.array([102, 234, 178]).astype(float)
+xyz = ba.bc.i2xyz(index)
+
+# Convert from xyz position (m) to index in atlas
+xyz = np.array([-325, 4000, 250]) / 1e6
+index = ba.bc.xyz2i(xyz)
