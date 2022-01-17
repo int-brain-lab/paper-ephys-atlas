@@ -98,6 +98,10 @@ output:
  'level': array([7.]),
  'parent': array([184.])}
 '''
+# Note: the method descendants will always returns in the `parent` the node above
+# In this example: br.acronym[184] = FRP , the node above FRP5
+# If you need to check a region is a leaf node, check by doing :
+# len(parent)==1 from the *descendants* method
 
 br.ancestors(ids=br.id[10])
 '''
