@@ -83,6 +83,46 @@ br.acronym[np.unique(br.mappings['Cosmos'])]
 
 
 '''
+Parents / Ascendants
+Here you can check sub-division of an area of interest:
+https://alyx.internationalbrainlab.org/admin/experiments/brainregion/
+'''
+# Programmatically, you can check using the methods descendants and ancestors:
+br.descendants(ids=br.id[10])  # br.acronym[10] = 'FRP5'
+'''
+output:
+{'id': array([526157192]),
+ 'name': array(['Frontal pole layer 5'], dtype=object),
+ 'acronym': array(['FRP5'], dtype=object),
+ 'rgb': array([[ 38, 143,  69]], dtype=uint8),
+ 'level': array([7.]),
+ 'parent': array([184.])}
+'''
+
+br.ancestors(ids=br.id[10])
+'''
+output:
+{'id': array([      997,         8,       567,       688,       695,       315,
+              184, 526157192]),
+ 'name': array(['root', 'Basic cell groups and regions', 'Cerebrum',
+        'Cerebral cortex', 'Cortical plate', 'Isocortex',
+        'Frontal pole cerebral cortex', 'Frontal pole layer 5'],
+       dtype=object),
+ 'acronym': array(['root', 'grey', 'CH', 'CTX', 'CTXpl', 'Isocortex', 'FRP', 'FRP5'],
+       dtype=object),
+ 'rgb': array([[255, 255, 255],
+        [191, 218, 227],
+        [176, 240, 255],
+        [176, 255, 184],
+        [112, 255, 112],
+        [112, 255, 113],
+        [ 38, 143,  69],
+        [ 38, 143,  69]], dtype=uint8),
+ 'level': array([0., 1., 2., 3., 4., 5., 6., 7.]),
+ 'parent': array([ nan, 997.,   8., 567., 688., 695., 315., 184.])}
+'''
+
+'''
 Coordinates system
 Examples showing how can one know :
     - Which voxel is Bregma (point of origin)
