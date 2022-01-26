@@ -93,7 +93,7 @@ for j, pid in enumerate(df_probes.index):
         else:
             df_channels.loc[pid, k] = np.median(features_tmp[k], axis=-1)[idf]
 
-df_channels.to_parquet(STAGING_PATH.joinpath('super_channels.pqt'))
+df_channels.to_parquet(STAGING_PATH.joinpath('channels_voltage_features.pqt'))
 #
 # eqc_ap = viewephys(destripe_ap, fs=sr_ap.fs, title='ap', channels=df_channels.loc[pid], br=br)
 # eqc_ap.ctrl.add_scatter(x=spikes.time * 1e3, y=spikes.trace, label='detection')
