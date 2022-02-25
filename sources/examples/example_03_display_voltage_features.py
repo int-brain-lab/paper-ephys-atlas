@@ -4,9 +4,8 @@ import numpy as np
 import pandas as pd
 
 import matplotlib.pyplot as plt
-from ibllib.atlas.projections import circles
-
 from ibllib.atlas import AllenAtlas
+
 
 ba = AllenAtlas()
 
@@ -20,22 +19,44 @@ df_probes = pd.read_parquet(STAGING_PATH.joinpath('probes.pqt'))
 df_voltage = pd.read_parquet(STAGING_PATH.joinpath('channels_voltage_features.pqt'))
 df_voltage['atlas_id_beryl'] = ba.regions.remap(df_voltage['atlas_id'].to_numpy(), target_map='Beryl')
 
+ca1ids = ba.regions.descendants(ba.regions.acronym2id('CA1'))['id']
 
 
-# Index(['x', 'y', 'z', 'acronym', 'atlas_id', 'axial_um', 'lateral_um',
-#        'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma',
-#        'rms_ap', 'rms_lf', 'bad_channel', 'spike_rate', 'atlas_id_beryl'],
-#       dtype='object')
 
-image_map = circles()
+# BANDS = {'delta': [0, 4], 'theta': [4, 10], 'alpha': [8, 12], 'beta': [15, 30], 'gamma': [30, 90]}
+
+
+import seaborn as sns
+
+sns.set_theme()
+sns.set_context("paper")
+key = 'psd_gamma'
+val = df_voltage[key].values
+val = val[~np.isnan(val)]
+pds, x = np.histogram(val, density=True, bins=200)
+
+
+fig, ax = plt.subplots()
+ax.plot(x[0] + np.cumsum(np.diff(x)), pds, label='whole brain')
+
+val = df_voltage[key].values
+val = val[np.isin(df_voltage['atlas_id'].values, ca1ids)]
+val = val[~np.isnan(val)]
+pds, x = np.histogram(val, density=True, bins=50)
+
+ax.plot(x[0] + np.cumsum(np.diff(x)), pds, label='CA1')
+ax.set(xlabel='PSD: dB relative to v/sqrt(Hz)', ylabel='Probability density', title=key)
+ax.legend()
+
+
+
+
 
 
 
 
 gb_regions = df_voltage.groupby('atlas_id_beryl')
 
-
-from pandas.core.groupby import GroupBy
 
 df_regions = gb_regions.agg({
     'rms_ap': ('median', 'var'),
