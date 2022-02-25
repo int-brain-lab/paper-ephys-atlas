@@ -6,7 +6,6 @@ import scipy.signal
 from brainbox.io.spikeglx import stream
 
 from iblutil.numerical import ismember2d
-from iblapps.viewspikes.gui import viewephys
 from ibllib.dsp import voltage
 from ibllib.atlas.regions import BrainRegions
 import ibllib.dsp as dsp
