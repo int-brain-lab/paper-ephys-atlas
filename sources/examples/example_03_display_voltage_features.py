@@ -61,12 +61,22 @@ gb_regions = df_voltage.groupby('atlas_id_beryl')
 df_regions = gb_regions.agg({
     'rms_ap': ('median', 'var'),
     'rms_lf': ('median', 'var'),
+    'psd_gamma': 'median',
     'acronym': 'first',
     'x': 'count',
 })
 
+# Plot PSD on coronal slice
+# From https://int-brain-lab.github.io/iblenv/notebooks_external/atlas_plotting_scalar_on_slice.html
+from ibllib.atlas.plots import plot_scalar_on_slice
 
-
+acro_plot = df_regions['acronym'].values.tolist()
+data_plot = df_regions['psd_gamma'].values.tolist()
+acro_plot_flat = np.array([item for sublist in acro_plot for item in sublist])
+data_plot_flat = np.array([item for sublist in data_plot for item in sublist])
+fig, ax = plot_scalar_on_slice(acro_plot_flat, data_plot_flat, coord=-1800, slice='coronal', mapping='Allen', hemisphere='both',
+                               background='boundary', cmap='viridis', brain_atlas=ba)
+# TODO add colorbar ?
 
 from iblutil.numerical import ismember
 
