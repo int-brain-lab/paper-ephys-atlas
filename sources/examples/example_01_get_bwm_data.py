@@ -4,7 +4,7 @@ import numpy as np
 from one.api import ONE
 from ibllib.atlas import AllenAtlas
 
-from ibllib.ephys.neuropixel import trace_header
+from neuropixel import trace_header
 from iblutil.numerical import ismember2d
 from ephys_atlas.data import bwm_pids
 from brainbox.io.one import SpikeSortingLoader
@@ -19,13 +19,16 @@ STAGING_PATH = Path('/datadisk/FlatIron/tables/bwm')
 STAGING_PATH.mkdir(exist_ok=True, parents=True)
 
 excludes = [
-    'd8c7d3f2-f8e7-451d-bca1-7800f4ef52ed',  # key error in loading histology from json
-    'da8dfec1-d265-44e8-84ce-6ae9c109b8bd',  # same same
-    'c2184312-2421-492b-bbee-e8c8e982e49e',  # same same
-    '58b271d5-f728-4de8-b2ae-51908931247c',  # same same
+    # 'd8c7d3f2-f8e7-451d-bca1-7800f4ef52ed',  # key error in loading histology from json
+    # 'da8dfec1-d265-44e8-84ce-6ae9c109b8bd',  # same same
+    # 'c2184312-2421-492b-bbee-e8c8e982e49e',  # same same
+    # '58b271d5-f728-4de8-b2ae-51908931247c',  # same same
     'f86e9571-63ff-4116-9c40-aa44d57d2da9',  # 404 not found
+    '16ad5eef-3fa6-4c75-9296-29bf40c5cfaa',  # 404 not found
+    '511afaa5-fdc4-4166-b4c0-4629ec5e652e',  # 404 not found
+    'f88d4dd4-ccd7-400e-9035-fa00be3bcfa8',  # 404 not found
 ]
-
+error404 = []
 one = ONE()
 pids, _ = bwm_pids(one, tracing=True)
 
@@ -34,7 +37,7 @@ df_probes = pd.DataFrame(dict(eid='', pname='', spike_sorter='', histology=''), 
 ldf_channels = []
 ldf_clusters = []
 no_spike_sorting = []
-IMIN = 0
+IMIN = 116
 
 for i, pid in enumerate(pids):
     if i < IMIN:
@@ -47,18 +50,24 @@ for i, pid in enumerate(pids):
 
     # spikes, clusters, channels = load_spike_sorting_fast(eid=eid, probe=pname, one=one, nested=False)
     print(i, pid)
-    ss = SpikeSortingLoader(pid, one=one, atlas=ba)
-    spikes, clusters, channels = ss.load_spike_sorting()
+
+    ss = SpikeSortingLoader(pid=pid, one=one, atlas=ba)
+    import urllib.error
+    try:
+        spikes, clusters, channels = ss.load_spike_sorting()
+    except urllib.error.HTTPError:
+        error404.append(pid)
+        continue
+    clusters = ss.merge_clusters(spikes, clusters, channels)
     df_probes['spike_sorter'][i] = ss.collection
     df_probes['histology'][i] = ss.histology
     if not spikes:
         no_spike_sorting.append(pid)
         continue
-    metrics = clusters.pop('metrics')
     df_ch = pd.DataFrame(channels)
     df_ch['pid'] = pid
     ldf_channels.append(df_ch)
-    df_clu = pd.merge(metrics, pd.DataFrame(clusters), left_index=True, right_index=True)
+    df_clu = pd.DataFrame(clusters)
     df_clu['pid'] = pid
     ldf_clusters.append(df_clu)
 
