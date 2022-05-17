@@ -3,13 +3,13 @@ import numpy as np
 import pandas as pd
 import scipy.signal
 
-from brainbox.io.spikeglx import stream
+from brainbox.io.spikeglx import Streamer
 
+import neurodsp as dsp
+from neuropixel import trace_header
 from iblutil.numerical import ismember2d
 from ibllib.dsp import voltage
 from ibllib.atlas.regions import BrainRegions
-import ibllib.dsp as dsp
-from ibllib.ephys.neuropixel import trace_header
 from ibllib.ephys.spikes import detection
 
 from one.api import ONE

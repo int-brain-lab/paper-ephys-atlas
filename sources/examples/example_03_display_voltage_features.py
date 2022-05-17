@@ -82,7 +82,6 @@ ax.legend()
 gb_regions = df_voltage.groupby('atlas_id_beryl')
 gb_regions = df_voltage.groupby('atlas_id')
 
-
 df_regions = gb_regions.agg({
     'rms_ap': ('median', 'var'),
     'rms_lf': ('median', 'var'),
