@@ -39,15 +39,18 @@ pids = [pids[0]]
 df_channels = pd.read_parquet(STAGING_PATH.joinpath('channels.pqt'))
 
 # ==== Step 1 : Define compute function
+# Name of column in dataframe
+k = 'fanofactor'
+
 
 def fanofactor():
     # bla
 
 
-
+#  Add column to dataframe
+df_channels[k] = 
 
 # ==== Step 2-3 : Download needed data and Launch computation in loop
-# Step 2 taken from https://github.com/int-brain-lab/paper-ephys-atlas/blob/main/sources/examples/example_01_get_bwm_data.py
     for i, pid in enumerate(pids):
         eid, pname = one.pid2eid(pid)
         ss = SpikeSortingLoader(pid=pid, one=one, atlas=ba)
@@ -57,6 +60,8 @@ def fanofactor():
         except urllib.error.HTTPError:
             error404.append(pid)
             continue
+
+        df_channels.loc[pid, k] = fanofactor(pid)
 
 
 # ==== Step 4: save to dataframe
