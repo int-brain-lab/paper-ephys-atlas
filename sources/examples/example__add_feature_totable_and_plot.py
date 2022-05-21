@@ -34,27 +34,26 @@ excludes = [
 
 error404 = []
 
-pids, _ = bwm_pids(one, tracing=True)
-
-
-# test
-# pids = [pids[0]]
-# pids = ['4279e354-a6b8-4eff-8245-7c8723b07834']
-pids = ['94e948c1-f7be-4868-893a-f7cd2df3313e']
-
 # Load already existing DF
 
 df_channels = pd.read_parquet(STAGING_PATH.joinpath('channels.pqt'))
 
+# Get pids
+
+# pids, _ = bwm_pids(one, tracing=True)
 pids = df_channels.index.values.tolist()
 pids = [item[0] for item in pids]
+
+# test
+pids = [pids[0]]
+# pids = ['94e948c1-f7be-4868-893a-f7cd2df3313e']
 
 # ==== Step 1 : Define compute function
 # Name of column in dataframe
 k = 'fanofactor'
 
 
-def fanofactor(spikes):
+def fanofactor():  # take spikes as input for example
     n_ch = 384
     v = np.random.rand(1, n_ch)
     return v[0]
@@ -65,6 +64,8 @@ df_channels[k] = np.nan
 
 # ==== Step 2-3 : Download needed data and Launch computation in loop
     for i, pid in enumerate(pids):
+        # Load data
+        ''' LOAD DATA SKIPPED FOR NOW
         eid, pname = one.pid2eid(pid)
         ss = SpikeSortingLoader(pid=pid, one=one, atlas=ba)
 
@@ -73,9 +74,9 @@ df_channels[k] = np.nan
         except urllib.error.HTTPError:
             error404.append(pid)
             continue
-
-        df_channels.loc[pid, k] = fanofactor(spikes)
-
+        '''
+        # Compute and append to df
+        df_channels.loc[pid, k] = fanofactor()
 
 # ==== Step 4: save to dataframe
 df_channels.to_parquet(STAGING_PATH.joinpath('channels.pqt'))
