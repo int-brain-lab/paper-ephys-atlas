@@ -61,24 +61,24 @@ def fanofactor(n_ch):  # take spikes as input for example
 df_channels[k] = np.nan
 
 # ==== Step 2-3 : Download needed data and Launch computation in loop
-    for i, pid in enumerate(pids):
-        # Load data
-        ''' LOAD DATA SKIPPED FOR NOW
-        eid, pname = one.pid2eid(pid)
-        ss = SpikeSortingLoader(pid=pid, one=one, atlas=ba)
+for i, pid in enumerate(pids):
+    # Load data
+    ''' LOAD DATA SKIPPED FOR NOW
+    eid, pname = one.pid2eid(pid)
+    ss = SpikeSortingLoader(pid=pid, one=one, atlas=ba)
 
-        try:
-            spikes, clusters, channels = ss.load_spike_sorting()
-        except urllib.error.HTTPError:
-            error404.append(pid)
-            continue
-        '''
-        # Compute and append to df
-        n_ch = len(df_channels.loc[pid, k])
-        df_channels.loc[pid, k] = fanofactor(n_ch=n_ch)
+    try:
+        spikes, clusters, channels = ss.load_spike_sorting()
+    except urllib.error.HTTPError:
+        error404.append(pid)
+        continue
+    '''
+    # Compute and append to df
+    n_ch = len(df_channels.loc[pid, k])
+    df_channels.loc[pid, k] = fanofactor(n_ch=n_ch)
 
 # ==== Step 4: save to dataframe
-df_channels.to_parquet(STAGING_PATH.joinpath('channels.pqt'))
+# df_channels.to_parquet(STAGING_PATH.joinpath('channels.pqt'))
 
 # ==== Aggregate per brain region to plot
 df_regions = df_channels.groupby('atlas_id').agg({
