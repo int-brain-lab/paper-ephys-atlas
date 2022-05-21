@@ -13,6 +13,8 @@ from brainbox.io.one import SpikeSortingLoader
 import urllib.error
 import pandas as pd
 from pathlib import Path
+from ibllib.atlas.flatmaps import plot_swanson
+import matplotlib.pyplot as plt
 
 
 # ==== INIT
@@ -20,6 +22,7 @@ from pathlib import Path
 one = ONE()
 ba = AllenAtlas()
 STAGING_PATH = Path('/Users/gaelle/Downloads/bwm_sav/')
+cmap = 'Blues'
 
 excludes = [
     'f86e9571-63ff-4116-9c40-aa44d57d2da9',  # 404 not found
@@ -43,12 +46,11 @@ df_channels = pd.read_parquet(STAGING_PATH.joinpath('channels.pqt'))
 k = 'fanofactor'
 
 
-def fanofactor():
-    # bla
+def fanofactor(spikes):
+    return 0
 
 
-#  Add column to dataframe
-df_channels[k] = 
+#  Add column to dataframe ? Not needed
 
 # ==== Step 2-3 : Download needed data and Launch computation in loop
     for i, pid in enumerate(pids):
@@ -61,8 +63,25 @@ df_channels[k] =
             error404.append(pid)
             continue
 
-        df_channels.loc[pid, k] = fanofactor(pid)
+        df_channels.loc[pid, k] = fanofactor(spikes)
 
 
 # ==== Step 4: save to dataframe
 df_channels.to_parquet(STAGING_PATH.joinpath('channels.pqt'))
+
+# ==== Aggregate per brain region to plot
+df_regions = df_channels.groupby('atlas_id').agg({
+    k: 'median'
+})
+
+feats = {
+    k: dict(cmap=cmap)
+}
+
+# PLOT
+kwargs = feats[k]
+
+fig, ax = plt.subplots(figsize=(15, 8))
+fig.tight_layout()
+plot_swanson(acronyms=df_regions.index, values=df_regions[k],
+             br=ba.regions, ax=ax, **kwargs)
