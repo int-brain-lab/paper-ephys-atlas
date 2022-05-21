@@ -15,6 +15,7 @@ import pandas as pd
 from pathlib import Path
 from ibllib.atlas.flatmaps import plot_swanson
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 # ==== INIT
@@ -34,12 +35,19 @@ excludes = [
 error404 = []
 
 pids, _ = bwm_pids(one, tracing=True)
+
+
 # test
-pids = [pids[0]]
+# pids = [pids[0]]
+# pids = ['4279e354-a6b8-4eff-8245-7c8723b07834']
+pids = ['94e948c1-f7be-4868-893a-f7cd2df3313e']
 
 # Load already existing DF
 
 df_channels = pd.read_parquet(STAGING_PATH.joinpath('channels.pqt'))
+
+pids = df_channels.index.values.tolist()
+pids = [item[0] for item in pids]
 
 # ==== Step 1 : Define compute function
 # Name of column in dataframe
@@ -47,10 +55,13 @@ k = 'fanofactor'
 
 
 def fanofactor(spikes):
-    return 0
+    n_ch = 384
+    v = np.random.rand(1, n_ch)
+    return v[0]
 
 
-#  Add column to dataframe ? Not needed
+#  Add column to dataframe
+df_channels[k] = np.nan
 
 # ==== Step 2-3 : Download needed data and Launch computation in loop
     for i, pid in enumerate(pids):
