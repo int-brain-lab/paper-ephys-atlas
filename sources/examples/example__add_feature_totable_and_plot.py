@@ -6,16 +6,17 @@
 4. Append to dataframe ; save to dataframe
 5. Display
 '''
+
 from one.api import ONE
-from ephys_atlas.data import bwm_pids
 from ibllib.atlas import AllenAtlas
-from brainbox.io.one import SpikeSortingLoader
-import urllib.error
 import pandas as pd
 from pathlib import Path
 from ibllib.atlas.flatmaps import plot_swanson
 import matplotlib.pyplot as plt
 import numpy as np
+from ephys_atlas.data import bwm_pids
+from brainbox.io.one import SpikeSortingLoader
+import urllib.error
 
 
 # ==== INIT
@@ -26,10 +27,7 @@ STAGING_PATH = Path('/Users/gaelle/Downloads/bwm_sav/')
 cmap = 'Blues'
 
 excludes = [
-    'f86e9571-63ff-4116-9c40-aa44d57d2da9',  # 404 not found
-    '16ad5eef-3fa6-4c75-9296-29bf40c5cfaa',  # 404 not found
-    '511afaa5-fdc4-4166-b4c0-4629ec5e652e',  # 404 not found
-    'f88d4dd4-ccd7-400e-9035-fa00be3bcfa8',  # 404 not found
+    '316a733a-5358-4d1d-9f7f-179ba3c90adf'
 ]
 
 error404 = []
@@ -45,7 +43,7 @@ pids = df_channels.index.values.tolist()
 pids = [item[0] for item in pids]
 
 # test
-pids = [pids[0]]
+# pids = [pids[0]]
 # pids = ['94e948c1-f7be-4868-893a-f7cd2df3313e']
 
 # ==== Step 1 : Define compute function
@@ -53,8 +51,8 @@ pids = [pids[0]]
 k = 'fanofactor'
 
 
-def fanofactor():  # take spikes as input for example
-    n_ch = 384
+def fanofactor(n_ch):  # take spikes as input for example
+    # n_ch = 384
     v = np.random.rand(1, n_ch)
     return v[0]
 
@@ -76,7 +74,8 @@ df_channels[k] = np.nan
             continue
         '''
         # Compute and append to df
-        df_channels.loc[pid, k] = fanofactor()
+        n_ch = len(df_channels.loc[pid, k])
+        df_channels.loc[pid, k] = fanofactor(n_ch=n_ch)
 
 # ==== Step 4: save to dataframe
 df_channels.to_parquet(STAGING_PATH.joinpath('channels.pqt'))
