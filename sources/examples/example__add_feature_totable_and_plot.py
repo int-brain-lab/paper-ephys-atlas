@@ -7,27 +7,53 @@
 '''
 from one.api import ONE
 from ephys_atlas.data import bwm_pids
+from ibllib.atlas import AllenAtlas
+from brainbox.io.one import SpikeSortingLoader
+import urllib.error
+import pandas as pd
+from pathlib import Path
+
 
 # ==== INIT
 
 one = ONE()
+ba = AllenAtlas()
+STAGING_PATH = Path('/Users/gaelle/Downloads/bwm_sav/')
 
 excludes = [
-    # 'd8c7d3f2-f8e7-451d-bca1-7800f4ef52ed',  # key error in loading histology from json
-    # 'da8dfec1-d265-44e8-84ce-6ae9c109b8bd',  # same same
-    # 'c2184312-2421-492b-bbee-e8c8e982e49e',  # same same
-    # '58b271d5-f728-4de8-b2ae-51908931247c',  # same same
     'f86e9571-63ff-4116-9c40-aa44d57d2da9',  # 404 not found
     '16ad5eef-3fa6-4c75-9296-29bf40c5cfaa',  # 404 not found
     '511afaa5-fdc4-4166-b4c0-4629ec5e652e',  # 404 not found
     'f88d4dd4-ccd7-400e-9035-fa00be3bcfa8',  # 404 not found
 ]
+
+error404 = []
+
 pids, _ = bwm_pids(one, tracing=True)
+# test
+pids = [pids[0]]
+
+# Load already existing DF
+
+df_voltage = pd.read_parquet(STAGING_PATH.joinpath('channels.pqt'))
 
 # ==== Step 1
 
 def fanofactor():
     # bla
 
-# ==== Step 2
+
+
+
+# ==== Step 2-3
+# Step 2 inspired from https://github.com/int-brain-lab/paper-ephys-atlas/blob/main/sources/examples/example_01_get_bwm_data.py
+    for i, pid in enumerate(pids):
+        eid, pname = one.pid2eid(pid)
+        ss = SpikeSortingLoader(pid=pid, one=one, atlas=ba)
+
+        try:
+            spikes, clusters, channels = ss.load_spike_sorting()
+        except urllib.error.HTTPError:
+            error404.append(pid)
+            continue
 
