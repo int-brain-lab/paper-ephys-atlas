@@ -8,10 +8,8 @@ Created on Sat May 21 17:05:48 2022
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import KFold
-from sklearn.metrics import accuracy_score
-from sklearn.utils import shuffle
+import pickle
 from iblutil.numerical import ismember
 from ibllib.atlas import BrainRegions
 br = BrainRegions()
@@ -29,25 +27,17 @@ chan_volt = chan_volt.loc[~chan_volt['rms_ap'].isnull()]  # remove NaNs
 feature_arr = chan_volt[FEATURES].to_numpy()
 
 # Initialize
-if CLASSIFIER == 'forest':
-    clf = RandomForestClassifier(random_state=42, n_estimators=100)
-elif CLASSIFIER == 'bayes':
-    clf = GaussianNB()
+clf = RandomForestClassifier(random_state=42, n_estimators=100)
 kfold = KFold(n_splits=N_FOLDS, shuffle=False)
 
 # Remap to Beryl atlas
 _, inds = ismember(br.acronym2id(chan_volt['acronym']), br.id[br.mappings['Allen']])
 chan_volt['beryl_acronyms'] = br.get(br.id[br.mappings['Beryl'][inds]])['acronym']
 
-# Decode brain regions
-print('Decoding brain regions..')
-region_predict = np.empty(chan_volt.shape[0]).astype(object)
-feature_imp = np.empty((N_FOLDS, len(FEATURES)))
-for i, (train_index, test_index) in zip(np.arange(N_FOLDS), kfold.split(feature_arr)):
-    print(f'Fold {i+1} of {N_FOLDS}')
-    clf.fit(feature_arr[train_index], chan_volt['beryl_acronyms'].values[train_index])
-    region_predict[test_index] = clf.predict(feature_arr[test_index])
-    feature_imp[i, :] = clf.feature_importances_
-acc = accuracy_score(chan_volt['beryl_acronyms'].values, region_predict)
-print(f'Accuracy: {acc*100:.1f}%')
-print(f'Chance level: {(1/chan_volt["beryl_acronyms"].unique().shape[0])*100:.1f}%')
+# Fit model
+print('Fitting model..')
+clf.fit(feature_arr, chan_volt['beryl_acronyms'].values)
+
+# Save fitted model to disk
+pickle.dump(clf, open('model.pickle', 'wb'))
+print('Fitted model saved to disk')
