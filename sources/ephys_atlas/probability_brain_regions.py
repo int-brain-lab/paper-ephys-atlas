@@ -80,8 +80,11 @@ def get_probability(small_vol, label_interest):
     found in the small volume
     n_vox_mat: 1x1: N elements in the small volume
     '''
+    # Compute number of voxels in the small matrix (size x*y*z)
     n_vox_mat = small_vol.shape[0]*small_vol.shape[1]*small_vol.shape[2]
+    # Find how many occurence of labels exist in the small volume
     n_vox_vect = np.bincount(small_vol.flatten().astype('int'))
+    # Compute the proportion of the label of the point of interest found in the small volume
     prob_region_interest = n_vox_vect[label_interest] / n_vox_mat
     return prob_region_interest, n_vox_vect, n_vox_mat
 
