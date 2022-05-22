@@ -10,6 +10,8 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import KFold
 import pickle
+from os.path import join
+from sklearn.externals import joblib
 from iblutil.numerical import ismember
 from ibllib.atlas import BrainRegions
 br = BrainRegions()
@@ -39,5 +41,6 @@ print('Fitting model..')
 clf.fit(feature_arr, chan_volt['beryl_acronyms'].values)
 
 # Save fitted model to disk
-pickle.dump(clf, open('model.pickle', 'wb'))
+pickle.dump(clf, open(join('decoding', 'model_pickle.pkl'), 'wb'))
+joblib.dump(clf, join('decoding', 'model_joblib.pkl'))
 print('Fitted model saved to disk')
