@@ -39,7 +39,8 @@ feature_arr = chan_volt[FEATURES].to_numpy()
 if args.classifier == 'forest':
     clf = RandomForestClassifier(random_state=42, n_estimators=int(args.n_trees),
                                  max_depth=int(args.max_depth),
-                                 max_leaf_nodes=int(args.max_leaf_nodes))
+                                 max_leaf_nodes=int(args.max_leaf_nodes),
+                                 n_jobs=-1)
 elif args.classifier == 'bayes':
     clf = GaussianNB()
 kfold = KFold(n_splits=N_FOLDS, shuffle=False)
