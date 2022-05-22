@@ -6,7 +6,23 @@ import numpy as np
 
 
 def func_ax_indx(ax_coord, point, radius, volume):
-    # ax_coord = 0 : x ;   1: y ;   2: z
+    '''
+    Takes a point of interest, and computes the start index and end index in the particular axis of interest based
+    on the radius value in that axis. If the index are out of bound compared to the large volume, it gets truncated to
+    match the volume size.
+
+    For example, if the radius is [-2, 2] in the x-axis (ax_coord=0), and the point of interest is [1,3,6]
+    the start/end index for the smaller volume in the x-axis would be:
+    x1 = point_x + radius_x[0] = 1 - 2 = -1  -> this value is negative, so it gets trimmed to 0
+    x2 = point_x + radius_x[1] = 1 + 2 = 3
+
+
+    :param ax_coord: integer indicating the coordinate axis of interest;  0 : x ;   1: y ;   2: z
+    :param point: 1x3 vector (x,z,y) index of point of interest ; example: [0, 3, 2]
+    :param radius: 1x3 vector (x,y,z) of 2 values containing the N voxels to be used in each direction
+    :param volume: nxmxp overall matrix containing labels (int+)
+    :return: x1, x2: start index and end index in the particular axis of interest
+    '''
 
     x1 = point[ax_coord] + radius[ax_coord][0]
     x2 = point[ax_coord] + radius[ax_coord][1]
