@@ -19,28 +19,31 @@ parser = argparse.ArgumentParser()
 # Settings
 parser.add_argument("-data_path", "--data_path", help="Path to training data")
 args = parser.parse_args()
-FEATURES = ['psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'rms_ap', 'rms_lf',
-            'spike_rate']
 PID_EXCL = ['64d04585-67e7-4320-baad-8d4589fd18f7', '31d8dfb1-71fd-4c53-9229-7cd48bee07e4']
+FEATURES = ['psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'rms_ap', 'rms_lf',
+            'spike_rate', 'axial_um', 'x', 'y', 'depth', 'theta', 'phi']
 
 # Load in data
-chan_volt = pd.read_parquet(args.data_path)
-chan_volt = chan_volt.loc[~chan_volt['rms_ap'].isnull()]  # remove NaNs
-chan_volt = chan_volt.drop(PID_EXCL[0], level='pid')  # remove PIDs for testing
-feature_arr = chan_volt[FEATURES].to_numpy()
+chan_volt = pd.read_parquet(join(args.data_path, 'channels_voltage_features.pqt'))
+chan_volt = chan_volt.drop(columns=['x', 'y', 'z'])
+mm_coord = pd.read_parquet(join(args.data_path, 'coordinates.pqt'))
+mm_coord.index.name = 'pid'
+merged_df = pd.merge(chan_volt, mm_coord, how='left', on='pid')
+merged_df = merged_df.loc[~merged_df['rms_ap'].isnull() & ~merged_df['x'].isnull()]  # remove NaNs
+feature_arr = merged_df[FEATURES].to_numpy()
 
 # Initialize
-clf = RandomForestClassifier(random_state=42, n_estimators=10, max_depth=20, max_leaf_nodes=1000,
-                             n_jobs=-1)
+clf = RandomForestClassifier(random_state=42, n_estimators=40, max_depth=20, max_leaf_nodes=15000,
+                             n_jobs=-1, class_weight='balanced')
 
 # Remap to Beryl atlas
-_, inds = ismember(br.acronym2id(chan_volt['acronym']), br.id[br.mappings['Allen']])
-chan_volt['beryl_acronyms'] = br.get(br.id[br.mappings['Beryl'][inds]])['acronym']
+_, inds = ismember(br.acronym2id(merged_df['acronym']), br.id[br.mappings['Allen']])
+merged_df['beryl_acronyms'] = br.get(br.id[br.mappings['Beryl'][inds]])['acronym']
 
 # Fit model
 print('Fitting model..')
-clf.fit(feature_arr, chan_volt['beryl_acronyms'].values)
+clf.fit(feature_arr, merged_df['beryl_acronyms'].values)
 
 # Save fitted model to disk
-dump(clf, join(pathlib.Path(__file__).parent.resolve(), 'model.pkl'))
+dump(clf, join(pathlib.Path(__file__).parent.resolve(), 'model.pkl'), compress=3)
 print('Fitted model saved to disk')
