@@ -10,27 +10,28 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import KFold
 import pickle
-from os.path import join
+from os.path import join, abspath
 from joblib import dump, load
 from iblutil.numerical import ismember
 from ibllib.atlas import BrainRegions
+import argparse
 br = BrainRegions()
+parser = argparse.ArgumentParser()
 
 # Settings
-CLASSIFIER = 'forest'  # bayes or forest
-N_FOLDS = 5
-N_SHUFFLE = 100
+parser.add_argument("-data_path", "--data_path", help="Path to training data")
+args = parser.parse_args()
+classifier = args.classifier
 FEATURES = ['psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'rms_ap', 'rms_lf',
             'spike_rate']
 
 # Load in data
-chan_volt = pd.read_parquet('/home/guido/Data/ephys-atlas/channels_voltage_features.pqt')
+chan_volt = pd.read_parquet(args.data_path)
 chan_volt = chan_volt.loc[~chan_volt['rms_ap'].isnull()]  # remove NaNs
 feature_arr = chan_volt[FEATURES].to_numpy()
 
 # Initialize
-clf = RandomForestClassifier(random_state=42, n_estimators=100)
-kfold = KFold(n_splits=N_FOLDS, shuffle=False)
+clf = RandomForestClassifier(random_state=42, n_estimators=100, max_depth=50)
 
 # Remap to Beryl atlas
 _, inds = ismember(br.acronym2id(chan_volt['acronym']), br.id[br.mappings['Allen']])
@@ -41,6 +42,5 @@ print('Fitting model..')
 clf.fit(feature_arr, chan_volt['beryl_acronyms'].values)
 
 # Save fitted model to disk
-pickle.dump(clf, open(join('decoding', 'model_pickle.pkl'), 'wb'))
-dump(clf, join('decoding', 'model_joblib.pkl'))
+dump(clf, join(abspath(__file__), 'model.pkl'))
 print('Fitted model saved to disk')
