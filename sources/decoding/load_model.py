@@ -13,39 +13,26 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import KFold
 from sklearn.metrics import accuracy_score
-from iblutil.numerical import ismember
-from ibllib.atlas import BrainRegions
 from joblib import dump, load
+from model_functions import load_data
 import argparse
-br = BrainRegions()
 parser = argparse.ArgumentParser()
 
 # Settings
-parser.add_argument("-data_path", "--data_path", help="Path to training data")
-parser.add_argument("-model_path", "--model_path", help="Path to model")
-
-args = parser.parse_args()
-N_FOLDS = 10
+PATH = 'C:\\Users\\guido\\Data\\EphysAtlas'
 FEATURES = ['psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'rms_ap', 'rms_lf',
-            'spike_rate']
+            'spike_rate', 'axial_um', 'x', 'y', 'depth', 'theta', 'phi']
+#PID = '64d04585-67e7-4320-baad-8d4589fd18f7'
+PID = '31d8dfb1-71fd-4c53-9229-7cd48bee07e4'
 
 # Load in data
-chan_volt = pd.read_parquet(args.data_path)
-chan_volt = chan_volt.loc[~chan_volt['rms_ap'].isnull()]  # remove NaNs
-test = chan_volt.xs('071f02e7-752a-4094-af79-8dd764e9d85d', level='pid')
-feature_arr = test[FEATURES].to_numpy()
+data = load_data(PATH)
+data = data[data.index == PID]
+feature_arr = data[FEATURES].to_numpy()
 
-# Load model
-clf = load(args.model_path)
+# Load in model
+clf = load(join(PATH, 'model.pkl'))
+region_predict = clf.predict(feature_arr)
 
-# Remap to Beryl atlas
-_, inds = ismember(br.acronym2id(chan_volt['acronym']), br.id[br.mappings['Allen']])
-chan_volt['beryl_acronyms'] = br.get(br.id[br.mappings['Beryl'][inds]])['acronym']
 
-# Decode brain regions
-print('Decoding brain regions..')
 
-acc = accuracy_score(test['beryl_acronyms'].values,
-                     clf.predict(feature_arr))
-print(f'Accuracy: {acc*100:.1f}%')
-print(f'Chance level: {(1/chan_volt["beryl_acronyms"].unique().shape[0])*100:.1f}%')
