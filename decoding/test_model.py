@@ -7,12 +7,15 @@ Created on Sat May 21 17:05:48 2022
 
 import numpy as np
 import pandas as pd
+from os.path import join
+import pathlib
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import KFold
 from sklearn.metrics import accuracy_score
 from iblutil.numerical import ismember
 from ibllib.atlas import BrainRegions
+from joblib import dump
 import argparse
 br = BrainRegions()
 parser = argparse.ArgumentParser()
@@ -58,3 +61,7 @@ acc = accuracy_score(chan_volt['beryl_acronyms'].values[test_index],
                      clf.predict(feature_arr[test_index]))
 print(f'Accuracy: {acc*100:.1f}%')
 print(f'Chance level: {(1/chan_volt["beryl_acronyms"].unique().shape[0])*100:.1f}%')
+
+# Save fitted model to disk
+dump(clf, join(pathlib.Path(__file__).parent.resolve(), 'test_model.pkl'))
+print('Fitted model saved to disk')
