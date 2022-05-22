@@ -11,27 +11,31 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import KFold
 from sklearn.metrics import accuracy_score
-from sklearn.utils import shuffle
 from iblutil.numerical import ismember
 from ibllib.atlas import BrainRegions
+import argparse
 br = BrainRegions()
+parser = argparse.ArgumentParser()
 
 # Settings
+parser.add_argument("-data_path", "--data_path", help="Path to training data")
+parser.add_argument("-classifier", "--classifier", help="forest or bayes")
+args = parser.parse_args()
+classifier = args.classifier
 CLASSIFIER = 'forest'  # bayes or forest
 N_FOLDS = 5
-N_SHUFFLE = 100
 FEATURES = ['psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'rms_ap', 'rms_lf',
             'spike_rate']
 
 # Load in data
-chan_volt = pd.read_parquet('/home/guido/Data/ephys-atlas/channels_voltage_features.pqt')
+chan_volt = pd.read_parquet(args.data_path)
 chan_volt = chan_volt.loc[~chan_volt['rms_ap'].isnull()]  # remove NaNs
 feature_arr = chan_volt[FEATURES].to_numpy()
 
 # Initialize
-if CLASSIFIER == 'forest':
-    clf = RandomForestClassifier(random_state=42, n_estimators=100)
-elif CLASSIFIER == 'bayes':
+if args.classifier == 'forest':
+    clf = RandomForestClassifier(random_state=42, n_estimators=100, max_depth=50)
+elif args.classifier == 'bayes':
     clf = GaussianNB()
 kfold = KFold(n_splits=N_FOLDS, shuffle=False)
 
