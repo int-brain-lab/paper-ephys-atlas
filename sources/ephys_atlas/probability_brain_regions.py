@@ -60,8 +60,8 @@ def get_probability(small_vol, label_interest):
     return prob_region_interest, n_vox_vect, n_vox_mat
 
 
-# mat_test = np.zeros([3,5,5])
-# mat_test[0,:] = 23
+# volume = np.zeros([3,5,5])
+# volume[0,:] = 23
 #
 # radius = [[-2,1],[0, 0],[-1,1]]
 # point = [1,1,1]
