@@ -28,7 +28,8 @@ chan_volt = chan_volt.loc[~chan_volt['rms_ap'].isnull()]  # remove NaNs
 feature_arr = chan_volt[FEATURES].to_numpy()
 
 # Initialize
-clf = RandomForestClassifier(random_state=42, n_estimators=100, max_depth=30, max_leaf_nodes=10000)
+clf = RandomForestClassifier(random_state=42, n_estimators=100, max_depth=30, max_leaf_nodes=10000,
+                             n_jobs=-1)
 
 # Remap to Beryl atlas
 _, inds = ismember(br.acronym2id(chan_volt['acronym']), br.id[br.mappings['Allen']])
