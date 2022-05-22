@@ -21,10 +21,12 @@ parser.add_argument("-data_path", "--data_path", help="Path to training data")
 args = parser.parse_args()
 FEATURES = ['psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'rms_ap', 'rms_lf',
             'spike_rate']
+PID_EXCL = ['64d04585-67e7-4320-baad-8d4589fd18f7', '31d8dfb1-71fd-4c53-9229-7cd48bee07e4']
 
 # Load in data
 chan_volt = pd.read_parquet(args.data_path)
 chan_volt = chan_volt.loc[~chan_volt['rms_ap'].isnull()]  # remove NaNs
+chan_volt = chan_volt.drop(PID_EXCL[0], level='pid')  # remove PIDs for testing
 feature_arr = chan_volt[FEATURES].to_numpy()
 
 # Initialize
