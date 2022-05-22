@@ -31,37 +31,41 @@ classifier = args.classifier
 CLASSIFIER = 'forest'  # bayes or forest
 N_FOLDS = 10
 FEATURES = ['psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'rms_ap', 'rms_lf',
-            'spike_rate']
+            'spike_rate', 'axial_um', 'x', 'y', 'depth', 'theta', 'phi']
 
 # Load in data
-chan_volt = pd.read_parquet(args.data_path)
-chan_volt = chan_volt.loc[~chan_volt['rms_ap'].isnull()]  # remove NaNs
-feature_arr = chan_volt[FEATURES].to_numpy()
+chan_volt = pd.read_parquet(join(args.data_path, 'channels_voltage_features.pqt'))
+chan_volt = chan_volt.drop(columns=['x', 'y', 'z'])
+mm_coord = pd.read_parquet(join(args.data_path, 'coordinates.pqt'))
+mm_coord.index.name = 'pid'
+merged_df = pd.merge(chan_volt, mm_coord, how='left', on='pid')
+merged_df = merged_df.loc[~merged_df['rms_ap'].isnull() & ~merged_df['x'].isnull()]  # remove NaNs
+feature_arr = merged_df[FEATURES].to_numpy()
 
 # Initialize
 if args.classifier == 'forest':
     clf = RandomForestClassifier(random_state=42, n_estimators=int(args.n_trees),
                                  max_depth=int(args.max_depth),
                                  max_leaf_nodes=int(args.max_leaf_nodes),
-                                 n_jobs=-1)
+                                 n_jobs=-1, class_weight='balanced')
 elif args.classifier == 'bayes':
     clf = GaussianNB()
 kfold = KFold(n_splits=N_FOLDS, shuffle=False)
 
 # Remap to Beryl atlas
-_, inds = ismember(br.acronym2id(chan_volt['acronym']), br.id[br.mappings['Allen']])
-chan_volt['beryl_acronyms'] = br.get(br.id[br.mappings['Beryl'][inds]])['acronym']
+_, inds = ismember(br.acronym2id(merged_df['acronym']), br.id[br.mappings['Allen']])
+merged_df['beryl_acronyms'] = br.get(br.id[br.mappings['Beryl'][inds]])['acronym']
 
 # Decode brain regions
 print('Decoding brain regions..')
 feature_imp = np.empty((N_FOLDS, len(FEATURES)))
 train_index, test_index = next(kfold.split(feature_arr))
-clf.fit(feature_arr[train_index], chan_volt['beryl_acronyms'].values[train_index])
-acc = accuracy_score(chan_volt['beryl_acronyms'].values[test_index],
+clf.fit(feature_arr[train_index], merged_df['beryl_acronyms'].values[train_index])
+acc = accuracy_score(merged_df['beryl_acronyms'].values[test_index],
                      clf.predict(feature_arr[test_index]))
 print(f'Accuracy: {acc*100:.1f}%')
-print(f'Chance level: {(1/chan_volt["beryl_acronyms"].unique().shape[0])*100:.1f}%')
 
 # Save fitted model to disk
-dump(clf, join(pathlib.Path(__file__).parent.resolve(), 'test_model.pkl'))
+dump(clf, join(pathlib.Path(__file__).parent.resolve(), 'test_model_uncompressed.pkl'))
+dump(clf, join(pathlib.Path(__file__).parent.resolve(), 'test_model.pkl'), compress=3)
 print('Fitted model saved to disk')
