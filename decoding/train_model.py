@@ -5,15 +5,13 @@ Created on Sat May 21 17:05:48 2022
 @author: Guido Meijer
 """
 
-import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import KFold
-import pickle
-from os.path import join, abspath
-from joblib import dump, load
+from os.path import join
+from joblib import dump
 from iblutil.numerical import ismember
 from ibllib.atlas import BrainRegions
+import pathlib
 import argparse
 br = BrainRegions()
 parser = argparse.ArgumentParser()
@@ -41,5 +39,5 @@ print('Fitting model..')
 clf.fit(feature_arr, chan_volt['beryl_acronyms'].values)
 
 # Save fitted model to disk
-dump(clf, join(abspath(__file__), 'model.pkl'))
+dump(clf, join(pathlib.Path(__file__).parent.resolve(), 'model.pkl'))
 print('Fitted model saved to disk')
