@@ -60,11 +60,14 @@ def get_probability(small_vol, label_interest):
     return prob_region_interest, n_vox_vect, n_vox_mat
 
 
-volume = np.zeros([3,5,5])
-volume[0,:] = 23
+# TODO function to transform x,y,z in um to x,y,z in voxel index
 
-radius = [[-2,1],[0, 0],[-1,1]]
-point = [1,1,1]
+# Example:
+volume = np.zeros([3, 5, 5])
+volume[0, :] = 23
+
+radius = [[-2, 1], [0, 0], [-1, 1]]
+point = [1, 1, 1]
 
 small_vol, label_interest = get_small_volume(point, volume, radius)
 prob_region_interest, n_vox_vect, n_vox_mat = get_probability(small_vol, label_interest)
