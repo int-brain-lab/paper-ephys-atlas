@@ -71,9 +71,14 @@ def get_small_volume(point, volume, radius):
 
 def get_probability(small_vol, label_interest):
     '''
+    Computes the proportion of a given label in the given small volume
     :param label_interest: label (int+, of brain region)
     :param small_vol: nxmxp overall matrix containing labels (int+)
     :return:
+    prob_region_interest : proportion of the label in the small volume
+    n_vox_vect: 1xN_label: N element found in small volume for each label ; N_label is the max value for labels
+    found in the small volume
+    n_vox_mat: 1x1: N elements in the small volume
     '''
     n_vox_mat = small_vol.shape[0]*small_vol.shape[1]*small_vol.shape[2]
     n_vox_vect = np.bincount(small_vol.flatten().astype('int'))
