@@ -43,7 +43,7 @@ def get_small_volume(point, volume, radius):
     small_vol = volume[np.ix_(indx_x, indx_y, indx_z)]
 
     # Get brain label (that will serve as index)
-    label_interest = volume[point[0], point[1], point[2]]
+    label_interest = int(volume[point[0], point[1], point[2]])
 
     return small_vol, label_interest
 
@@ -60,8 +60,11 @@ def get_probability(small_vol, label_interest):
     return prob_region_interest, n_vox_vect, n_vox_mat
 
 
-# volume = np.zeros([3,5,5])
-# volume[0,:] = 23
-#
-# radius = [[-2,1],[0, 0],[-1,1]]
-# point = [1,1,1]
+volume = np.zeros([3,5,5])
+volume[0,:] = 23
+
+radius = [[-2,1],[0, 0],[-1,1]]
+point = [1,1,1]
+
+small_vol, label_interest = get_small_volume(point, volume, radius)
+prob_region_interest, n_vox_vect, n_vox_mat = get_probability(small_vol, label_interest)
