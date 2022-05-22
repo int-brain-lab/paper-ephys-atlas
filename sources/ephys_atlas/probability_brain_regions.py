@@ -37,10 +37,15 @@ def func_ax_indx(ax_coord, point, radius, volume):
 
 def get_small_volume(point, volume, radius):
     '''
+    Returns small subset volume (containing labels) from the larger volume using the radius, and the label of the
+    particular point of interest.
     :param point: 1x3 vector (x,z,y) index of point of interest
     :param volume: nxmxp overall matrix containing labels (int+)
     :param radius: 1x3 vector (x,y,z) of 2 values containing the N voxels to be used in each direction
     :return:
+    small_vol: smaller ixjxk matrix containing labels (int+)
+        i is size radius[0][1]-radius[0][0] ; j is size radius[1][1]-radius[1][0] ; k is size radius[2][1]-radius[2][0]
+    label_interest: label of the point of interest (int+)
     '''
     # check if radius value entered is valid
     check_rad = sum([item[0]>0 for item in radius])
