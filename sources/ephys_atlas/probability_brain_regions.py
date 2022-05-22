@@ -24,13 +24,15 @@ def func_ax_indx(ax_coord, point, radius, volume):
     :return: x1, x2: start index and end index in the particular axis of interest
     '''
 
+    # Compute start/end indices around point of interest according to radius defined, in axis of interest (x, y, or z)
     x1 = point[ax_coord] + radius[ax_coord][0]
     x2 = point[ax_coord] + radius[ax_coord][1]
 
-    if x1<0:
-        x1=0
-    if x2>volume.shape[ax_coord]:
-        x2=volume.shape[ax_coord]-1
+    # trim indices if outside boundaries of large volume
+    if x1 < 0:
+        x1 = 0
+    if x2 > volume.shape[ax_coord]:
+        x2 = volume.shape[ax_coord]-1
 
     return x1, x2
 
