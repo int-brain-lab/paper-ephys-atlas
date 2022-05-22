@@ -51,11 +51,10 @@ chan_volt['beryl_acronyms'] = br.get(br.id[br.mappings['Beryl'][inds]])['acronym
 
 # Decode brain regions
 print('Decoding brain regions..')
-region_predict = np.empty(chan_volt.shape[0]).astype(object)
 feature_imp = np.empty((N_FOLDS, len(FEATURES)))
 train_index, test_index = next(kfold.split(feature_arr))
 clf.fit(feature_arr[train_index], chan_volt['beryl_acronyms'].values[train_index])
-region_predict[test_index] = clf.predict(feature_arr[test_index])
-acc = accuracy_score(chan_volt['beryl_acronyms'].values, region_predict)
+acc = accuracy_score(chan_volt['beryl_acronyms'].values[test_index],
+                     clf.predict(feature_arr[test_index]))
 print(f'Accuracy: {acc*100:.1f}%')
 print(f'Chance level: {(1/chan_volt["beryl_acronyms"].unique().shape[0])*100:.1f}%')
