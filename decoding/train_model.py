@@ -30,7 +30,7 @@ chan_volt = chan_volt.drop(PID_EXCL[0], level='pid')  # remove PIDs for testing
 feature_arr = chan_volt[FEATURES].to_numpy()
 
 # Initialize
-clf = RandomForestClassifier(random_state=42, n_estimators=100, max_depth=30, max_leaf_nodes=10000,
+clf = RandomForestClassifier(random_state=42, n_estimators=10, max_depth=20, max_leaf_nodes=1000,
                              n_jobs=-1)
 
 # Remap to Beryl atlas
