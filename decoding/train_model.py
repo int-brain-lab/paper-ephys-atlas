@@ -21,7 +21,6 @@ parser = argparse.ArgumentParser()
 # Settings
 parser.add_argument("-data_path", "--data_path", help="Path to training data")
 args = parser.parse_args()
-classifier = args.classifier
 FEATURES = ['psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'rms_ap', 'rms_lf',
             'spike_rate']
 
