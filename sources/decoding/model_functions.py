@@ -38,7 +38,7 @@ def load_channel_data():
     return merged_df
 
 
-def load_trained_model(model):
+def load_trained_model(model='channels', atlas='beryl'):
     """
     Parameters
     ----------
@@ -46,7 +46,7 @@ def load_trained_model(model):
         'channels' or 'clusters'
     """
     path = join(split(dirname(realpath(__file__)))[0], 'trained_models')
-    clf = load(join(path, f'{model}_model.pkl'))
+    clf = load(join(path, f'{model}_model_{atlas}.pkl'))
     return clf
 
 
