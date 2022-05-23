@@ -49,13 +49,17 @@ def load_cluster_data():
     path = join(split(dirname(realpath(__file__)))[0], 'training_data')
     df_clusters = pd.read_parquet(join(path, 'clusters.pqt'))
     df_channels = pd.read_parquet(join(path, 'channels.pqt'))
-    
+        
     # Add acronyms
     if 'atlas_id' not in df_clusters.keys():
         df_clusters = df_clusters.merge(
             df_channels[['atlas_id', 'acronym']], right_on=['pid', 'raw_ind'], left_on=['pid', 'channels'])
-   
+       
     # Remap to Beryl atlas    
     _, inds = ismember(br.acronym2id(df_clusters['acronym']), br.id[br.mappings['Allen']])
     df_clusters['beryl_acronyms'] = br.get(br.id[br.mappings['Beryl'][inds]])['acronym']
+        
+    # remove NaNs
+    df_clusters = df_clusters.loc[~df_clusters['amp_max'].isnull()]  
+    
     return df_clusters
