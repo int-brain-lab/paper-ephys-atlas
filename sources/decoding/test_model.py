@@ -23,7 +23,6 @@ parser = argparse.ArgumentParser()
 
 # Settings
 parser.add_argument("-model", "--model", help="channels or clusters")
-parser.add_argument("-data_path", "--data_path", help="Path to training data")
 parser.add_argument("-max_depth", "--max_depth", help="Max depth")
 parser.add_argument("-n_trees", "--n_trees", help="Number of trees")
 parser.add_argument("-max_leaf_nodes", "--max_leaf_nodes", help="Max leaf node")
@@ -33,7 +32,7 @@ FEATURES = ['psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'rms
             'spike_rate', 'axial_um', 'x', 'y', 'depth', 'theta', 'phi']
 
 # Load in data
-merged_df = load_channel_data(args.data_path)
+merged_df = load_channel_data()
 feature_arr = merged_df[FEATURES].to_numpy()
 
 # Initialize
