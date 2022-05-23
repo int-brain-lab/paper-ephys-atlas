@@ -35,7 +35,7 @@ if args.model == 'channels':
                 'spike_rate', 'axial_um', 'x', 'y', 'depth', 'theta', 'phi']
     data_df = load_channel_data()
 elif args.model == 'clusters':
-    features = ['amp_max', 'amp_min', 'amp_median', 'amp_std_dB', 'firing_rate', 'depths']
+    features = ['amp_max', 'amp_min', 'amp_median', 'firing_rate', 'depths']
     data_df = load_cluster_data()
 feature_arr = data_df[features].to_numpy()
 
