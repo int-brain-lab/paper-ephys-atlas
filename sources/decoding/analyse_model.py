@@ -31,37 +31,46 @@ else:
     test = chan_volt
 
 feature_arr = test[FEATURES].to_numpy()
-regions = test['acronym'].to_numpy()
+regions = test['beryl_acronyms'].values
 
 # Load model
 clf = load_trained_model('channels')
 
-# Remap to Beryl atlas
-_, inds = ismember(br.acronym2id(regions), br.id[br.mappings['Allen']])
-regions = br.get(br.id[br.mappings['Beryl'][inds]])['acronym']
-
 # Decode brain regions
 print('Decoding brain regions..')
-
 predictions = clf.predict(feature_arr)
+probs = clf.predict_proba(feature_arr)
 
-quit()
+# histogram of response probabilities
+certainties = probs.max(1)
+plt.hist(certainties)
+plt.show()
 
+# plot of calibration, how certain are correct versus incorrect predicitions
+plt.hist(certainties[regions != predictions], label='wrong predictions')
+plt.hist(certainties[regions == predictions], label='correct predictions')
+plt.legend()
+plt.show()
+
+# compute accuracy and balanced for our highly imbalanced dataset
 acc = accuracy_score(regions, predictions)
 bacc = balanced_accuracy_score(regions, predictions)
 print(f'Accuracy: {acc*100:.1f}%')
 print(f'Balanced accuracy: {bacc*100:.1f}%')
 
+
+# compute confusion matrix
 names = np.unique(np.append(regions, predictions))
 cm = confusion_matrix(regions, predictions, labels=names)
 cm = cm / cm.sum(1)[:, None]
 
 cm_copy = cm.copy()
 
+# list top n classifications
+n = 10
 np.max(cm[~np.isnan(cm)])
 cm[np.isnan(cm)] = 0
-
-for i in range(10):
+for i in range(n):
     ind = np.unravel_index(np.argmax(cm, axis=None), cm.shape)
     if ind[0] != ind[1]:
         print("Top {} classification, mistake: {} gets classified as {}".format(i+1, names[ind[0]], names[ind[1]]))
@@ -69,7 +78,7 @@ for i in range(10):
         print("Top {} classification, success: {} gets classified as {}".format(i+1, names[ind[0]], names[ind[1]]))
     cm[ind] = 0
 
-
+# plot confusion matrix
 plt.imshow(cm_copy)
 plt.yticks(range(len(names)), names)
 plt.xticks(range(len(names)), names, rotation='65')
