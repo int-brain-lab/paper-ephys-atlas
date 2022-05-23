@@ -8,11 +8,11 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, confusion_matrix
-from iblutil.numerical import ismember
 from ibllib.atlas import BrainRegions
 from joblib import load
 from model_functions import load_channel_data, load_trained_model
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 br = BrainRegions()
 
@@ -31,10 +31,10 @@ else:
     test = chan_volt
 
 feature_arr = test[FEATURES].to_numpy()
-regions = test['beryl_acronyms'].values
+regions = test['cosmos_acronyms'].values
 
 # Load model
-clf = load_trained_model('channels')
+clf = load_trained_model('channels', 'cosmos')
 
 # Decode brain regions
 print('Decoding brain regions..')
@@ -44,13 +44,22 @@ probs = clf.predict_proba(feature_arr)
 # histogram of response probabilities
 certainties = probs.max(1)
 plt.hist(certainties)
-plt.show()
+plt.close()
 
 # plot of calibration, how certain are correct versus incorrect predicitions
-plt.hist(certainties[regions != predictions], label='wrong predictions')
-plt.hist(certainties[regions == predictions], label='correct predictions')
-plt.legend()
-plt.show()
+plt.hist(certainties[regions == predictions], label='Correct predictions')
+plt.hist(certainties[regions != predictions], label='Wrong predictions')
+plt.title("Model calibration", size=24)
+plt.legend(frameon=False, fontsize=16)
+plt.ylabel("Occurences", size=21)
+plt.xlabel("Prob for predicted region", size=21)
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
+
+sns.despine()
+plt.tight_layout()
+plt.savefig("/home/sebastian/Pictures/calibration")
+plt.close()
 
 # compute accuracy and balanced for our highly imbalanced dataset
 acc = accuracy_score(regions, predictions)
