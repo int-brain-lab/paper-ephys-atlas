@@ -29,6 +29,12 @@ def load_channel_data():
     # Remap to Beryl atlas    
     _, inds = ismember(br.acronym2id(merged_df['acronym']), br.id[br.mappings['Allen']])
     merged_df['beryl_acronyms'] = br.get(br.id[br.mappings['Beryl'][inds]])['acronym']
+    
+    # Remap to Cosmos atlas    
+    _, inds = ismember(br.acronym2id(merged_df['acronym']), br.id[br.mappings['Allen']])
+    merged_df['cosmos_acronyms'] = br.get(br.id[br.mappings['Cosmos'][inds]])['acronym']
+    merged_df = merged_df.rename({'acronym': 'allen_acronyms'}, axis=1)
+    
     return merged_df
 
 
