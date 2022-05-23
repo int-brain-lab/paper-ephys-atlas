@@ -14,7 +14,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import KFold
 from sklearn.metrics import accuracy_score
 from joblib import dump, load
-from model_functions import load_channel_data
+from model_functions import load_channel_data, load_trained_model
 import argparse
 parser = argparse.ArgumentParser()
 
@@ -30,9 +30,11 @@ data = data[data.index == PID]
 feature_arr = data[FEATURES].to_numpy()
 
 # Load in model
-path = join(split(dirname(realpath(__file__)))[0], 'trained_models')
-clf = load(join(path, 'model.pkl'))
+clf = load_trained_model('channels')
 region_predict = clf.predict(feature_arr)
+
+accuracy_score(data['beryl_regions'], region_predict)
+
 
 
 

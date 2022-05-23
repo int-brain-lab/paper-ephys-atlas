@@ -25,7 +25,8 @@ FEATURES = ['psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'rms
             'spike_rate', 'axial_um', 'x', 'y', 'depth', 'theta', 'phi']
 
 # Load in data
-merged_df = load_channel_data(args.data_path)
+merged_df = load_channel_data()
+merged_df = merged_df.drop(PID_EXCL, axis=0)  # drop PIDs used for evaluation
 feature_arr = merged_df[FEATURES].to_numpy()
 
 # Initialize
