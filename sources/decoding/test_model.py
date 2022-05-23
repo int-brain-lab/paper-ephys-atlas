@@ -22,7 +22,7 @@ br = BrainRegions()
 parser = argparse.ArgumentParser()
 
 # Settings
-parser.add_argument("-model", "--model", help="channels or clusters")
+parser.add_argument("-atlas", "--atlas", help="allen, beryl or cosmos")
 parser.add_argument("-max_depth", "--max_depth", help="Max depth")
 parser.add_argument("-n_trees", "--n_trees", help="Number of trees")
 parser.add_argument("-max_leaf_nodes", "--max_leaf_nodes", help="Max leaf node")
@@ -30,13 +30,9 @@ args = parser.parse_args()
 N_FOLDS = 10
 
 # Load in data
-if args.model == 'channels':
-    features = ['psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'rms_ap', 'rms_lf',
-                'spike_rate', 'axial_um', 'x', 'y', 'depth', 'theta', 'phi']
-    data_df = load_channel_data()
-elif args.model == 'clusters':
-    features = ['amp_max', 'amp_min', 'amp_median', 'firing_rate', 'depths']
-    data_df = load_cluster_data()
+features = ['psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'rms_ap', 'rms_lf',
+            'spike_rate', 'axial_um', 'x', 'y', 'depth', 'theta', 'phi']
+data_df = load_channel_data()
 feature_arr = data_df[features].to_numpy()
 
 # Initialize
@@ -50,8 +46,8 @@ kfold = KFold(n_splits=N_FOLDS, shuffle=False)
 print('Decoding brain regions..')
 feature_imp = np.empty((N_FOLDS, len(features)))
 train_index, test_index = next(kfold.split(feature_arr))
-clf.fit(feature_arr[train_index], data_df['beryl_acronyms'].values[train_index])
-acc = accuracy_score(data_df['beryl_acronyms'].values[test_index],
+clf.fit(feature_arr[train_index], data_df[f'{args.atlas}_acronyms'].values[train_index])
+acc = accuracy_score(data_df[f'{args.atlas}_acronyms'].values[test_index],
                      clf.predict(feature_arr[test_index]))
 print(f'Accuracy: {acc*100:.1f}%')
 
