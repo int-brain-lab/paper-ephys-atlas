@@ -40,7 +40,7 @@ clf = RandomForestClassifier(random_state=42, n_estimators=int(args.n_trees),
 
 # Fit model
 print('Fitting model..')
-clf.fit(feature_arr, merged_df['f{args.atlas}_acronyms'].values)
+clf.fit(feature_arr, merged_df[f'{args.atlas}_acronyms'].values)
 
 # Save fitted model to disk
 dump(clf, join(split(pathlib.Path(__file__).parent.resolve())[0], 'trained_models',
