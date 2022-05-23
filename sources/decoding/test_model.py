@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from os.path import join
 import pathlib
+from model_functions import load_channel_data
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import KFold
@@ -21,24 +22,18 @@ br = BrainRegions()
 parser = argparse.ArgumentParser()
 
 # Settings
+parser.add_argument("-model", "--model", help="channels or clusters")
 parser.add_argument("-data_path", "--data_path", help="Path to training data")
 parser.add_argument("-max_depth", "--max_depth", help="Max depth")
 parser.add_argument("-n_trees", "--n_trees", help="Number of trees")
 parser.add_argument("-max_leaf_nodes", "--max_leaf_nodes", help="Max leaf node")
 args = parser.parse_args()
-classifier = args.classifier
-CLASSIFIER = 'forest'  # bayes or forest
 N_FOLDS = 10
 FEATURES = ['psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'rms_ap', 'rms_lf',
             'spike_rate', 'axial_um', 'x', 'y', 'depth', 'theta', 'phi']
 
 # Load in data
-chan_volt = pd.read_parquet(join(args.data_path, 'channels_voltage_features.pqt'))
-chan_volt = chan_volt.drop(columns=['x', 'y', 'z'])
-mm_coord = pd.read_parquet(join(args.data_path, 'coordinates.pqt'))
-mm_coord.index.name = 'pid'
-merged_df = pd.merge(chan_volt, mm_coord, how='left', on='pid')
-merged_df = merged_df.loc[~merged_df['rms_ap'].isnull() & ~merged_df['x'].isnull()]  # remove NaNs
+merged_df = load_channel_data(args.data_path)
 feature_arr = merged_df[FEATURES].to_numpy()
 
 # Initialize
@@ -47,10 +42,6 @@ clf = RandomForestClassifier(random_state=42, n_estimators=int(args.n_trees),
                              max_leaf_nodes=int(args.max_leaf_nodes),
                              n_jobs=-1, class_weight='balanced')
 kfold = KFold(n_splits=N_FOLDS, shuffle=False)
-
-# Remap to Beryl atlas
-_, inds = ismember(br.acronym2id(merged_df['acronym']), br.id[br.mappings['Allen']])
-merged_df['beryl_acronyms'] = br.get(br.id[br.mappings['Beryl'][inds]])['acronym']
 
 # Decode brain regions
 print('Decoding brain regions..')
