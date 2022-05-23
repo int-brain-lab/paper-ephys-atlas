@@ -7,7 +7,7 @@ Created on Sat May 21 17:05:48 2022
 
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from os.path import join
+from os.path import join, split
 from model_functions import load_channel_data
 from joblib import dump
 from iblutil.numerical import ismember
@@ -22,7 +22,7 @@ parser.add_argument("-data_path", "--data_path", help="Path to training data")
 args = parser.parse_args()
 PID_EXCL = ['64d04585-67e7-4320-baad-8d4589fd18f7', '31d8dfb1-71fd-4c53-9229-7cd48bee07e4']
 FEATURES = ['psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'rms_ap', 'rms_lf',
-            'spike_rate', 'axial_um', 'x', 'y', 'depth', 'theta', 'phi']
+            'spike_rate', 'axial_um', 'x', 'y', 'depth']
 
 # Load in data
 merged_df = load_channel_data()
@@ -42,5 +42,5 @@ print('Fitting model..')
 clf.fit(feature_arr, merged_df['beryl_acronyms'].values)
 
 # Save fitted model to disk
-dump(clf, join(pathlib.Path(__file__).parent.resolve(), 'model.pkl'), compress=3)
+dump(clf, join(split(pathlib.Path(__file__).parent.resolve())[0], 'trained_models', 'channels_model.pkl'), compress=3)
 print('Fitted model saved to disk')
