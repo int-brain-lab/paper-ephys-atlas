@@ -22,7 +22,6 @@ parser = argparse.ArgumentParser()
 
 # Settings
 parser.add_argument("-data_path", "--data_path", help="Path to training data")
-parser.add_argument("-classifier", "--classifier", help="forest or bayes")
 parser.add_argument("-max_depth", "--max_depth", help="Max depth")
 parser.add_argument("-n_trees", "--n_trees", help="Number of trees")
 parser.add_argument("-max_leaf_nodes", "--max_leaf_nodes", help="Max leaf node")
@@ -43,13 +42,10 @@ merged_df = merged_df.loc[~merged_df['rms_ap'].isnull() & ~merged_df['x'].isnull
 feature_arr = merged_df[FEATURES].to_numpy()
 
 # Initialize
-if args.classifier == 'forest':
-    clf = RandomForestClassifier(random_state=42, n_estimators=int(args.n_trees),
-                                 max_depth=int(args.max_depth),
-                                 max_leaf_nodes=int(args.max_leaf_nodes),
-                                 n_jobs=-1, class_weight='balanced')
-elif args.classifier == 'bayes':
-    clf = GaussianNB()
+clf = RandomForestClassifier(random_state=42, n_estimators=int(args.n_trees),
+                             max_depth=int(args.max_depth),
+                             max_leaf_nodes=int(args.max_leaf_nodes),
+                             n_jobs=-1, class_weight='balanced')
 kfold = KFold(n_splits=N_FOLDS, shuffle=False)
 
 # Remap to Beryl atlas

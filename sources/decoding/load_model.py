@@ -14,7 +14,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import KFold
 from sklearn.metrics import accuracy_score
 from joblib import dump, load
-from model_functions import load_data
+from model_functions import load_channel_data
 import argparse
 parser = argparse.ArgumentParser()
 
@@ -26,7 +26,7 @@ FEATURES = ['psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'rms
 PID = '31d8dfb1-71fd-4c53-9229-7cd48bee07e4'
 
 # Load in data
-data = load_data(PATH)
+data = load_channel_data(PATH)
 data = data[data.index == PID]
 feature_arr = data[FEATURES].to_numpy()
 
