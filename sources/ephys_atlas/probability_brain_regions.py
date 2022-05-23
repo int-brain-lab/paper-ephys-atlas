@@ -54,6 +54,10 @@ def get_small_volume(point, volume, radius):
     if check_rad > 0:
         raise ValueError("ValueError on parameter radius: the first value of x,y,z has to be <=0")
 
+    # check if point is within volume
+    if point[0] >= volume.shape[0] or point[1] >= volume.shape[1] or point[2] >= volume.shape[2]:
+        raise ValueError("ValueError on parameter point: index out of bound for size of volume")
+
     # Get the smaller volume around the point of interest
     x1, x2 = func_ax_indx(0, point, radius, volume)
     y1, y2 = func_ax_indx(1, point, radius, volume)
