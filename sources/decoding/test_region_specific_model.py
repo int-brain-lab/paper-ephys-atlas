@@ -34,7 +34,7 @@ N_FOLDS = 10
 features = ['psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'rms_ap', 'rms_lf',
             'spike_rate', 'axial_um', 'x', 'y', 'depth', 'theta', 'phi']
 data_df = load_channel_data()
-data_df = data_df[data_df['cosmos_acronym'] == args.region]
+data_df = data_df[data_df['cosmos_acronyms'] == args.region]
 feature_arr = data_df[features].to_numpy()
 
 # Initialize
