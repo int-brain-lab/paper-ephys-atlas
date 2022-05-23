@@ -20,7 +20,7 @@ parser = argparse.ArgumentParser()
 
 # Settings
 FEATURES = ['psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'rms_ap', 'rms_lf',
-            'spike_rate', 'axial_um', 'x', 'y', 'depth', 'theta', 'phi']
+            'spike_rate', 'axial_um', 'x', 'y', 'depth']
 #PID = '64d04585-67e7-4320-baad-8d4589fd18f7'
 PID = '31d8dfb1-71fd-4c53-9229-7cd48bee07e4'
 
@@ -33,7 +33,7 @@ feature_arr = data[FEATURES].to_numpy()
 clf = load_trained_model('channels')
 region_predict = clf.predict(feature_arr)
 
-accuracy_score(data['beryl_regions'], region_predict)
+accuracy_score(data['beryl_acronyms'], region_predict)
 
 
 

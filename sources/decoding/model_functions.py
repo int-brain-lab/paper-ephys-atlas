@@ -47,9 +47,16 @@ def load_trained_model(model):
 def load_cluster_data():
     # Load in data
     path = join(split(dirname(realpath(__file__)))[0], 'training_data')
-    clusters = pd.read_parquet(join(path, 'clusters.pqt'))
+    df_clusters = pd.read_parquet(join(path, 'clusters.pqt'))
+    df_channels = pd.read_parquet(join(path, 'channels.pqt'))
+    
+    # Add acronyms
+    if 'atlas_id' not in df_clusters.keys():
+        df_clusters = df_clusters.merge(
+            df_channels[['atlas_id', 'acronym']], right_on=['pid', 'raw_ind'], left_on=['pid', 'channels'])
    
     # Remap to Beryl atlas    
-    _, inds = ismember(br.acronym2id(clusters['acronym']), br.id[br.mappings['Allen']])
-    clusters['beryl_acronyms'] = br.get(br.id[br.mappings['Beryl'][inds]])['acronym']
-    return clusters
+    df_clusters['acronym'] = br.id2acronym(df_clusters['acronym'])
+    _, inds = ismember(br.acronym2id(df_clusters['acronym']), br.id[br.mappings['Allen']])
+    df_clusters['beryl_acronyms'] = br.get(br.id[br.mappings['Beryl'][inds]])['acronym']
+    return df_clusters
