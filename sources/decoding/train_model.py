@@ -8,6 +8,7 @@ Created on Sat May 21 17:05:48 2022
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from os.path import join
+from model_functions import load_channel_data
 from joblib import dump
 from iblutil.numerical import ismember
 from ibllib.atlas import BrainRegions
@@ -24,12 +25,7 @@ FEATURES = ['psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'rms
             'spike_rate', 'axial_um', 'x', 'y', 'depth', 'theta', 'phi']
 
 # Load in data
-chan_volt = pd.read_parquet(join(args.data_path, 'channels_voltage_features.pqt'))
-chan_volt = chan_volt.drop(columns=['x', 'y', 'z'])
-mm_coord = pd.read_parquet(join(args.data_path, 'coordinates.pqt'))
-mm_coord.index.name = 'pid'
-merged_df = pd.merge(chan_volt, mm_coord, how='left', on='pid')
-merged_df = merged_df.loc[~merged_df['rms_ap'].isnull() & ~merged_df['x'].isnull()]  # remove NaNs
+merged_df = load_channel_data(args.data_path)
 feature_arr = merged_df[FEATURES].to_numpy()
 
 # Initialize
