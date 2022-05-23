@@ -4,14 +4,15 @@ Created on Sun May 22 18:30:37 2022
 
 @author: guido
 """
-from os.path import join
+from os.path import join, dirname, realpath, split
 import pandas as pd
 from iblutil.numerical import ismember
 from ibllib.atlas import BrainRegions
 br = BrainRegions()
 
 
-def load_channel_data(path):
+def load_channel_data():
+    path = join(split(dirname(realpath(__file__)))[0], 'training_data')
     chan_volt = pd.read_parquet(join(path, 'channels_voltage_features.pqt'))
     chan_volt = chan_volt.drop(columns=['x', 'y', 'z'])
     mm_coord = pd.read_parquet(join(path, 'coordinates.pqt'))
@@ -25,7 +26,7 @@ def load_channel_data(path):
     return merged_df
 
 
-def load_cluster_data(path):
+def load_cluster_data():
     chan_volt = pd.read_parquet(join(path, 'channels_voltage_features.pqt'))
     chan_volt = chan_volt.drop(columns=['x', 'y', 'z'])
     mm_coord = pd.read_parquet(join(path, 'coordinates.pqt'))
