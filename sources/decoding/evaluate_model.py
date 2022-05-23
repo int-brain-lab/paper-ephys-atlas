@@ -55,11 +55,11 @@ print(f'Accuracy: {acc*100:.1f}%')
 
 # Get accuracy per brain region
 acc_region = pd.DataFrame(columns=['region', 'acc'])
-for i, region in enumerate(merged_df[f'{args.atlas}_acronyms'].unique()):
+for i, region in enumerate(merged_df[f'{ATLAS}_acronyms'].unique()):
     acc_region.loc[acc_region.shape[0]+1, 'region'] = region
     acc_region.loc[acc_region.shape[0], 'acc'] = accuracy_score(
-        [region] * np.sum(merged_df[f'{args.atlas}_acronyms'] == region),
-        region_predict[merged_df[f'{args.atlas}_acronyms'] == region])
+        [region] * np.sum(merged_df[f'{ATLAS}_acronyms'] == region),
+        region_predict[merged_df[f'{ATLAS}_acronyms'] == region])
 acc_region = acc_region.sort_values('acc', ascending=False).reset_index(drop=True)
 
 # %% Plot results
