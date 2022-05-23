@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import KFold
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, confusion_matrix
 from iblutil.numerical import ismember
 from model_functions import load_channel_data
 from ibllib.atlas import BrainRegions
@@ -34,6 +34,7 @@ FEATURES = ['psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'rms
 # Load in data
 merged_df = load_channel_data()
 feature_arr = merged_df[FEATURES].to_numpy()
+regions = merged_df[f'{ATLAS}_acronyms'].values
 
 # Initialize
 clf = RandomForestClassifier(random_state=42, n_estimators=30, max_depth=25, max_leaf_nodes=10000,
@@ -62,6 +63,12 @@ for i, region in enumerate(merged_df[f'{ATLAS}_acronyms'].unique()):
         region_predict[merged_df[f'{ATLAS}_acronyms'] == region])
 acc_region = acc_region.sort_values('acc', ascending=False).reset_index(drop=True)
 
+
+# compute confusion matrix
+names = np.unique(np.append(regions, region_predict))
+cm = confusion_matrix(regions, region_predict, labels=names)
+cm = cm / cm.sum(1)[:, None]
+
 # %% Plot results
 f, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(7, 2.5), dpi=400)
 ax1.bar(FEATURES, feature_imp)
@@ -77,4 +84,11 @@ ax3.set_xticklabels(acc_region[:10]['region'], rotation=90)
 
 plt.tight_layout()
 sns.despine(trim=False)
+plt.show()
+
+f, ax1 = plt.subplots(1, 1, figsize=(3, 3), dpi=400)
+ax1.imshow(cm)
+plt.yticks(range(len(names)), names)
+plt.xticks(range(len(names)), names, rotation='65')
+plt.tight_layout()
 plt.show()
