@@ -56,7 +56,6 @@ def load_cluster_data():
             df_channels[['atlas_id', 'acronym']], right_on=['pid', 'raw_ind'], left_on=['pid', 'channels'])
    
     # Remap to Beryl atlas    
-    df_clusters['acronym'] = br.id2acronym(df_clusters['acronym'])
     _, inds = ismember(br.acronym2id(df_clusters['acronym']), br.id[br.mappings['Allen']])
     df_clusters['beryl_acronyms'] = br.get(br.id[br.mappings['Beryl'][inds]])['acronym']
     return df_clusters
