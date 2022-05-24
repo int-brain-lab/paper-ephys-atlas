@@ -3,6 +3,7 @@ brain region uncertainty
 '''
 
 import numpy as np
+from ibllib.atlas import AllenAtlas
 
 
 def func_ax_indx(ax_coord, point, radius, volume):
@@ -103,6 +104,18 @@ volume[0, :] = 23
 
 radius = [[-2, 1], [0, 0], [-1, 1]]
 point = [1, 1, 1]
+prob_region_interest = 0.66
+
 
 small_vol, label_interest = get_small_volume(point, volume, radius)
 prob_region_interest, n_vox_vect, n_vox_mat = get_probability(small_vol, label_interest)
+
+
+# -- do it with Allen volume
+ba = AllenAtlas(25)
+
+point_um = [0, 0, 0]
+point = ba.bc.xyz2i(point_um)
+
+volume = ba.label
+
