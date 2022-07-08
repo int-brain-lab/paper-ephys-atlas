@@ -10,9 +10,13 @@ import matplotlib.pyplot as plt
 cmap = 'Blues'
 ba = AllenAtlas()
 
-
 STAGING_PATH = Path('/datadisk/FlatIron/tables/bwm_sav')
 FIGURES_PATH = Path('/datadisk/gdrive/2022/ephys-atlas')
+
+STAGING_PATH = Path('/Volumes/GoogleDrive/My Drive/2022/05_tables/bwm_sav')
+FIGURES_PATH = Path('/Volumes/GoogleDrive/My Drive/2022/ephys-atlas')
+
+
 df_clusters = pd.read_parquet(STAGING_PATH.joinpath('clusters.pqt'))
 df_probes = pd.read_parquet(STAGING_PATH.joinpath('probes.pqt'))
 df_channels = pd.read_parquet(STAGING_PATH.joinpath('channels.pqt'))
@@ -67,7 +71,7 @@ df_regions['fr_ratio_log'] = np.log10(df_regions['fr_ratio'])
 df_regions.loc[~np.isfinite(df_regions['fr_ratio_log']), 'fr_ratio_log'] = 0
 df_regions['fr_ratio_dos'] = (df_regions['spike_rate'] - df_regions['firing_rate']) / (df_regions['spike_rate'] + df_regions['firing_rate'])
 df_regions['fr_diff'] = df_regions['spike_rate'] - df_regions['firing_rate']
-
+df_regions['coverage'] = np.minimum(df_regions['n_insertions'], 2)
 # %% Display for the last part
 cmap_div = 'PuOr'
 feats = {
@@ -89,6 +93,7 @@ feats = {
     'n_insertions': dict(cmap=cmap, vmin=0, vmax=20),
     'fr_ratio_dos': dict(cmap=cmap_div),
     'fr_diff': dict(cmap=cmap_div, vmin=-30, vmax=30),
+    'coverage': dict(cmap='viridis'),
 }
 
 
