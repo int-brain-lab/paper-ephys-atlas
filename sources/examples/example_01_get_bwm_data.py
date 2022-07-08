@@ -15,9 +15,6 @@ ba = AllenAtlas()
 
 import pandas as pd
 
-STAGING_PATH = Path('/datadisk/FlatIron/tables/bwm')
-STAGING_PATH.mkdir(exist_ok=True, parents=True)
-
 excludes = [
     # 'd8c7d3f2-f8e7-451d-bca1-7800f4ef52ed',  # key error in loading histology from json
     # 'da8dfec1-d265-44e8-84ce-6ae9c109b8bd',  # same same
@@ -27,9 +24,10 @@ excludes = [
     '16ad5eef-3fa6-4c75-9296-29bf40c5cfaa',  # 404 not found
     '511afaa5-fdc4-4166-b4c0-4629ec5e652e',  # 404 not found
     'f88d4dd4-ccd7-400e-9035-fa00be3bcfa8',  # 404 not found
+    'ba291bec-4492-4d7f-a6aa-483ebb64b3c3', # key error in loading histology from json
 ]
 error404 = []
-one = ONE()
+one = ONE(base_url='https://alyx.internationalbrainlab.org')
 pids, _ = bwm_pids(one, tracing=True)
 
 # init dataframes
@@ -37,7 +35,7 @@ df_probes = pd.DataFrame(dict(eid='', pname='', spike_sorter='', histology=''), 
 ldf_channels = []
 ldf_clusters = []
 no_spike_sorting = []
-IMIN = 116
+IMIN = 249
 
 for i, pid in enumerate(pids):
     if i < IMIN:
@@ -81,6 +79,8 @@ df_channels['raw_ind'] = chind
 df_channels = df_channels.set_index(['pid', 'raw_ind'])
 
 # saves the 3 dataframes
+STAGING_PATH = Path('/datadisk/FlatIron/tables/bwm')
+STAGING_PATH.mkdir(exist_ok=True, parents=True)
 df_channels.to_parquet(STAGING_PATH.joinpath('channels.pqt'))
 df_clusters.to_parquet(STAGING_PATH.joinpath('clusters.pqt'))
 df_probes.to_parquet(STAGING_PATH.joinpath('probes.pqt'))
