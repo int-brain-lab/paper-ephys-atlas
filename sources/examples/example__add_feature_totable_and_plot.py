@@ -6,16 +6,17 @@
 4. Append to dataframe ; save to dataframe
 5. Display
 '''
+
 from one.api import ONE
-from ephys_atlas.data import bwm_pids
 from ibllib.atlas import AllenAtlas
-from brainbox.io.one import SpikeSortingLoader
-import urllib.error
 import pandas as pd
 from pathlib import Path
 from ibllib.atlas.flatmaps import plot_swanson
 import matplotlib.pyplot as plt
 import numpy as np
+from ephys_atlas.data import bwm_pids
+from brainbox.io.one import SpikeSortingLoader
+import urllib.error
 
 
 # ==== INIT
@@ -26,36 +27,32 @@ STAGING_PATH = Path('/Users/gaelle/Downloads/bwm_sav/')
 cmap = 'Blues'
 
 excludes = [
-    'f86e9571-63ff-4116-9c40-aa44d57d2da9',  # 404 not found
-    '16ad5eef-3fa6-4c75-9296-29bf40c5cfaa',  # 404 not found
-    '511afaa5-fdc4-4166-b4c0-4629ec5e652e',  # 404 not found
-    'f88d4dd4-ccd7-400e-9035-fa00be3bcfa8',  # 404 not found
+    '316a733a-5358-4d1d-9f7f-179ba3c90adf'
 ]
 
 error404 = []
-
-pids, _ = bwm_pids(one, tracing=True)
-
-
-# test
-# pids = [pids[0]]
-# pids = ['4279e354-a6b8-4eff-8245-7c8723b07834']
-pids = ['94e948c1-f7be-4868-893a-f7cd2df3313e']
 
 # Load already existing DF
 
 df_channels = pd.read_parquet(STAGING_PATH.joinpath('channels.pqt'))
 
+# Get pids
+
+# pids, _ = bwm_pids(one, tracing=True)
 pids = df_channels.index.values.tolist()
 pids = [item[0] for item in pids]
+
+# test
+# pids = [pids[0]]
+# pids = ['94e948c1-f7be-4868-893a-f7cd2df3313e']
 
 # ==== Step 1 : Define compute function
 # Name of column in dataframe
 k = 'fanofactor'
 
 
-def fanofactor(spikes):
-    n_ch = 384
+def fanofactor(n_ch):  # take spikes as input for example
+    # n_ch = 384
     v = np.random.rand(1, n_ch)
     return v[0]
 
@@ -64,21 +61,24 @@ def fanofactor(spikes):
 df_channels[k] = np.nan
 
 # ==== Step 2-3 : Download needed data and Launch computation in loop
-    for i, pid in enumerate(pids):
-        eid, pname = one.pid2eid(pid)
-        ss = SpikeSortingLoader(pid=pid, one=one, atlas=ba)
+for i, pid in enumerate(pids):
+    # Load data
+    ''' LOAD DATA SKIPPED FOR NOW
+    eid, pname = one.pid2eid(pid)
+    ss = SpikeSortingLoader(pid=pid, one=one, atlas=ba)
 
-        try:
-            spikes, clusters, channels = ss.load_spike_sorting()
-        except urllib.error.HTTPError:
-            error404.append(pid)
-            continue
-
-        df_channels.loc[pid, k] = fanofactor(spikes)
-
+    try:
+        spikes, clusters, channels = ss.load_spike_sorting()
+    except urllib.error.HTTPError:
+        error404.append(pid)
+        continue
+    '''
+    # Compute and append to df
+    n_ch = len(df_channels.loc[pid, k])
+    df_channels.loc[pid, k] = fanofactor(n_ch=n_ch)
 
 # ==== Step 4: save to dataframe
-df_channels.to_parquet(STAGING_PATH.joinpath('channels.pqt'))
+# df_channels.to_parquet(STAGING_PATH.joinpath('channels.pqt'))
 
 # ==== Aggregate per brain region to plot
 df_regions = df_channels.groupby('atlas_id').agg({
