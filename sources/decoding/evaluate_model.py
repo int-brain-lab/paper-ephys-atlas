@@ -74,23 +74,20 @@ cm = confusion_matrix(regions, region_predict, labels=names)
 cm = cm / cm.sum(1)[:, None]
 
 # %% Plot results
-f, (ax1, ax2) = plt.subplots(1, 2, figsize=(7, 2.5), dpi=100)
+f, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(9, 3), dpi=100)
 ax1.bar(FEATURES, feature_imp)
 ax1.set(ylabel='Feature importance')
 ax1.set_xticklabels(FEATURES, rotation=90)
-
 
 ax2.bar(acc_region[:10]['region'], acc_region[:10]['acc'] * 100)
 ax2.set(ylabel='Accuracy (%)')
 ax2.set_xticklabels(acc_region[:10]['region'], rotation=90)
 
+ax3.imshow(cm)
+ax3.set_yticks(range(len(names)), names)
+ax3.set_xticks(range(len(names)), names, rotation='65')
+
 plt.tight_layout()
 sns.despine(trim=False)
 plt.show()
 
-f, ax1 = plt.subplots(1, 1, figsize=(3, 3), dpi=200)
-ax1.imshow(cm)
-plt.yticks(range(len(names)), names)
-plt.xticks(range(len(names)), names, rotation='65')
-plt.tight_layout()
-plt.show()
