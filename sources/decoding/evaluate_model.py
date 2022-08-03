@@ -16,7 +16,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import KFold
 from sklearn.metrics import accuracy_score, confusion_matrix
 from iblutil.numerical import ismember
-from model_functions import load_channel_data
+from decoding.model_functions import load_channel_data
 from ibllib.atlas import BrainRegions
 from joblib import dump
 import argparse
@@ -28,8 +28,10 @@ ATLAS = 'cosmos'
 
 # Settings
 N_FOLDS = 5
-FEATURES = ['psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'rms_ap', 'rms_lf',
-            'spike_rate', 'axial_um', 'x', 'y', 'depth', 'theta', 'phi']
+FEATURES = ['psd_delta', 'psd_theta', 'psd_alpha', 
+            'psd_beta', 'psd_gamma', 'rms_ap', 'rms_lf',
+            'spike_rate', 'axial_um', 'x', 'y', 'depth', 
+            'theta', 'phi']
 
 # Load in data
 merged_df = load_channel_data()
