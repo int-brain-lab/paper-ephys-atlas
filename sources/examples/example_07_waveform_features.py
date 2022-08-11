@@ -1,4 +1,14 @@
-# copied from other scripts
+# Copied
+
+import numpy as np
+import pandas as pd
+from os.path import join
+from scipy.optimize import curve_fit
+from brainbox.io.one import SpikeSortingLoader
+from brainbox.metrics.single_units import spike_sorting_metrics
+from reproducible_ephys_functions import query, data_path, combine_regions
+from one.api import ONE
+from ibllib.atlas import AllenAtlas
 
 ba = AllenAtlas()
 one = ONE()
