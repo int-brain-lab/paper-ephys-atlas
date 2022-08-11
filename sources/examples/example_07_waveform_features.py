@@ -13,7 +13,7 @@ REGIONS = ['PPC', 'CA1', 'DG', 'PO', 'LP']
 # Copied from query repeated site trajectories, need to chagne to query all sites later!
 traj = query() 
 
-# %% Loop through repeated site recordings
+# %% Loop through repeated site recordings, need to change to query all sites later! 
 waveforms_df = pd.DataFrame()
 for i in range(len(traj)):
     print('Processing repeated site recording %d of %d' % (i+1, len(traj)))
@@ -156,7 +156,3 @@ for i in range(len(traj)):
                 'waveform_2D': [wf_ch_sort], 'dist_soma': [dist_soma], 'n_waveforms': n_waveforms}))
 
 waveforms_df.to_pickle(join(DATA_DIR, 'waveform_metrics.p'))
-
-
-
-# %%
