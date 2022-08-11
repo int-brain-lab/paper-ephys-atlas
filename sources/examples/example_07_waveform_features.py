@@ -1,28 +1,17 @@
-import numpy as np
-import pandas as pd
-from os.path import join
-from scipy.optimize import curve_fit
-from brainbox.io.one import SpikeSortingLoader
-from brainbox.metrics.single_units import spike_sorting_metrics
-from reproducible_ephys_functions import query, data_path, combine_regions
-from one.api import ONE
-from ibllib.atlas import AllenAtlas
+# copied from other scripts
+
 ba = AllenAtlas()
 one = ONE()
 
 # Settings
 NEURON_QC = True
 DATA_DIR = data_path()
-REGIONS = ['PPC', 'CA1', 'DG', 'PO', 'LP'] # for example, select these regions, need to change later!
 
-# Query site trajectories, for example repeated sites, need to chagne later!
+# Could we skip region selection? 
+REGIONS = ['PPC', 'CA1', 'DG', 'PO', 'LP'] 
+
+# Copied from query repeated site trajectories, need to chagne to query all sites later!
 traj = query() 
-
-# %% Definitions
-
-def gaus(x, a, x0, sigma):
-    return a * np.exp(-(x-x0)**2 / (2 * sigma**2))
-
 
 # %% Loop through repeated site recordings
 waveforms_df = pd.DataFrame()
@@ -45,7 +34,7 @@ for i in range(len(traj)):
                                             '_phy_spikes_subset.channels'],
                              collections=[f'alf/{probe}/pykilosort']*3)[0]
     waveforms, wf_spikes, wf_channels = data[0], data[1], data[2]
-    waveforms = waveforms * 1000  # to uV
+    waveforms = waveforms * 1000  # change to uV
 
     # Skip recording if data is not present
     if len(clusters) == 0:
@@ -70,7 +59,7 @@ for i in range(len(traj)):
     if len(spikes[probe].clusters) == 0:
         continue
 
-    # Loop over regions of interest
+    # At the moment, it loops over regions of interest but it would be good to switch to looking at all the regions
     for k, region in enumerate(REGIONS):
 
         # Get neuron count and firing rate
@@ -169,3 +158,5 @@ for i in range(len(traj)):
 waveforms_df.to_pickle(join(DATA_DIR, 'waveform_metrics.p'))
 
 
+
+# %%
