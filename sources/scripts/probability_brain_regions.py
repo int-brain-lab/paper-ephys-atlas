@@ -8,14 +8,13 @@ from ibllib.atlas import AllenAtlas
 
 ba = AllenAtlas()
 xyz = np.array([0, -.0024, -.0038])
-aid = ba.get_labels(xyz, mapping='Beryl')
 aids, probabilities = ba.get_labels(xyz, mapping='Beryl', radius_um=250)
+axs = ba.plot_slices(np.array([0, -.0024, -.0038]), mapping='Beryl', volume='annotation')
 
-## %% Display this on a slice
+# %% Display this on a slice
+
+
 from iblutil.numerical import ismember
-
-axs = ba.plot_slices(np.array([0, -.0024, -.0038]))
-
 axs[1, 1].bar(np.arange(len(aids)), probabilities,
               tick_label=ba.regions.id2acronym(aids, mapping='Beryl'),
               color=ba.regions.rgb[ ismember(aids, ba.regions.id)[1]] / 255,
