@@ -1,6 +1,7 @@
 from pathlib import Path
 import numpy as np
 import pandas as pd
+import urllib.error
 
 from one.api import ONE
 from ibllib.atlas import AllenAtlas
@@ -29,6 +30,7 @@ pids, _ = bwm_pids(one, tracing=True)
 df_probes = pd.DataFrame(dict(eid='', pname='', spike_sorter='', histology=''), index=pids)
 ldf_channels = []
 ldf_clusters = []
+ldf_depths = []
 no_spike_sorting = []
 IMIN = 0
 
@@ -43,9 +45,7 @@ for i, pid in enumerate(pids):
 
     # spikes, clusters, channels = load_spike_sorting_fast(eid=eid, probe=pname, one=one, nested=False)
     logger.info(f"{i}, {pid}")
-
     ss = SpikeSortingLoader(pid=pid, one=one, atlas=ba)
-    import urllib.error
     try:
         spikes, clusters, channels = ss.load_spike_sorting()
     except urllib.error.HTTPError:
@@ -68,15 +68,33 @@ for i, pid in enumerate(pids):
     df_clu = pd.DataFrame(clusters)
     df_clu['pid'] = pid
     ldf_clusters.append(df_clu)
+    # aggregate spike features per depth
+    df_spikes = pd.DataFrame(spikes)
+    df_spikes.dropna(axis=0, how='any', inplace=True)
+    df_spikes['rdepths'] = (np.round(df_spikes['depths'] / 20) * 20).astype(np.int32)
+    df_spikes['amps'] = df_spikes['amps'] * 1e6
+    df_depths = df_spikes.groupby('rdepths').agg(
+        amps=pd.NamedAgg(column="amps", aggfunc="median"),
+        amps_std=pd.NamedAgg(column="amps", aggfunc="std"),
+        cell_count=pd.NamedAgg(column="clusters", aggfunc="nunique"),
+        spike_rate=pd.NamedAgg(column="amps", aggfunc="count"),
+    )
+    df_depths['pid'] = pid
+    df_depths['spike_rate'] = df_depths['spike_rate'] / (np.max(spikes['times']) - np.min(spikes['times']))
+    ldf_depths.append(df_depths)
 
 df_channels = pd.concat(ldf_channels, ignore_index=True)
 df_clusters = pd.concat(ldf_clusters, ignore_index=True)
+df_depths = pd.concat(ldf_depths, ignore_index=True)
 
 # convert the channels dataframe to a multi-index dataframe
 h = trace_header(version=1)
 _, chind = ismember2d(df_channels.loc[:, ['lateral_um', 'axial_um']].to_numpy(), np.c_[h['x'], h['y']])
 df_channels['raw_ind'] = chind
 df_channels = df_channels.set_index(['pid', 'raw_ind'])
+
+# convert the depths dataframe to a multi-index dataframe
+df_depths = df_depths.set_index(['pid', 'r_depths'])
 
 # saves the 3 dataframes
 STAGING_PATH.mkdir(exist_ok=True, parents=True)
@@ -88,6 +106,3 @@ df_probes.to_parquet(STAGING_PATH.joinpath('probes.pqt'))
 print(f'aws s3 sync "{STAGING_PATH}" s3://ibl-brain-wide-map-private/data/tables/atlas')
 print(errorkey)
 print(error404)
-# run 12-AUG-2022:
-# ['6358854e-51d2-47de-a278-5cbfd155feb6', '9991277b-9e8e-4db8-b8a6-e2c0176ef9ad', 'e070023a-2a5d-4398-ad66-f9ed5d517ad1', '5e84c8e7-236f-4a64-a944-dc4a17c64f1d', '43d4f889-4b05-44df-8306-ea10f854776f']
-# ['de5d704c-4a5b-4fb0-b4af-71614c510a8b', '04db6b9e-a80c-4507-a98e-ad76294ac444', '531423f6-d36d-472b-8234-c8f7b8293f79']
