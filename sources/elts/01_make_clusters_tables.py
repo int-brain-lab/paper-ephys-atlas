@@ -16,9 +16,7 @@ logger = get_logger('ibl')
 one = ONE()
 ba = AllenAtlas()
 
-
-STAGING_PATH = Path('/datadisk/FlatIron/tables/atlas')
-STAGING_PATH = Path('/mnt/s0/Data/tables/atlas')
+STAGING_PATH = Path('/mnt/s0/aggregates/bwm')
 
 excludes = []
 errorkey = []
@@ -107,7 +105,7 @@ df_depths.to_parquet(STAGING_PATH.joinpath('depths.pqt'))
 
 
 
-print(f'aws s3 sync "{STAGING_PATH}" s3://ibl-brain-wide-map-private/data/tables/atlas')
+print(f'aws s3 sync "{STAGING_PATH}" s3://ibl-brain-wide-map-private/aggregates/bwm')
 print(errorkey)
 print(error404)
 

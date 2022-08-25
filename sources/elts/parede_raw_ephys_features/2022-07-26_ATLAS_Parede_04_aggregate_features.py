@@ -13,8 +13,9 @@ from iblutil.util import get_logger
 
 _logger = get_logger('atlas')
 
+
 ROOT_PATH = Path("/mnt/s0/ephys-atlas")
-STAGING_PATH = Path('/mnt/s0/Data/tables/atlas')
+STAGING_PATH = Path('/mnt/s0/aggregates/bwm')
 
 # ROOT_PATH = Path("/Users/olivier/Documents/datadisk/atlas")
 h = neuropixel.trace_header(version=1)
@@ -152,6 +153,11 @@ for k, pfolder in enumerate(pid_folders):
     all_channels.append(df_out)
 
 all_channels = pd.concat(all_channels)
+
+all_channels['raw_ind'] = all_channels.index.values.astype(np.int32)
+all_channels = all_channels.drop(['trace'], axis='columns')
+all_channels = all_channels.set_index(['pid', 'raw_ind'])
+
 all_channels.to_parquet(STAGING_PATH.joinpath('raw_ephys_features.pqt'))
 
-print(f'aws s3 sync "{STAGING_PATH}" s3://ibl-brain-wide-map-private/data/tables/atlas')
+print(f'aws s3 sync "{STAGING_PATH}" s3://ibl-brain-wide-map-private/aggregates/bwm')
