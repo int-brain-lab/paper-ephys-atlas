@@ -4,7 +4,7 @@ from pathlib import Path
 from one.remote import aws
 from one.api import ONE
 
-LOCAL_DATA_PATH = Path("/Users/olivier/Documents/datadisk/atlas")
+LOCAL_DATA_PATH = Path("/datadisk/Data/aggregates")
 
 # The AWS private credentials are stored in Alyx, so that only one authentication is required
 one = ONE(base_url="https://alyx.internationalbrainlab.org", mode='online')
