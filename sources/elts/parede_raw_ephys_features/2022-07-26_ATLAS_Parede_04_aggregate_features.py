@@ -148,14 +148,16 @@ for k, pfolder in enumerate(pid_folders):
     pid = pfolder.name[:36]
     ap_features = get_ap_features(pfolder)
     lf_features = get_lf_features(pfolder)
-    df_out = pd.merge(ap_features, lf_features, left_on="trace", right_index=True, how='left')
+
+    if ap_features.index.name != 'trace':
+        ap_features = ap_features.set_index('trace')
+    df_out = pd.merge(lf_features, ap_features, left_index=True, right_index=True)
     df_out['pid'] = pid
     all_channels.append(df_out)
 
 all_channels = pd.concat(all_channels)
 
 all_channels['raw_ind'] = all_channels.index.values.astype(np.int32)
-all_channels = all_channels.drop(['trace'], axis='columns')
 all_channels = all_channels.set_index(['pid', 'raw_ind'])
 
 all_channels.to_parquet(STAGING_PATH.joinpath('raw_ephys_features.pqt'))
