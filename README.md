@@ -1,6 +1,13 @@
 # paper-ephys-atlas
 Code related to the electrophysiology atlas paper
 
+## Getting started
+
+To get the features dataframe needed to train models, see [the loading example](sources/examples/00_load_clusters_tables.py)
+
+To get a naive example of decoding model out of ephys features, see [a raw ephys decoder](sources/decoding/raw_ephys_decodes_regions.py)
+
+
 ## Install instructions
 Clone the repository
 ```bash
@@ -17,3 +24,5 @@ Cd into the repository and install in-place
 cd paper-ephys-atlas
 pip install -e .
 ```
+
+
