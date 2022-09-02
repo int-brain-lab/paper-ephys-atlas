@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 @author: PL based on OW 2022-07-26_ATLAS_Parede_03_compute_features.py
 
@@ -11,12 +13,20 @@ import matplotlib.pyplot as plt
 from neurodsp.utils import rms
 import neuropixel
 from ibllib.plots import wiggle
+from ibllib.atlas import AllenAtlas
 from viewephys.gui import viewephys
 
-from os.path import join
-from scipy.optimize import curve_fit
-from brainbox.io.one import SpikeSortingLoader
-from brainbox.metrics.single_units import spike_sorting_metrics
+#from os.path import join
+#from scipy.optimize import curve_fit
+#from brainbox.io.one import SpikeSortingLoader
+#from brainbox.metrics.single_units import spike_sorting_metrics
+
+#from one.api import ONE
+
+#ba = AllenAtlas()
+#one = ONE()
+
+#####region selection? specific trajectory selection? NeuronQC? Other QC...etc??? 
 
 h = neuropixel.trace_header(version=1)
 geom = np.c_[h['x'], h['y']]
@@ -83,27 +93,18 @@ wiggle(- data[cind, sind].T, fs=rinfo['fs'], gain=.25, ax=axs[1])
 
 
 ## Feature extraction 
+
 # Get peak-to-trough ratio
 pt_ratio = np.max(w) / np.abs(np.min(w))
 
-# Get part of spike from trough to first peak after the trough
+# Get part of spike from trough to first peak after the trough and repolarization
 peak_after_trough = np.argmax(w[np.argmin(w):]) + np.argmin(w)
 repolarization = w[np.argmin(w):np.argmax(w[np.argmin(w):]) + np.argmin(w)]
 
 # Get spike width in ms
-x_time = np.linspace(0, (w.shape[0] / 30000) * 1000, w.shape[0])
 peak_to_trough = ((np.argmax(w) - np.argmin(w)) / 30000) * 1000
 spike_width = ((peak_after_trough - np.argmin(w)) / 30000) * 1000
 
-# Get repolarization slope
-if spike_width <= 0.08:
-    continue
-else:
-    rp_slope, _, = np.polyfit(x_time[np.argmin(w):peak_after_trough],
-                                w[np.argmin(w):peak_after_trough], 1)
-
-# Get recovery slope
-rc_slope, _ = np.polyfit(x_time[peak_after_trough:], w[peak_after_trough:], 1)
 
 
 ##
