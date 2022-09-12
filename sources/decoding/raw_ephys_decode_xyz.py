@@ -5,12 +5,15 @@ from pathlib import Path
 from one.remote import aws
 from one.api import ONE
 
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, SGDRegressor
 from sklearn.model_selection import KFold
 from sklearn.metrics import r2_score
 from sklearn.preprocessing import StandardScaler
 
 from random import shuffle
+
+import matplotlib.pyplot as plt
+
 
 def get_data():
     LOCAL_DATA_PATH = Path(
@@ -34,25 +37,19 @@ def get_data():
     return df_voltage
 
 
-def regress(scaling = False, shuf = False):
+def regress(scaling = True, shuf = False):
 
     df_voltage = get_data()
     
     x_list = ['rms_ap', 'alpha_mean', 'alpha_std', 'spike_rate', 
               'cloud_x_std', 'cloud_y_std', 'cloud_z_std', 'rms_lf', 
               'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma']
-
+    x_list = np.sort(x_list)
     X = df_voltage.loc[:, x_list].values
     y = df_voltage.loc[:, ['x','y','z']].values
 
     print(X.shape, 'samples x input_features')
     print(y.shape, 'samples x target_features')
-    
-
-    if scaling:
-        scaler = StandardScaler()
-        scaler.fit(X)
-        X = scaler.transform(X)
 
     if shuf:
         shuffle(y)
@@ -62,6 +59,8 @@ def regress(scaling = False, shuf = False):
     kf = KFold(n_splits=folds, shuffle=True)
     fold = 0
     
+    coefs = []
+    
     for tra, tes in kf.split(X):
 
         X_tra = X[tra]
@@ -69,8 +68,56 @@ def regress(scaling = False, shuf = False):
         y_tra = y[tra] 
         y_tes = y[tes]         
         
-        reg = LinearRegression().fit(X_tra, y_tra)
-        print('fold: ', fold, 'score: ', reg.score(X_tes, y_tes))
+        if scaling:
+            scaler = StandardScaler()
+            scaler.fit(X_tra)
+            X_tra = scaler.transform(X_tra)
+            X_tes = scaler.transform(X_tes)
+        
+        ci = []
+        for i in range(y.shape[-1]):
+            reg = SGDRegressor().fit(X_tra, y_tra[:,i])  # LinearRegression
+            
+            ci.append(reg.coef_)
+            
+            print(['x','y','z'][i], 
+                  'fold: ', fold, 
+                  'score: ', reg.score(X_tes, y_tes[:,i]))
+                  
+        coefs.append(ci)          
         fold += 1 
 
+    return np.array(coefs)
+    
+    
+def plot_coefs(coefs):
 
+    #coefs = regress()
+    
+    coefs = np.abs(coefs)
+    
+    x_list = ['rms_ap', 'alpha_mean', 'alpha_std', 'spike_rate', 
+              'cloud_x_std', 'cloud_y_std', 'cloud_z_std', 'rms_lf', 
+              'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma']    
+    x_list = np.sort(x_list)
+    
+    ys = ['x', 'y', 'z']
+
+    fig, axs = plt.subplots(nrows =3, ncols=1, sharex = True)
+
+    for i in range(len(ys)):
+        
+        # mean and std across folds
+        y = coefs.mean(axis = 0)[i]
+        yerr = coefs.std(axis = 0)[i]
+        axs[i].bar(range(len(x_list)), y, yerr=yerr)
+        axs[i].set_ylabel(f'weights to {ys[i]}')
+        axs[i].set_xlabel('features')
+        axs[i].set_xticks(range(len(x_list)))
+        axs[i].set_xticklabels(x_list,rotation=90)
+
+    fig.tight_layout()
+    
+    
+    
+    
