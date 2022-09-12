@@ -81,8 +81,8 @@ def regress(scaling = True, shuf = False):
             ci.append(reg.coef_)
             
             print(['x','y','z'][i], 
-                  'fold: ', fold, 
-                  'score: ', reg.score(X_tes, y_tes[:,i]))
+                  ', fold: ', fold, 
+                  ', score: ', np.round(reg.score(X_tes, y_tes[:,i]),2))
                   
         coefs.append(ci)          
         fold += 1 
