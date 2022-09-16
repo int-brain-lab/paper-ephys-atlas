@@ -44,6 +44,7 @@ def regress(scaling = True, shuf = False):
     x_list = ['rms_ap', 'alpha_mean', 'alpha_std', 'spike_rate', 
               'cloud_x_std', 'cloud_y_std', 'cloud_z_std', 'rms_lf', 
               'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma']
+              
     x_list = np.sort(x_list)
     X = df_voltage.loc[:, x_list].values
     y = df_voltage.loc[:, ['x','y','z']].values
@@ -60,7 +61,7 @@ def regress(scaling = True, shuf = False):
     fold = 0
     
     coefs = []
-    
+    scores = dict(zip(['x','y','z'],[[],[],[]]))
     for tra, tes in kf.split(X):
 
         X_tra = X[tra]
@@ -76,19 +77,32 @@ def regress(scaling = True, shuf = False):
         
         ci = []
         for i in range(y.shape[-1]):
-            reg = SGDRegressor().fit(X_tra, y_tra[:,i])  # LinearRegression
+            reg = SGDRegressor(loss="huber", 
+                               early_stopping=True).fit(X_tra, y_tra[:,i])
             
             ci.append(reg.coef_)
             
+            sco = np.round(reg.score(X_tes, y_tes[:,i]),2)
+            scores[['x','y','z'][i]].append(sco)
             print(['x','y','z'][i], 
                   ', fold: ', fold, 
-                  ', score: ', np.round(reg.score(X_tes, y_tes[:,i]),2))
+                  ', score: ', sco)
                   
         coefs.append(ci)          
         fold += 1 
 
-    return np.array(coefs)
-    
+    return scores, np.array(coefs)
+
+
+def plot_scores(scores):
+
+    fig, ax = plt.subplots()
+    ax.bar(range(len(scores)), [np.mean(scores[x]) for x in scores],
+                               yerr=[np.std(scores[x]) for x in scores])
+    ax.set_xticks(range(len(scores)))                          
+    ax.set_xticklabels([x for x in scores])                            
+    ax.set_xlabel('channel position')
+    ax.set_ylabel('accuracy, r**2')        
     
 def plot_coefs(coefs):
 
