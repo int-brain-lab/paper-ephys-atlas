@@ -67,7 +67,7 @@ wiggle(- np.squeeze(waveforms[iw, :, :]), fs=rinfo['fs'], gain=0.25, ax=axs[0])
 wiggle(- data[cind, sind].T, fs=rinfo['fs'], gain=.25, ax=axs[1])
 wiggle(- np.squeeze(waveforms[iw, :, :]) + data[cind, sind].T, fs=rinfo['fs'], gain=.25, ax=axs[2])
 
-
+wav = np.squeeze(waveforms[iw, :, :])
 ##
 
 wc = viewephys(waveforms[iw, :, :].T, fs=rinfo['fs'], title='wav_clean', channels=hwav)
@@ -81,3 +81,25 @@ eqcs[t] = viewephys(data[:, :20000], fs=fs, title=(t := 'destripe'), a_scalar=1)
 
 for k, eqc in eqcs.items():
     eqc.ctrl.add_scatter(df_spikes['sample'].values / fs * 1e3, df_spikes['trace'].values, label='loc')
+
+## %%
+import matplotlib.pyplot as plt
+
+from neurodsp.utils import parabolic_max
+[ipeak, ic] = np.unravel_index(np.argmax(np.abs(wav)), shape=wav.shape)
+pol = np.sign(wav[ipeak, ic])
+itrough = np.argmax(-wav[ipeak:, ic] * pol) + ipeak
+amp = wav[ipeak, ic] - wav[itrough, ic]
+# wave form features
+#   peak to trough
+#   min to max amplitude iV
+# aggregates per channel:
+#   ratio of positive spiking
+#   peak to trough
+#   amplitude of positive spikes
+#   amplitude of negative spikes
+
+plt.plot(wav[:, ic])
+plt.plot(itrough, wav[itrough, ic], 'r*')
+plt.plot(ipeak, wav[ipeak, ic], 'r*')
+
