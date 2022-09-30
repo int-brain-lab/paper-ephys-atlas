@@ -2,40 +2,37 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import urllib.error
-from datetime import date
 
 from one.api import ONE
 from ibllib.atlas import AllenAtlas
-from iblutil.util import get_logger
 
 from neuropixel import trace_header
 from iblutil.numerical import ismember2d
-from ephys_atlas.data import bwm_pids
+from brainwidemap import bwm_query
 from brainbox.io.one import SpikeSortingLoader
+from iblutil.util import get_logger
 
-logger = get_logger('brainbox')
 
+logger = get_logger('ibl', level='DEBUG')
 one = ONE()
 ba = AllenAtlas()
 
-year_week = date.today().isocalendar()[:2]
-year_week = date(2022, 8, 23).isocalendar()[:2]
-STAGING_PATH = Path('/mnt/s0/aggregates/bwm').joinpath(f'{year_week[0]}_W{year_week[1]:02}_metrics')
+STAGING_PATH = Path('/mnt/s0/aggregates/bwm_julia')
 
 excludes = []
 errorkey = []
 error404 = []
 one = ONE(base_url='https://alyx.internationalbrainlab.org')
-pids, _ = bwm_pids(one, tracing=True)
+bwm_df = bwm_query(one)
+pids = list(bwm_df['pid'])
 
+## %%
 # init dataframes
 df_probes = pd.DataFrame(dict(eid='', pname='', spike_sorter='', histology=''), index=pids)
 ldf_channels = []
 ldf_clusters = []
 ldf_depths = []
 no_spike_sorting = []
-
-## %%
 IMIN = 0
 
 for i, pid in enumerate(pids):
@@ -48,7 +45,7 @@ for i, pid in enumerate(pids):
     df_probes['pname'][i] = pname
 
     # spikes, clusters, channels = load_spike_sorting_fast(eid=eid, probe=pname, one=one, nested=False)
-    logger.info(f"{i}/{len(pids)}, {pid}")
+    logger.info(f"{i}, {pid}")
     ss = SpikeSortingLoader(pid=pid, one=one, atlas=ba)
     try:
         spikes, clusters, channels = ss.load_spike_sorting()
@@ -87,7 +84,7 @@ for i, pid in enumerate(pids):
     df_depths['spike_rate'] = df_depths['spike_rate'] / (np.max(spikes['times']) - np.min(spikes['times']))
     ldf_depths.append(df_depths)
     raise ValueError
-## %%
+
 df_channels = pd.concat(ldf_channels, ignore_index=True)
 df_clusters = pd.concat(ldf_clusters, ignore_index=True)
 df_depths = pd.concat(ldf_depths)
@@ -111,7 +108,7 @@ df_depths.to_parquet(STAGING_PATH.joinpath('depths.pqt'))
 
 
 
-print(f'aws s3 sync "{STAGING_PATH}" s3://ibl-brain-wide-map-private/aggregates/bwm')
+#print(f'aws s3 sync "{STAGING_PATH}" s3://ibl-brain-wide-map-private/aggregates/bwm')
 print(errorkey)
 print(error404)
 
