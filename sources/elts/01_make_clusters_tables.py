@@ -86,7 +86,6 @@ for i, pid in enumerate(pids):
     df_depths['pid'] = pid
     df_depths['spike_rate'] = df_depths['spike_rate'] / (np.max(spikes['times']) - np.min(spikes['times']))
     ldf_depths.append(df_depths)
-    raise ValueError
 ## %%
 df_channels = pd.concat(ldf_channels, ignore_index=True)
 df_clusters = pd.concat(ldf_clusters, ignore_index=True)
@@ -111,7 +110,7 @@ df_depths.to_parquet(STAGING_PATH.joinpath('depths.pqt'))
 
 
 
-print(f'aws s3 sync "{STAGING_PATH}" s3://ibl-brain-wide-map-private/aggregates/bwm')
+print(f'aws s3 sync "/mnt/s0/aggregates" s3://ibl-brain-wide-map-private/aggregates')
 print(errorkey)
 print(error404)
 
