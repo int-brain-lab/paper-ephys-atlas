@@ -86,7 +86,6 @@ def localisation(destination=None):
     from spike_psvae.subtract import make_channel_index, subtract_and_localize_numpy
     h = neuropixel.trace_header(version=1)
     geom = np.c_[h['x'], h['y']]
-    xy = h['x'] + 1j * h['y']
 
     kwargs = dict(
         extract_radius=200.,
