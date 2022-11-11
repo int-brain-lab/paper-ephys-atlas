@@ -1,5 +1,8 @@
 from pathlib import Path
-import time
+from one.api import ONE
+from ephys_atlas.data import atlas_pids
+import ephys_atlas.rawephys
+
 import torch
 
 from ibllib.misc import check_nvidia_driver
@@ -7,7 +10,7 @@ from iblutil.util import get_logger
 
 _logger = get_logger('ephys_atlas', level='INFO')
 
-VERSION = '1.0.0'
+VERSION = '1.1.0'
 ROOT_PATH = Path("/mnt/s1/ephys-atlas")
 LFP_RESAMPLE_FACTOR = 10  # 200 Hz data
 
@@ -15,13 +18,22 @@ check_nvidia_driver()
 print(torch.version.cuda)
 assert torch.cuda.is_available(), "CUDA not available"
 
-ROOT_PATH = Path("/mnt/s1/ephys-atlas")
+one = ONE(base_url="https://alyx.internationalbrainlab.org")
+pids, alyx_pids = atlas_pids(one)
 
-
-for ff in ROOT_PATH.rglob(".localise_me*"):
-    print(f"python ./sources/ephys_atlas/rawephys.py localisation --path {ff.parent}")
-
-# conda activate iblenv
-# cd /home/ibladmin/Documents/PYTHON/int-brain-lab/paper-ephys-atlas
-# python ./sources/elts/parede_raw_ephys_features/2022-07-26_ATLAS_Parede_02_localize.py > ~/parede_localise.sh
-# source ~/parede_localise.sh
+c = 0
+IMIN = 0
+for i, apid in enumerate(alyx_pids):
+    if i < IMIN:
+        continue
+    pid = apid['id']
+    eid = apid['session_info']['id']
+    pname = apid['name']
+    stub = [apid['session_info']['subject'], apid['session_info']['start_time'][:10], f"{apid['session_info']['number']:03d}"]
+    destination = ROOT_PATH.joinpath('_'.join(([pid] + stub + [pname])))
+    if destination.is_dir():
+        if destination.joinpath(f'.01_destripe_{VERSION}').exists():
+            print(i, f"COMPUTE {pid} --path {destination}")
+            c += 1
+            ephys_atlas.rawephys.localisation(destination)
+            destination.joinpath(f'.02_localisation_{VERSION}').touch()
