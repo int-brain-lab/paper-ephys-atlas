@@ -12,6 +12,7 @@ LFP_RESAMPLE_FACTOR = 10  # 200 Hz data
 one = ONE(base_url="https://alyx.internationalbrainlab.org")
 pids, alyx_pids = atlas_pids(one)
 
+# 12, 33, 53
 c = 0
 IMIN = 0
 for i, apid in enumerate(alyx_pids):
@@ -28,11 +29,11 @@ for i, apid in enumerate(alyx_pids):
         elif destination.joinpath(f'.01_destripe_1.0.0').exists():
             print(i, f"UPDATE {pid} --path {destination}")
             ephys_atlas.rawephys.destripe(pid, one=one, destination=destination, typ='lf')
-            destination.joinpath('.01_destripe_1.0.0').rename(f'.01_destripe_{VERSION}')
-            continue
-    print(i, f"COMPUTE {pid} --path {destination}")
-    c += 1
-    shutil.rmtree(destination, ignore_errors=True)
-    ephys_atlas.rawephys.destripe(pid, one=one, destination=destination, typ='lf')
-    ephys_atlas.rawephys.destripe(pid, one=one, destination=destination, typ='ap')
-    destination.joinpath(f'.01_destripe_{VERSION}').touch()
+            destination.joinpath('.01_destripe_1.0.0').rename(destination.joinpath(f'.01_destripe_{VERSION}'))
+    else:
+        print(i, f"COMPUTE {pid} --path {destination}")
+        c += 1
+        shutil.rmtree(destination, ignore_errors=True)
+        ephys_atlas.rawephys.destripe(pid, one=one, destination=destination, typ='lf')
+        ephys_atlas.rawephys.destripe(pid, one=one, destination=destination, typ='ap')
+        destination.joinpath(f'.01_destripe_{VERSION}').touch()

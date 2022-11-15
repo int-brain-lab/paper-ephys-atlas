@@ -20,9 +20,10 @@ assert torch.cuda.is_available(), "CUDA not available"
 
 one = ONE(base_url="https://alyx.internationalbrainlab.org")
 pids, alyx_pids = atlas_pids(one)
+# excludes: d8ccc (227), 1a276 (370), 7227 (371)
 
 c = 0
-IMIN = 0
+IMIN = 228
 for i, apid in enumerate(alyx_pids):
     if i < IMIN:
         continue
@@ -32,7 +33,9 @@ for i, apid in enumerate(alyx_pids):
     stub = [apid['session_info']['subject'], apid['session_info']['start_time'][:10], f"{apid['session_info']['number']:03d}"]
     destination = ROOT_PATH.joinpath('_'.join(([pid] + stub + [pname])))
     if destination.is_dir():
-        if destination.joinpath(f'.01_destripe_{VERSION}').exists():
+        if destination.joinpath(f'.02_localisation_{VERSION}').exists():
+            continue
+        elif next(destination.glob(f'.01_destripe_1*'), None) is not None:
             print(i, f"COMPUTE {pid} --path {destination}")
             c += 1
             ephys_atlas.rawephys.localisation(destination)
