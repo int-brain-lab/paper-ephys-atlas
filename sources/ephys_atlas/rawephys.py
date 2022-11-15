@@ -1,8 +1,5 @@
-import argparse
 from pathlib import Path
-import sys
 import yaml
-import shutil
 
 import numpy as np
 import scipy.signal
@@ -12,7 +9,6 @@ import neuropixel
 from neurodsp import voltage
 from neurodsp.utils import rms
 from brainbox.io.spikeglx import Streamer
-from one.api import ONE
 
 from iblutil.util import get_logger
 from neurodsp.utils import WindowGenerator
@@ -24,7 +20,7 @@ LFP_RESAMPLE_FACTOR = 10  # 200 Hz data
 VERSION = '1.0.0'
 
 
-def destripe(pid, one=None, typ='ap', prefix="", destination=None):
+def destripe(pid, one=None, typ='ap', prefix="", destination=None, remove_cached=True):
     """
     Stream chunks of data from a given probe insertion
 
@@ -52,7 +48,7 @@ def destripe(pid, one=None, typ='ap', prefix="", destination=None):
     elif typ == 'lf':
         sample_duration, sample_spacings, skip_start_end = (30 * 2_000, 1_000 * 2_000, 500 * 2_000)
         suffix = 'lfp'
-    sr = Streamer(pid=pid, one=one, remove_cached=True, typ=typ)
+    sr = Streamer(pid=pid, one=one, remove_cached=remove_cached, typ=typ)
     chunk_size = sr.chunks['chunk_bounds'][1]
     nsamples = np.ceil((sr.shape[0] - sample_duration - skip_start_end * 2) / sample_spacings)
     t0_samples = np.round((np.arange(nsamples) * sample_spacings + skip_start_end) / chunk_size) * chunk_size
@@ -119,7 +115,7 @@ def localisation(destination=None):
                 loc, wfs = subtract_and_localize_numpy(data[:, first:last].T, geom, **kwargs)
                 cleaned_wfs = wfs if first == 0 else np.concatenate([cleaned_wfs, wfs], axis=0)
                 localisation.append(loc)
-        except TypeError as e:
+        except (TypeError, ValueError):
             _logger.error(f"type error: {file_destripe}")
             continue
         localisation = pd.concat(localisation)
