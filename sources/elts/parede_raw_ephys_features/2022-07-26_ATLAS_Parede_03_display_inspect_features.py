@@ -55,7 +55,7 @@ with open(file_destripe.with_suffix('.yml')) as fp:
 
 
 ## Load a given spike
-iw = 520
+iw = 182
 
 s0 = int(df_spikes['sample'].iloc[iw] - kwargs['trough_offset'])
 sind = slice(s0, s0 + int(kwargs['spike_length_samples']))
