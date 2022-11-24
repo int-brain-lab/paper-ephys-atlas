@@ -14,7 +14,7 @@ pids, alyx_pids = atlas_pids(one)
 
 # 12, 33, 53
 c = 0
-IMIN = 0
+IMIN = 545
 for i, apid in enumerate(alyx_pids):
     if i < IMIN:
         continue
@@ -36,4 +36,5 @@ for i, apid in enumerate(alyx_pids):
         shutil.rmtree(destination, ignore_errors=True)
         ephys_atlas.rawephys.destripe(pid, one=one, destination=destination, typ='lf')
         ephys_atlas.rawephys.destripe(pid, one=one, destination=destination, typ='ap')
-        destination.joinpath(f'.01_destripe_{VERSION}').touch()
+        if destination.exists():
+            destination.joinpath(f'.01_destripe_{VERSION}').touch()

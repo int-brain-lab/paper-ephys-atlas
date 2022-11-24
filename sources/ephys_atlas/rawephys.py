@@ -46,7 +46,7 @@ def destripe(pid, one=None, typ='ap', prefix="", destination=None, remove_cached
         sample_duration, sample_spacings, skip_start_end = (10 * 30_000, 1_000 * 30_000, 500 * 30_000)
         suffix = "destripe"
     elif typ == 'lf':
-        sample_duration, sample_spacings, skip_start_end = (30 * 2_000, 1_000 * 2_000, 500 * 2_000)
+        sample_duration, sample_spacings, skip_start_end = (20 * 2_500, 1_000 * 2_500, 500 * 2_500)
         suffix = 'lfp'
     sr = Streamer(pid=pid, one=one, remove_cached=remove_cached, typ=typ)
     chunk_size = sr.chunks['chunk_bounds'][1]
@@ -121,3 +121,12 @@ def localisation(destination=None):
         localisation = pd.concat(localisation)
         np.save(file_waveforms, cleaned_wfs)
         localisation.to_parquet(file_spikes)
+
+
+def get_raw_waveform(data, h, df_spikes, iw, trough_offset=42, spike_length_samples=121, extract_radius=200):
+    xy = h['x'] + 1j * h['y']
+    s0 = int(df_spikes['sample'].iloc[iw] - trough_offset)
+    sind = slice(s0, s0 + int(spike_length_samples))
+    cind = np.abs(xy[int(df_spikes['trace'].iloc[iw])] - xy) <= extract_radius
+    hwav = {k: v[cind] for k, v in h.items()}
+    return data[cind, sind].T, hwav

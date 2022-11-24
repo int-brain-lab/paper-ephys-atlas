@@ -20,10 +20,9 @@ assert torch.cuda.is_available(), "CUDA not available"
 
 one = ONE(base_url="https://alyx.internationalbrainlab.org")
 pids, alyx_pids = atlas_pids(one)
-# excludes: d8ccc (227), 1a276 (370), 7227 (371)
 
 c = 0
-IMIN = 228
+IMIN = 509
 for i, apid in enumerate(alyx_pids):
     if i < IMIN:
         continue
