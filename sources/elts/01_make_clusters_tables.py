@@ -10,23 +10,22 @@ from iblutil.util import get_logger
 
 from neuropixel import trace_header
 from iblutil.numerical import ismember2d
-from ephys_atlas.data import bwm_pids
+from ephys_atlas.data import atlas_pids
 from brainbox.io.one import SpikeSortingLoader
 
 logger = get_logger('brainbox')
 
-one = ONE()
 ba = AllenAtlas()
 
 year_week = date.today().isocalendar()[:2]
 year_week = date(2022, 8, 23).isocalendar()[:2]
-STAGING_PATH = Path('/mnt/s0/aggregates/bwm').joinpath(f'{year_week[0]}_W{year_week[1]:02}_metrics')
+STAGING_PATH = Path('/mnt/s0/aggregates/atlas').joinpath(f'{year_week[0]}_W{year_week[1]:02}_metrics')
 
 excludes = []
 errorkey = []
 error404 = []
 one = ONE(base_url='https://alyx.internationalbrainlab.org')
-pids, _ = bwm_pids(one, tracing=True)
+pids, _ = atlas_pids(one, tracing=True)
 
 # init dataframes
 df_probes = pd.DataFrame(dict(eid='', pname='', spike_sorter='', histology=''), index=pids)
@@ -86,6 +85,7 @@ for i, pid in enumerate(pids):
     df_depths['pid'] = pid
     df_depths['spike_rate'] = df_depths['spike_rate'] / (np.max(spikes['times']) - np.min(spikes['times']))
     ldf_depths.append(df_depths)
+
 ## %%
 df_channels = pd.concat(ldf_channels, ignore_index=True)
 df_clusters = pd.concat(ldf_clusters, ignore_index=True)
