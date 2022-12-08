@@ -126,6 +126,9 @@ phi_plt = phi[ch_plt, smpl_start:smpl_end+2]
 t_plt = np.linspace(0, smpl_end-smpl_start, len(v_plt))
 plt.plot(t_plt, v_plt)            # Plot the LFP data,
 
+# WARNING actually hilbert works only 1D
+phi_plt = angle(signal.hilbert(v_plt))
+
 # fake datapoint to force axis lim
 phi_plt[-1] = -np.pi
 phi_plt[-2] = np.pi
