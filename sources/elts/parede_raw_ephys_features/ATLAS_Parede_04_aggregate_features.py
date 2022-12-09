@@ -9,9 +9,9 @@ import scipy.signal
 from one.alf.spec import is_uuid_string
 from neurodsp.utils import rms, fcn_cosine
 import neuropixel
-from iblutil.util import get_logger
+from iblutil.util import setup_logger
 
-_logger = get_logger('atlas')
+_logger = setup_logger('atlas')
 
 
 ROOT_PATH = Path("/mnt/s0/ephys-atlas")
