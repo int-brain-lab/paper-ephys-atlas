@@ -1,4 +1,5 @@
 from pathlib import Path
+import traceback
 import yaml
 
 import numpy as np
@@ -108,8 +109,12 @@ def localisation(destination=None, clobber=False):
     all_files = list(destination.rglob('ap.npy'))
     for i, ap_file in enumerate(all_files):
         chunk_dir = ap_file.parent
+        file_error = chunk_dir.joinpath('error_localisation.txt')
         file_waveforms = chunk_dir.joinpath('waveforms.npy')
         file_spikes = chunk_dir.joinpath('spikes.pqt')
+        if file_error.exists():
+            _logger.info(f"{i}/{len(all_files)}: {ap_file}, SKIP PREVIOUS ERROR")
+            continue
         if file_waveforms.exists() and file_spikes.exists() and clobber is False:
             _logger.info(f"{i}/{len(all_files)}: {ap_file}, SKIP")
             continue
@@ -125,8 +130,11 @@ def localisation(destination=None, clobber=False):
                 cleaned_wfs = wfs if first == 0 else np.concatenate([cleaned_wfs, wfs], axis=0)
                 loc['sample'] += first
                 localisation.append(loc)
-        except (TypeError, ValueError):
-            _logger.error(f"type error: {ap_file}")
+        except (TypeError, ValueError) as e:
+            errstr = traceback.format_exc()
+            _logger.error(f"type error: {ap_file}, {errstr}")
+            with open(file_error, 'w+') as fp:
+                fp.write(errstr)
             continue
         localisation = pd.concat(localisation)
         np.save(file_waveforms, cleaned_wfs)
