@@ -6,14 +6,14 @@ from datetime import date
 
 from one.api import ONE
 from ibllib.atlas import AllenAtlas
-from iblutil.util import get_logger
+from iblutil.util import setup_logger
 
 from neuropixel import trace_header
 from iblutil.numerical import ismember2d
 from ephys_atlas.data import atlas_pids
 from brainbox.io.one import SpikeSortingLoader
 
-logger = get_logger('brainbox')
+logger = setup_logger('brainbox')
 
 ba = AllenAtlas()
 
