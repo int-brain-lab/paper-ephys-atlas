@@ -6,9 +6,9 @@ import ephys_atlas.rawephys
 import torch
 
 from ibllib.misc import check_nvidia_driver
-from iblutil.util import get_logger
+from iblutil.util import setup_logger
 
-_logger = get_logger('ephys_atlas', level='INFO')
+_logger = setup_logger('ephys_atlas', level='INFO')
 
 VERSION = '1.2.0'
 ROOT_PATH = Path("/mnt/s1/ephys-atlas")
