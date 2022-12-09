@@ -11,11 +11,11 @@ from neurodsp import voltage
 from neurodsp.utils import rms
 from brainbox.io.spikeglx import Streamer
 
-from iblutil.util import get_logger
+from iblutil.util import setup_logger
 from neurodsp.utils import WindowGenerator
 
 
-_logger = get_logger('ephys_atlas', level='INFO')
+_logger = setup_logger('ephys_atlas', level='INFO')
 
 LFP_RESAMPLE_FACTOR = 10  # 200 Hz data
 VERSION = '1.1.0'
