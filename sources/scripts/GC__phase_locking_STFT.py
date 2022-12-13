@@ -1,7 +1,4 @@
-"""
-Create a phase precession test by generating a sine wave of 30 Hz and spike trains
-locked to the through
-"""
+
 import numpy as np
 from scipy import signal
 
@@ -61,6 +58,13 @@ def compute_inst_phase_amp(x, events, fs, nperseg=None, return_stft=False):
         return [amp_inst, phase_inst, v_strength, v_phase, f]
 
 ## TEST
+
+"""
+From OW 
+https://github.com/int-brain-lab/ibldevtools/blob/210fdc2591d684f7e3aa95335cd74ae7597dda42/olivier/2022-12-09_PrecessionTests.py#L35-L34
+Create a phase precession test by generating a sine wave of 30 Hz and spike trains
+locked to the through
+"""
 # create a sine wave of 2 Hz with -π/2 phase delay
 fs = 2500
 rl = 30
