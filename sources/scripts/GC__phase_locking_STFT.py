@@ -86,9 +86,9 @@ spikes['times'] = np.arange(0, rl, 1 / f_sin)
 # Find freq of interest for test
 # Note: rounding errors ; first sample effect -> remove
 indx_f = np.where(f == f_sin)
-phase_f = phase_inst[indx_f, 1:].flatten()
-assert np.all(np.logical_or(np.unwrap(phase_f) < 1e-10 + p_x,  # unwrap does not work properly
-                            np.unwrap(phase_f)-2*np.pi < 1e-10 + p_x))  # Should be =p_x
+phase_f = np.unwrap(phase_inst[indx_f, 1:].flatten())  # unwrap does not work properly
+assert np.all(np.logical_or(np.logical_and(phase_f > p_x-1e-10, phase_f < p_x+1e-10),  # Should be =p_x
+                            phase_f-2*np.pi > p_x-1e-10, phase_f-2*np.pi < p_x+1e-10))
 assert v_strength[indx_f] > 0.99  # Should be =1
 assert p_x-0.002 < v_phase[indx_f] < p_x+0.002  # Should be =p_x
 amp_f = amp_inst[indx_f, 1:].flatten()
