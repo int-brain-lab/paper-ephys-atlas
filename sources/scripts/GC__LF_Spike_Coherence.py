@@ -10,8 +10,10 @@ from brainbox.io.one import SpikeSortingLoader
 from ibllib.atlas import AllenAtlas
 from scipy import signal
 from viewephys.gui import viewephys
-import numpy as np
 from numpy import angle
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.collections import LineCollection
 
 one = ONE()
 ba = AllenAtlas()
@@ -89,11 +91,6 @@ eqc['destripe'].ctrl.add_scatter(t, c, rgb=(255, 0, 50), label='all')
 
 
 # Plot colored line
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.collections import LineCollection
-from matplotlib.colors import ListedColormap, BoundaryNorm
-
 
 # Create a set of line segments so that we can color them individually
 # This creates the points as a N x 1 x 2 array so that we can stack points
@@ -118,16 +115,16 @@ def plt_phase_axis(x, y, phasey, fig, axs, axs_id):
     plt.show()
 
 # Plot 1 channel LFP
-ch_plt = 10  # 55
-smpl_start = int(500/1000 * sr.fs)
-smpl_end = int(700/1000 * sr.fs)
-v_plt = v_filt[ch_plt, smpl_start:smpl_end+2]
-phi_plt = phi[ch_plt, smpl_start:smpl_end+2]
-t_plt = np.linspace(0, smpl_end-smpl_start, len(v_plt))
-plt.plot(t_plt, v_plt)            # Plot the LFP data,
+ch_plt = 55  # 55-10
 
+smpl_start = int(100/1000 * sr.fs)
+smpl_end = int(900/1000 * sr.fs)
+v_plt = v_filt[ch_plt, smpl_start:smpl_end+2]
+# phi_plt = phi[ch_plt, smpl_start:smpl_end+2]
 # WARNING actually hilbert works only 1D
 phi_plt = angle(signal.hilbert(v_plt))
+t_plt = np.linspace(0, smpl_end-smpl_start, len(v_plt))
+# plt.plot(t_plt, v_plt)            # Plot the LFP data,
 
 # fake datapoint to force axis lim
 phi_plt[-1] = -np.pi
@@ -135,16 +132,35 @@ phi_plt[-2] = np.pi
 v_plt[-1] = 0
 v_plt[-2] = 0
 
-x = t_plt
-y = v_plt
-phasey = phi_plt
-fig, axs = plt.subplots(2, 1, sharex=True, sharey=True)
-
-plt_phase_axis(x, y, phasey, fig, axs, axs_id=0)
+fig, axs = plt.subplots(3, 1, sharex=True) # sharey=True
+plt_phase_axis(x=t_plt, y=v_plt, phasey=phi_plt, fig=fig, axs=axs, axs_id=0)
 
 
+ch_plt = 10  # 55
 
+v_plt2 = v_filt[ch_plt, smpl_start:smpl_end+2]
+phi_plt2 = angle(signal.hilbert(v_plt2))
 
+# fake datapoint to force axis lim
+phi_plt2[-1] = -np.pi
+phi_plt2[-2] = np.pi
+v_plt2[-1] = 0
+v_plt2[-2] = 0
 
+plt_phase_axis(x=t_plt, y=v_plt2, phasey=phi_plt2, fig=fig, axs=axs, axs_id=1)
 
+# Plot instantaneous diff in phase
+# diff_phase = np.unwrap(phi_plt2-phi_plt, discont=np.pi, axis=-1)
+# diff_phase = np.unwrap(phi_plt2-phi_plt, discont=None, axis=- 1, period=2*np.pi)
+# WARPING NOT WORKING
 
+diff_phase = phi_plt2-phi_plt
+
+# fake datapoint to force axis lim
+diff_phase[-1] = -2*np.pi
+diff_phase[-2] = 2*np.pi
+
+plt_phase_axis(x=t_plt, y=diff_phase, phasey=diff_phase, fig=fig, axs=axs, axs_id=2)
+
+diff_dg = np.rad2deg(diff_phase[0:-2])
+np.mean(diff_dg)
