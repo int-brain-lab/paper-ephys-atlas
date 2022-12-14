@@ -35,7 +35,7 @@ def compute_inst_phase_amp(x, events, fs, nperseg=None, return_stft=False, phase
         boundary='zeros', padded=True, axis=- 1)
 
     amp_z = np.abs(Zxx)
-    phase_z = np.angle(Zxx) - np.pi/2 # TODO I do not know why but the phase returned is offset
+    phase_z = np.angle(Zxx) # TODO I do not know why but the phase returned is offset
 
     # #Remove phase from Hanning Window
     # if phase_w is None:
@@ -86,7 +86,7 @@ locked to the phase p_x
 # create a sine wave of f_sin  Hz with p_x phase delay
 fs = 2500
 rl = 30
-f_sin = 6
+f_sin = 8
 p_x = 0  # - np.pi / 2
 amp_x = 10
 
@@ -99,17 +99,17 @@ spikes['times'] = np.arange(0, rl, 1 / f_sin)
 
 # Compute phase locking etc
 [phase_inst, amp_inst, v_strength, v_phase, f], [t, Zxx, amp_z, phase_z] = \
-    compute_inst_phase_amp(x=x, events=spikes['times'], fs=fs, nperseg=None,  return_stft=True)
+    compute_inst_phase_amp(x=x, events=spikes['times'], fs=fs, nperseg=None,  return_stft=True)  # nperseg = int(fs/4) -> T/8
 
 # Find freq of interest for test
-# Note: rounding errors ; first sample effect -> remove
+# Note: rounding errors ; first samples effect -> remove
 indx_f = np.where(f == f_sin)
-phase_f = np.unwrap(phase_inst[indx_f, 1:].flatten())  # unwrap does not work properly
+phase_f = np.unwrap(phase_inst[indx_f, 2:].flatten())  # unwrap does not work properly ; remove 2 origin values
 assert np.all(np.logical_or(np.logical_and(phase_f > p_x-1e-10, phase_f < p_x+1e-10),  # Should be =p_x
                             phase_f-2*np.pi > p_x-1e-10, phase_f-2*np.pi < p_x+1e-10))
 assert v_strength[indx_f] > 0.99  # Should be =1
 assert p_x-0.002 < v_phase[indx_f] < p_x+0.002  # Should be =p_x
-amp_f = amp_inst[indx_f, 1:].flatten()
+amp_f = amp_inst[indx_f, 2:].flatten() # remove 2 origin values
 assert np.all(np.logical_and(float(amp_x/2)-0.00001 < amp_f, amp_f < float(amp_x/2)+0.00001))  # Should be =amp_x/2
 # TODO I do not understand why amp/2 and not amp
 if False:
