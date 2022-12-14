@@ -96,6 +96,7 @@ assert np.all(np.logical_and(float(amp_x/2)-0.00001 < amp_f, amp_f < float(amp_x
 
 if False:
     import matplotlib.pyplot as plt
+    %gui qt
     ## Plots amplitude / phase
     plt.pcolormesh(t, f, amp_z, shading='gouraud')
     plt.title('STFT Magnitude')
@@ -107,9 +108,10 @@ if False:
     plt.title('STFT Phase')
     plt.ylabel('Frequency [Hz]')
     plt.xlabel('Time [sec]')
-    plt.plot(t, np.zeros_like(t), '*')
     plt.show()
 
     plt.figure()
     plt.plot(tx, x)
     plt.plot(spikes['times'], np.zeros_like(spikes['times']), 'o')
+    plt.plot(t, np.zeros_like(t), '*')
+    plt.show()
