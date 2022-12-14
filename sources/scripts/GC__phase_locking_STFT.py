@@ -1,6 +1,7 @@
 
 import numpy as np
 from scipy import signal
+from scipy.fft import fft
 
 
 def compute_phase_window(nperseg):
@@ -41,9 +42,9 @@ def compute_inst_phase_amp(x, events, fs, nperseg=None, return_stft=False, windo
     amp_z = np.abs(Zxx)
     phase_z = np.angle(Zxx)  # TODO I do not know why but the phase returned is offset
 
-    # phase_wr = np.repeat(phase_w, repeats=phase_z.shape[1], axis=1)
-    # phase_wr = np.tile(phase_w, (1, phase_z.shape[1]))
-    # phase_z = np.angle(Zxx) - phase_wr
+    b = np.expand_dims(phase_w, axis=1)
+    phase_wr = np.repeat(b, phase_z.shape[1], axis=1)
+    phase_z = np.angle(Zxx) - phase_wr
 
 
     # Align events
@@ -136,8 +137,7 @@ if False:
 
 
     # Test window used in STFT
-    from scipy.fft import fft, fftfreq
-    import matplotlib.pyplot as plt
+    from scipy.fft import fftfreq
 
     nperseg = int(fs / 2)
     wind = signal.get_window('hann', nperseg)
