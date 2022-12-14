@@ -93,7 +93,7 @@ assert v_strength[indx_f] > 0.99  # Should be =1
 assert p_x-0.002 < v_phase[indx_f] < p_x+0.002  # Should be =p_x
 amp_f = amp_inst[indx_f, 1:].flatten()
 assert np.all(np.logical_and(float(amp_x/2)-0.00001 < amp_f, amp_f < float(amp_x/2)+0.00001))  # Should be =amp_x/2
-
+# TODO I do not understand why amp/2 and not amp
 if False:
     import matplotlib.pyplot as plt
     %gui qt
