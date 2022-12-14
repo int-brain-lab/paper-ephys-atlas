@@ -18,7 +18,7 @@ def compute_inst_phase_amp(x, events, fs, nperseg=None, return_stft=False):
 
     ## Compute STFT
     if nperseg is None:
-        nperseg = fs / 2  # fs * 2 -> t window = 1 sec ; fs / 2 -> t window = 1/4 sec, f = 0-2-4-6-8...Hz
+        nperseg = int(fs / 2)  # fs * 2 -> t window = 1 sec ; fs / 2 -> t window = 1/4 sec, f = 0-2-4-6-8...Hz
     f, t, Zxx = signal.stft(
         x, fs=fs, nperseg=nperseg,
         window='hann', noverlap=None,
@@ -115,3 +115,8 @@ if False:
     plt.plot(spikes['times'], np.zeros_like(spikes['times']), 'o')
     plt.plot(t, np.zeros_like(t), '*')
     plt.show()
+
+
+# Test window used in STFT
+nperseg = int(fs / 2)
+wind = signal.get_window('hann', nperseg)
