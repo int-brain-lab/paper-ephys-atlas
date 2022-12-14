@@ -35,15 +35,15 @@ def compute_inst_phase_amp(x, events, fs, nperseg=None, return_stft=False, phase
         boundary='zeros', padded=True, axis=- 1)
 
     amp_z = np.abs(Zxx)
-    phase_z = np.angle(Zxx)  # TODO I do not know why but the phase returned is offset
+    phase_z = np.angle(Zxx) - np.pi/2 # TODO I do not know why but the phase returned is offset
 
-    #Remove phase from Hanning Window
-    if phase_w is None:
-        phase_w = compute_phase_window(nperseg)
-
-    b = np.expand_dims(phase_w, axis=1)
-    phase_wr = np.repeat(b, phase_z.shape[1], axis=1)
-    phase_z = np.angle(Zxx) - phase_wr
+    # #Remove phase from Hanning Window
+    # if phase_w is None:
+    #     phase_w = compute_phase_window(nperseg)
+    #
+    # b = np.expand_dims(phase_w, axis=1)
+    # phase_wr = np.repeat(b, phase_z.shape[1], axis=1)
+    # phase_z = np.angle(Zxx) - phase_wr
 
 
     # Align events
@@ -86,9 +86,9 @@ locked to the phase p_x
 # create a sine wave of f_sin  Hz with p_x phase delay
 fs = 2500
 rl = 30
-f_sin = 4
+f_sin = 6
 p_x = 0  # - np.pi / 2
-amp_x = 6
+amp_x = 10
 
 tx = np.arange(0, rl, 1 / fs)
 x = amp_x * np.sin(2 * np.pi * f_sin * tx + p_x)
