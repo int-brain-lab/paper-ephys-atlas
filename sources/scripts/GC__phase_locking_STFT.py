@@ -12,7 +12,7 @@ def compute_phase_window(nperseg):
     return phase_w
 
 
-def compute_inst_phase_amp(x, events, fs, nperseg=None, return_stft=False, window_phase_shift=None):
+def compute_inst_phase_amp(x, events, fs, nperseg=None, return_stft=False, phase_w=None):
     '''
     Compute the STFT of signal x -> which returns f and t vectors and Zxx matrix. Then:
     Compute the instantaneous phase and amplitude at each time point in events,
@@ -34,13 +34,12 @@ def compute_inst_phase_amp(x, events, fs, nperseg=None, return_stft=False, windo
         nfft=None, detrend=False, return_onesided=True,
         boundary='zeros', padded=True, axis=- 1)
 
-    #Remove phase from Hanning Window
-    if window_phase_shift is None:
-        phase_w = compute_phase_window(nperseg)
-
-
     amp_z = np.abs(Zxx)
     phase_z = np.angle(Zxx)  # TODO I do not know why but the phase returned is offset
+
+    #Remove phase from Hanning Window
+    if phase_w is None:
+        phase_w = compute_phase_window(nperseg)
 
     b = np.expand_dims(phase_w, axis=1)
     phase_wr = np.repeat(b, phase_z.shape[1], axis=1)
