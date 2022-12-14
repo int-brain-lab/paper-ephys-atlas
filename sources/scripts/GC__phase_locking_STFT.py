@@ -117,28 +117,28 @@ if False:
     plt.show()
 
 
-# Test window used in STFT
-from scipy.fft import fft, fftfreq
-import matplotlib.pyplot as plt
+    # Test window used in STFT
+    from scipy.fft import fft, fftfreq
+    import matplotlib.pyplot as plt
 
-nperseg = int(fs / 2)
-wind = signal.get_window('hann', nperseg)
+    nperseg = int(fs / 2)
+    wind = signal.get_window('hann', nperseg)
 
-# Number of sample points
-N = len(wind)
-# sample spacing
-T = 1.0 / fs
-x = np.linspace(0.0, N*T, N, endpoint=False)
-y = wind
-yf = fft(y)
-xf = fftfreq(N, T)[:N//2]
+    # Number of sample points
+    N = len(wind)
+    # sample spacing
+    T = 1.0 / fs
+    x = np.linspace(0.0, N*T, N, endpoint=False)
+    y = wind
+    yf = fft(y)
+    xf = fftfreq(N, T)[:N//2]
 
-# Amp
-plt.plot(xf, 2.0/N * np.abs(yf[0:N//2]))
-plt.grid()
-plt.show()
+    # Amp
+    plt.plot(xf, 2.0/N * np.abs(yf[0:N//2]))
+    plt.grid()
+    plt.show()
 
-# phase
-plt.plot(xf, 2.0/N * np.angle(yf[0:N//2]))
-plt.grid()
-plt.show()
+    # phase
+    plt.plot(xf, np.angle(yf[0:N//2]))
+    plt.grid()
+    plt.show()
