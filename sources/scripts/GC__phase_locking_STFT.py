@@ -4,6 +4,26 @@ from scipy import signal
 from scipy.fft import fft
 
 
+def unwrap_pi(p_in):
+    p_out = p_in
+    ind_large = np.where(np.logical_and(p_in > np.pi, p_in > 0))
+    ind_small = np.where(np.logical_and(p_in < np.pi, p_in < 0))
+    if len(ind_large) > 0:
+        p_l = p_in[ind_large] % np.pi
+        p_out[ind_large] = p_l - (((p_in[ind_large] - p_l)/np.pi) % 2)*np.pi
+    if len(ind_small) > 0:
+        p_s = p_in[ind_small] % -np.pi
+        p_out[ind_small] = p_s + (((p_in[ind_small] - p_s)/np.pi) % 2)*np.pi
+    return p_out
+
+# test
+# p_in = np.array([0, np.pi+0.1, 2*np.pi+0.3, -np.pi-0.1, -2*np.pi-0.3])
+# p_out = unwrap_pi(p_in)
+# assert np.all(p_out == np.array([0, -np.pi+0.1, 0.3, np.pi-0.1, -0.3]))
+# assert len(np.where(p_out > np.pi)) == 0
+# assert len(np.where(p_out < -np.pi)) == 0
+#Todo test fails due to rounding error
+
 def compute_phase_window(nperseg):
     wind = signal.get_window('hann', nperseg)
     N = len(wind)
@@ -36,6 +56,10 @@ def compute_inst_phase_amp(x, events, fs, nperseg=None, return_stft=False, phase
 
     amp_z = np.abs(Zxx)
     phase_z = np.angle(Zxx) # TODO I do not know why but the phase returned is offset
+
+    if nperseg == int(fs / 2):
+        # Dephase the freq that follow 4k-2 by pi
+        phase_z[np.where(f % 4 != 0)[0],:] = phase_z[np.where(f % 4 != 0)[0],:] + np.pi
 
     # #Remove phase from Hanning Window
     # if phase_w is None:
@@ -86,12 +110,12 @@ locked to the phase p_x
 # create a sine wave of f_sin  Hz with p_x phase delay
 fs = 2500
 rl = 30
-f_sin = 8
+f_sin = 6.2
 p_x = 0  # - np.pi / 2
 amp_x = 10
 
 tx = np.arange(0, rl, 1 / fs)
-x = amp_x * np.sin(2 * np.pi * f_sin * tx + p_x)
+x = amp_x * np.cos(2 * np.pi * f_sin * tx + p_x)
 
 # create a spike train locked to the p_x (if p_x = - np.pi / 2 ; trough)
 spikes = {}
@@ -101,9 +125,26 @@ spikes['times'] = np.arange(0, rl, 1 / f_sin)
 [phase_inst, amp_inst, v_strength, v_phase, f], [t, Zxx, amp_z, phase_z] = \
     compute_inst_phase_amp(x=x, events=spikes['times'], fs=fs, nperseg=None,  return_stft=True)  # nperseg = int(fs/4) -> T/8
 
+
+# Test with hilbert transform
+phase_hilb = np.angle(signal.hilbert(x))
+assert np.logical_and(phase_hilb[0] > p_x-1e-10, phase_hilb[0] < p_x+1e-10)
+
+
 # Find freq of interest for test
+
+indx_f = np.argmin(abs(f - f_sin), axis=0)
+
+phase_fz = unwrap_pi(phase_z[indx_f, :])
+assert np.logical_and(phase_fz[0] > p_x-0.02, phase_fz[0] < p_x+0.02)
+p_lag = (f_sin%1)*2*np.pi
+inc_t = np.where(t == 1)
+assert np.logical_and(phase_fz[inc_t] > (p_x+p_lag)-0.01, phase_fz[inc_t] < (p_x+p_lag)+0.01)
+
+
+
 # Note: rounding errors ; first samples effect -> remove
-indx_f = np.where(f == f_sin)
+# indx_f = np.where(f == f_sin)
 phase_f = np.unwrap(phase_inst[indx_f, 2:].flatten())  # unwrap does not work properly ; remove 2 origin values
 assert np.all(np.logical_or(np.logical_and(phase_f > p_x-1e-10, phase_f < p_x+1e-10),  # Should be =p_x
                             phase_f-2*np.pi > p_x-1e-10, phase_f-2*np.pi < p_x+1e-10))
@@ -159,3 +200,36 @@ if False:
     plt.plot(xf, np.angle(yf[0:N//2]))
     plt.grid()
     plt.show()
+
+#
+# if False:
+#     fs = 2500
+#     rl = 30
+#     f_sin = 6
+#     p_x = 0  # - np.pi / 2
+#     amp_x = 10
+#
+#     tx = np.arange(0, rl, 1 / fs)
+#     x = amp_x * np.sin(2 * np.pi * f_sin * tx + p_x)
+#
+#     # Compute stft
+#     nperseg = int(fs / 2)  # fs * 2 -> t window = 1 sec ; fs / 2 -> t window = 1/4 sec, f = 0-2-4-6-8...Hz
+#     f, t, Zxx = signal.stft(
+#         x, fs=fs, nperseg=nperseg,
+#         window='hann', noverlap=None,
+#         nfft=None, detrend=False, return_onesided=True,
+#         boundary='zeros', padded=True, axis=- 1)
+#
+#     amp_z = np.abs(Zxx)
+#     phase_z = np.angle(Zxx)  # TODO I do not know why but the phase returned is offset
+#
+#     # Compute hilbert
+#     phase_hilb = np.angle(signal.hilbert(x))
+#
+#     # Find freq of interest for test
+#     indx_f = np.where(f == f_sin)
+#
+#     print(f'{f_sin} Hz sinus, phase {p_x} - Hilbert phase: {phase_hilb[0]}')
+#     print(f'{f_sin} Hz sinus, phase {p_x} - STFT phase: {phase_z[indx_f, 0:5]}')
+
+
