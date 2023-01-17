@@ -78,17 +78,19 @@ class AtlasDataModel(object):
         rwav, hwav, cind, sind = self.getwaveform(iw, return_indices=True)
         wav = np.squeeze(self.waveforms[iw, :, :] * self.zscore[cind])
 
-        fig, axs = plt.subplots(1, 4, sharex=True, sharey=True)
-        wiggle(- wav, fs=fs, gain=40, ax=axs[0])
-        wiggle(- rwav.T, fs=fs, gain=40, ax=axs[1])
-        wiggle(- rwav.T + wav, fs=fs, gain=40, ax=axs[2])
+        fig, axs = plt.subplots(2, 3, sharex='row', sharey='row')
+        wiggle(- wav, fs=fs, gain=40, ax=axs[0, 0])
+        wiggle(- rwav.T, fs=fs, gain=40, ax=axs[0, 1])
+        wiggle(- rwav.T + wav, fs=fs, gain=40, ax=axs[0, 2])
         # sns.histplot(spikes['alpha'])
-        
+
         # Subplot with peak-tip-trough
+        # New row to remove share axis
         new_wav = wav[np.newaxis, :, :]
         df, arr_out = peak_trough_tip(new_wav, return_peak_trace=True)
-        plot_peaktiptrough(df, new_wav, axs[3], nth_wav=0)
-
+        plot_peaktiptrough(df, new_wav, axs[1, 0], nth_wav=0)
+        axs[1, 1].set_visible(False)
+        axs[1, 2].set_visible(False)
 
         # import scipy.signal
         # sos = scipy.signal.butter(N=3, Wn=6000 / 30000 * 2, btype='lowpass', output='sos')
