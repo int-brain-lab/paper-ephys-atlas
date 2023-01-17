@@ -34,6 +34,6 @@ if False:
 # downloads one pid at a time (3 to 7 Gb a pop)
 if False:
     pid = pids[5]
-    aws.s3_download_folder(f"resources/ephys-atlas-samples/{pid}", LOCAL_DATA_PATH.joinpath(pid), s3=s3, bucket_name=bucket_name)
+    aws.s3_download_folder(f"resources/ephys-atlas-sample/{pid}", LOCAL_DATA_PATH.joinpath(pid), s3=s3, bucket_name=bucket_name)
 
 
