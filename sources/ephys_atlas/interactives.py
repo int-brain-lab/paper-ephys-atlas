@@ -20,14 +20,17 @@ from viewephys.gui import viewephys, EphysViewer
 
 class AtlasDataModel(object):
 
-    def __init__(self, ROOT_PATH, one, pid):
+    def __init__(self, ROOT_PATH, one, pid, T0=None):
         self.ROOT_PATH = ROOT_PATH
         self.one = one
         self.pid = pid
         self.regions = BrainRegions()
         self.path_pid = self.ROOT_PATH.joinpath(self.pid)
         self.path_qc = self.path_pid.joinpath('pics')
-        path_t0 = next(self.path_pid.glob('T02500*'))
+        if T0 is None:
+            T0 = 2500
+        self.T0 = T0
+        path_t0 = next(self.path_pid.glob(f'T0{self.T0}*'))
 
         self.path_qc.mkdir(exist_ok=True)
         self.ap = np.load(path_t0.joinpath('ap.npy')).astype(np.float32)

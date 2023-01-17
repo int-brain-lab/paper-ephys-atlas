@@ -5,7 +5,7 @@ from one.remote import aws
 
 # http://benchmarks.internationalbrainlab.org.s3-website-us-east-1.amazonaws.com/#/0/4
 
-LOCAL_DATA_PATH = Path.home().joinpath('scratch')
+LOCAL_DATA_PATH = Path.home().joinpath('Desktop/LFP')
 
 one = ONE(base_url='https://alyx.internationalbrainlab.org')
 s3, bucket_name = aws.get_s3_from_alyx(alyx=one.alyx)
