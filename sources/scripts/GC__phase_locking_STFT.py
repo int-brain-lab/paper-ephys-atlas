@@ -17,12 +17,11 @@ def unwrap_pi(p_in):
     return p_out
 
 # test
-# p_in = np.array([0, np.pi+0.1, 2*np.pi+0.3, -np.pi-0.1, -2*np.pi-0.3])
-# p_out = unwrap_pi(p_in)
-# assert np.all(p_out == np.array([0, -np.pi+0.1, 0.3, np.pi-0.1, -0.3]))
-# assert len(np.where(p_out > np.pi)) == 0
-# assert len(np.where(p_out < -np.pi)) == 0
-#Todo test fails due to rounding error
+p_in = np.array([0, np.pi+0.1, 2*np.pi+0.3, -np.pi-0.1, -2*np.pi-0.3])
+p_out = unwrap_pi(p_in)
+assert len(np.where(p_out > np.pi)[0]) == 0
+assert len(np.where(p_out < -np.pi)[0]) == 0
+np.testing.assert_almost_equal(p_out,np.array([0, -np.pi+0.1, 0.3, np.pi-0.1, -0.3]),decimal=7)
 
 def compute_phase_window(nperseg):
     wind = signal.get_window('hann', nperseg)
@@ -50,7 +49,7 @@ def compute_inst_phase_amp(x, events, fs, nperseg=None, return_stft=False, phase
         nperseg = int(fs / 2)  # fs * 2 -> t window = 1 sec ; fs / 2 -> t window = 1/4 sec, f = 0-2-4-6-8...Hz
     f, t, Zxx = signal.stft(
         x, fs=fs, nperseg=nperseg,
-        window='hann', noverlap=None,
+        window='boxcar', noverlap=None,  # todo try boxcar instead of hann
         nfft=None, detrend=False, return_onesided=True,
         boundary='zeros', padded=True, axis=- 1)
 
@@ -82,7 +81,7 @@ def compute_inst_phase_amp(x, events, fs, nperseg=None, return_stft=False, phase
     f2d = np.atleast_2d(f)
 
     phase_lag = np.dot(2*np.pi*f2d.T, (events % T_t))
-    phase_inst = np.unwrap(phase_lag+phase_p)
+    phase_inst = phase_lag+phase_p
 
     # Comptue vector strength, cf signal.vectorstrength
     # convert to vectors
@@ -132,24 +131,26 @@ assert np.logical_and(phase_hilb[0] > p_x-1e-10, phase_hilb[0] < p_x+1e-10)
 
 
 # Find freq of interest for test
-
+# Note: some rounding error
 indx_f = np.argmin(abs(f - f_sin), axis=0)
 
+# Test Z transform
 phase_fz = unwrap_pi(phase_z[indx_f, :])
 assert np.logical_and(phase_fz[0] > p_x-0.02, phase_fz[0] < p_x+0.02)
 p_lag = (f_sin%1)*2*np.pi
-inc_t = np.where(t == 1)
-assert np.logical_and(phase_fz[inc_t] > (p_x+p_lag)-0.01, phase_fz[inc_t] < (p_x+p_lag)+0.01)
+n_s = 1
+inc_t = np.where(t == n_s)
+p_test = unwrap_pi(np.array([p_x+n_s*p_lag]))
+assert np.logical_and(phase_fz[inc_t] > p_test-0.01, phase_fz[inc_t] < p_test+0.01)
 
+#Test instantaneous phase attribution to spikes
+phase_f = unwrap_pi(phase_inst[indx_f, :].flatten())
+assert np.all(np.logical_and(phase_f > p_x-0.01, phase_f < p_x+0.01))  # Should be =p_x
 
-
-# Note: rounding errors ; first samples effect -> remove
-# indx_f = np.where(f == f_sin)
-phase_f = np.unwrap(phase_inst[indx_f, 2:].flatten())  # unwrap does not work properly ; remove 2 origin values
-assert np.all(np.logical_or(np.logical_and(phase_f > p_x-1e-10, phase_f < p_x+1e-10),  # Should be =p_x
-                            phase_f-2*np.pi > p_x-1e-10, phase_f-2*np.pi < p_x+1e-10))
 assert v_strength[indx_f] > 0.99  # Should be =1
+
 assert p_x-0.002 < v_phase[indx_f] < p_x+0.002  # Should be =p_x
+
 amp_f = amp_inst[indx_f, 2:].flatten() # remove 2 origin values
 assert np.all(np.logical_and(float(amp_x/2)-0.00001 < amp_f, amp_f < float(amp_x/2)+0.00001))  # Should be =amp_x/2
 # TODO I do not understand why amp/2 and not amp
