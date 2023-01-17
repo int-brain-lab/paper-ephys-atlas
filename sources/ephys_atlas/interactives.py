@@ -89,8 +89,8 @@ class AtlasDataModel(object):
         new_wav = wav[np.newaxis, :, :]
         df, arr_out = peak_trough_tip(new_wav, return_peak_trace=True)
         plot_peaktiptrough(df, new_wav, axs[1, 0], nth_wav=0)
-        axs[1, 0].set_ylabel('(uV)')
-        axs[1, 0].set_xlabel('samples')
+        axs[1, 0].set_ylabel('(Volt)')
+        axs[1, 0].set_xlabel('(samples)')
         # Todo maybe better to set x-axis in (s) and fix y axis lim across spikes?
         # xlabels = axs[1, 0].get_xticklabels()
         # labels = [item.get_text() for item in xlabels]
