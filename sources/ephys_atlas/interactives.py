@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from neurodsp.waveforms import peak_trough_tip, plot_peaktiptrough
 
 
 from ibllib.atlas import BrainRegions
@@ -77,11 +78,17 @@ class AtlasDataModel(object):
         rwav, hwav, cind, sind = self.getwaveform(iw, return_indices=True)
         wav = np.squeeze(self.waveforms[iw, :, :] * self.zscore[cind])
 
-        fig, axs = plt.subplots(1, 3, sharex=True, sharey=True)
+        fig, axs = plt.subplots(1, 4, sharex=True, sharey=True)
         wiggle(- wav, fs=fs, gain=40, ax=axs[0])
         wiggle(- rwav.T, fs=fs, gain=40, ax=axs[1])
         wiggle(- rwav.T + wav, fs=fs, gain=40, ax=axs[2])
         # sns.histplot(spikes['alpha'])
+        
+        # Subplot with peak-tip-trough
+        new_wav = wav[np.newaxis, :, :]
+        df, arr_out = peak_trough_tip(new_wav, return_peak_trace=True)
+        plot_peaktiptrough(df, new_wav, axs[3], nth_wav=0)
+
 
         # import scipy.signal
         # sos = scipy.signal.butter(N=3, Wn=6000 / 30000 * 2, btype='lowpass', output='sos')
