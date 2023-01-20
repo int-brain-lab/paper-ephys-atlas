@@ -17,6 +17,7 @@ from one.remote import aws
 from ibllib.plots import wiggle
 from neurodsp.utils import rms
 from viewephys.gui import viewephys, EphysViewer
+from neurodsp.voltage import kfilt
 
 
 class AtlasDataModel(object):
@@ -45,6 +46,7 @@ class AtlasDataModel(object):
         ssl = SpikeSortingLoader(pid=pid, one=one)
         self.channels = ssl.load_channels()
         self.eqcs = {}
+        self.kfilt = None
 
     def view(self, alpha_min=100):
 
@@ -63,6 +65,11 @@ class AtlasDataModel(object):
         except:
             pass
         sl['layer'].sigClicked.connect(self.click_on_spike_callback)
+
+    def view_kfilt(self):
+        if self.kfilt is None:
+            self.kfilt = kfilt(self.ap)
+        self.eqcs['kfilt'] = viewephys(self.kfilt, fs=self.fs_ap, title='kfilt', channels=self.channels, br=self.regions)
 
     def click_on_spike_callback(self, obj, toto, event):
         t = event.pos().x() / 1e3
