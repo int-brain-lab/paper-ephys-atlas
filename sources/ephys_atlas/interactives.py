@@ -89,6 +89,7 @@ class AtlasDataModel(object):
         wiggle(- wav, fs=fs, gain=40, ax=axs[0, 0])
         wiggle(- rwav.T, fs=fs, gain=40, ax=axs[0, 1])
         wiggle(- rwav.T + wav, fs=fs, gain=40, ax=axs[0, 2])
+        axs[0, 0].set_title(f'ID wav: {iw}')
         # sns.histplot(spikes['alpha'])
 
         # Subplot with peak-tip-trough
