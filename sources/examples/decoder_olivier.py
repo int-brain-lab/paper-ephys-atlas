@@ -37,6 +37,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from iblutil.numerical import ismember
 
+from ephys_atlas.interactives import plot_probas
 from brainbox.ephys_plots import plot_brain_regions
 from ibllib.atlas import BrainRegions
 
@@ -51,13 +52,12 @@ df_depths = pd.read_parquet(LOCAL_DATA_PATH.joinpath('depths.pqt'))
 df_voltage = pd.read_parquet(LOCAL_DATA_PATH.joinpath('raw_ephys_features.pqt'))
 
 df_voltage = pd.merge(df_voltage, df_channels, left_index=True, right_index=True).dropna()
-aids_cosmos = regions.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Cosmos')
-aids_beryl = regions.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Beryl')
-df_voltage['beryl_id'] = aids_beryl
-df_voltage['cosmos_id'] = aids_cosmos
+# remapping the lowest level of channel location to higher levels mappings
+df_voltage['cosmos_id'] = regions.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Cosmos')
+df_voltage['beryl_id'] = regions.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Beryl')
 
 
-# Decode brain regions
+# selection and scaling of features
 x_list = ['rms_ap', 'alpha_mean', 'alpha_std', 'spike_rate', 'cloud_x_std', 'cloud_y_std', 'cloud_z_std', 'rms_lf', 'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma']
 X = df_voltage.loc[:, x_list].values
 scaler = StandardScaler()
@@ -68,7 +68,6 @@ df_voltage = df_voltage.reset_index()
 ## %%
 
 # Training the model
-acronyms = regions.id2acronym(aids_cosmos) #This changes the id (number of a region) to the acronym name
 n_trees = 30
 max_depth = 25
 max_leaf_nodes = 10000  # to be optimized! change the values until find when the model loses performance
@@ -90,14 +89,14 @@ Benchmark_pids = ['1a276285-8b0e-4cc9-9f0a-a3a002978724',
 
 df_voltage2 = df_voltage.copy()
 for i in Benchmark_pids:
-     df_voltage2 = df_voltage2[df_voltage2.pid != i] # != excludes the pids you don't want to include in your dataframe
+     df_voltage2 = df_voltage2[df_voltage2.pid != i]  # != excludes the pids you don't want to include in your dataframe
 
-a, _ = ismember(df_voltage2['atlas_id'], regions.acronym2id(['void', 'root']))
+a, _ = ismember(df_voltage2['cosmos_id'], regions.acronym2id(['void', 'root']))
 df_voltage2 = df_voltage2.loc[~a]
 df_voltage2 = df_voltage2.reset_index(drop=True)
 
 X_train = df_voltage2.loc[:, x_list].values
-y_train = df_voltage2['acronym'].values # we are training the model to already give the output as an acronym instead of an id
+y_train = df_voltage2['acronym'].values  # we are training the model to already give the output as an acronym instead of an id
 
 # Model
 
@@ -108,44 +107,27 @@ clf = classifier.fit(X_train, y_train)
 
 
 ## %%
-# Testing the model
-for pid in  Benchmark_pids:
-    df_pid = df_voltage[df_voltage.pid == pid]  #Change this PID depending on the one we want to test
+# Testing the model on
+for pid in Benchmark_pids:
+    # pid = "dab512bd-a02d-4c1f-8dbc-9155a163efc0"
+    df_pid = df_voltage[df_voltage.pid == pid]
     df_pid = df_pid.reset_index(drop=True)
     nc = df_pid.shape[0]
-
     X_test = df_pid.loc[:, x_list].values
 
+    # we output both the most likely region and all of the probabilities for each region
     predict_region = clf.predict(X_test)
     predict_regions_proba = pd.DataFrame(clf.predict_proba(X_test).T)
+
+    # this is the probability of the most likely region
+    max_proba = np.max(predict_regions_proba.values, axis=0)
+
+    # TODO aggregate per depth, not per channel !
+    # we remap and aggregate probabilites
     predict_regions_proba['beryl_aids'] = regions.remap(regions.acronym2id(clf.classes_), source_map='Allen', target_map='Beryl')
     predict_regions_proba['cosmos_aids'] = regions.remap(regions.acronym2id(clf.classes_), source_map='Allen', target_map='Cosmos')
     probas_beryl = predict_regions_proba.groupby('beryl_aids').sum().drop(columns='cosmos_aids').T
     probas_cosmos = predict_regions_proba.groupby('cosmos_aids').sum().drop(columns='beryl_aids').T
-
-
-    def plot_probas(probas, ax=None, legend=True):
-        if ax is None:
-            fig, ax = plt.subplots()
-
-        _, regions_indices = ismember(probas.columns.values, regions.id)
-        probas = probas.loc[:, probas.columns[np.argsort(regions.order[regions_indices])]]
-
-        data = probas.values.cumsum(axis=-1)
-
-        for i in np.arange(probas.shape[1]):
-            ir = regions.id2index(probas.columns[i])[1][0][0]
-            ax.fill_betweenx(
-                probas.index.values.astype(np.int16),
-                data[:, i], label=regions.acronym[ir],
-                zorder=-i,
-                color=regions.rgb[ir] / 255)
-        ax.margins(y=0)
-        ax.set_xlim(0, None)
-        ax.set_axisbelow(False)
-        if legend:
-            ax.legend()
-        return ax
 
 
     predictions_remap_cosmos = regions.remap(regions.acronym2id(predict_region), source_map='Allen', target_map='Cosmos')
@@ -168,3 +150,4 @@ for pid in  Benchmark_pids:
     plot_probas(probas_beryl, legend=False, ax=axs[5])
 
     f.savefig(OUT_PATH.joinpath(f"{pid}.png"))
+
