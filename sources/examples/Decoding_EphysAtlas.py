@@ -45,6 +45,31 @@ from ibllib.atlas import BrainRegions
 13) CSH_ZAD_025_2020.08.03_P01  fe380793-8035-414e-b000-09bfe5ece92a
 
 '''
+#%%
+# Get the different dataframes with all the features
+
+
+LOCAL_DATA_PATH = Path("/home/joana/Desktop/IBL/Ephys_Atlas/dataframes_features")
+
+# The AWS private credentials are stored in Alyx, so that only one authentication is required
+one = ONE(base_url="https://alyx.internationalbrainlab.org", mode='online')
+s3, bucket_name = aws.get_s3_from_alyx(alyx=one.alyx)
+aws.s3_download_folder("aggregates/bwm",
+                       LOCAL_DATA_PATH,
+                       s3=s3, bucket_name=bucket_name)
+
+df_clusters = pd.read_parquet(LOCAL_DATA_PATH.joinpath('clusters.pqt'))
+df_probes = pd.read_parquet(LOCAL_DATA_PATH.joinpath('probes.pqt'))
+df_channels = pd.read_parquet(LOCAL_DATA_PATH.joinpath('channels.pqt'))
+df_depths = pd.read_parquet(LOCAL_DATA_PATH.joinpath('depths.pqt'))
+df_voltage = pd.read_parquet(LOCAL_DATA_PATH.joinpath('raw_ephys_features.pqt'))
+
+
+plt.figure()
+sns.countplot(data=df_probes, x='histology', palette='deep')
+
+plt.figure()
+sns.countplot(data=df_clusters, x='label',  palette='deep')
 
 #%%
 
