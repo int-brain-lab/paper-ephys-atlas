@@ -17,6 +17,8 @@ from neurodsp.utils import WindowGenerator
 
 _logger = setup_logger('ephys_atlas', level='INFO')
 
+AP_RAW_TIMES = [0.5, 0.55]
+LF_RAW_TIMES = [10, 10.5]
 LFP_RESAMPLE_FACTOR = 10  # 200 Hz data
 VERSION = '1.1.0'
 
@@ -46,17 +48,19 @@ def destripe(pid, one=None, typ='ap', prefix="", destination=None, remove_cached
     assert destination
     eid, pname = one.pid2eid(pid)
 
-    butter_kwargs = {'N': 3, 'Wn': 300 / 30000 * 2, 'btype': 'highpass'}
-    sos = scipy.signal.butter(**butter_kwargs, output='sos')
-
     if typ == 'ap':
         sample_duration, sample_spacings, skip_start_end = (10 * 30_000, 1_000 * 30_000, 500 * 30_000)
+        butter_kwargs = {'N': 3, 'Wn': 300 / 30000 * 2, 'btype': 'highpass'}
+        raw_sample_times = AP_RAW_TIMES
     elif typ == 'lf':
         sample_duration, sample_spacings, skip_start_end = (20 * 2_500, 1_000 * 2_500, 500 * 2_500)
+        butter_kwargs = {'N': 3, 'Wn': 2 / 2500 * 2, 'btype': 'highpass'}
+        raw_sample_times = LF_RAW_TIMES
     sr = Streamer(pid=pid, one=one, remove_cached=remove_cached, typ=typ)
     chunk_size = sr.chunks['chunk_bounds'][1]
     nsamples = np.ceil((sr.shape[0] - sample_duration - skip_start_end * 2) / sample_spacings)
     t0_samples = np.round((np.arange(nsamples) * sample_spacings + skip_start_end) / chunk_size) * chunk_size
+    sos = scipy.signal.butter(**butter_kwargs, output='sos')
 
     for s0 in t0_samples:
         t0 = int(s0 / chunk_size)
@@ -66,16 +70,17 @@ def destripe(pid, one=None, typ='ap', prefix="", destination=None, remove_cached
             continue
         tsel = slice(int(s0), int(s0) + int(sample_duration))
         raw = sr[tsel, :-sr.nsync].T
+        butt = scipy.signal.sosfiltfilt(sos, raw)[:, int(sr.fs * raw_sample_times[0]):int(sr.fs * raw_sample_times[1])]
         if typ == 'ap':
             destripe = voltage.destripe(raw, fs=sr.fs, neuropixel_version=1, channel_labels=True)
             # saves a 0.05 secs snippet of the butterworth filtered data at 0.5sec offset for QC purposes
-            butt = scipy.signal.sosfiltfilt(sos, raw)[:, int(sr.fs * 0.5):int(sr.fs * 0.55)]
             fs_out = sr.fs
         elif typ == 'lf':
             destripe = voltage.destripe_lfp(raw, fs=sr.fs, neuropixel_version=1, channel_labels=True)
             destripe = scipy.signal.decimate(destripe, LFP_RESAMPLE_FACTOR, axis=1, ftype='fir')
+            butt = scipy.signal.decimate(destripe, LFP_RESAMPLE_FACTOR, axis=1, ftype='fir')
             fs_out = sr.fs / LFP_RESAMPLE_FACTOR
-        file_destripe.parent.mkdir(exist_ok=True)
+        file_destripe.parent.mkdir(exist_ok=True, parents=True)
         np.save(file_destripe, destripe.astype(np.float16))
         with open(file_yaml, 'w+') as fp:
             yaml.dump(dict(fs=fs_out, eid=eid, pid=pid, pname=pname, nc=raw.shape[0], dtype="float16"), fp)
