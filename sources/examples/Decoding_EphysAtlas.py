@@ -208,8 +208,7 @@ ax1.set_xticks(range(len(names)), names)
 
 plt.tight_layout()
 
-plt.savefig('/home/joana/Desktop/Ephys at>>>>>>> Stashed changes
-las/Figures Confusion Matrix/SWC_038_2020.07.30_P01_Cosmos_ConfusionMatrix.png')
+plt.savefig('/home/joana/Desktop/Ephys atlas/Figures Confusion Matrix/SWC_038_2020.07.30_P01_Cosmos_ConfusionMatrix.png')
 plt.savefig('/home/joana/Desktop/Ephys atlas/Figures Confusion Matrix/SWC_038_2020.07.30_P01_Cosmos_ConfusionMatrix.pdf')
 
 
