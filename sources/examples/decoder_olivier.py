@@ -130,24 +130,42 @@ for pid in Benchmark_pids:
     probas_cosmos = predict_regions_proba.groupby('cosmos_aids').sum().drop(columns='beryl_aids').T
 
 
+
+
     predictions_remap_cosmos = regions.remap(regions.acronym2id(predict_region), source_map='Allen', target_map='Cosmos')
     predictions_remap_beryl = regions.remap(regions.acronym2id(predict_region), source_map='Allen', target_map='Beryl')
 
-    sns.set_theme()
-    f, axs = plt.subplots(1, 6, figsize=(12, 6), gridspec_kw={'width_ratios': [1, 1, 4, 1, 1, 4]})
+    import scipy.interpolate
 
-    plot_brain_regions(df_pid['cosmos_id'], channel_depths=df_pid['axial_um'].values,
-                               brain_regions=regions, display=True, ax=axs[0], title='Aligned')
-    plot_brain_regions(predictions_remap_cosmos, channel_depths=df_pid['axial_um'].values,
-                               brain_regions=regions, display=True, ax=axs[1], title='Classified')
+    cdepths = np.unique(df_channels['axial_um'])
+    ccosmos = scipy.interpolate.interp1d(df_pid['axial_um'].values, predictions_remap_cosmos, kind='nearest', fill_value="extrapolate")(cdepths)
+    cberyl = scipy.interpolate.interp1d(df_pid['axial_um'].values, predictions_remap_beryl, kind='nearest', fill_value="extrapolate")(cdepths)
+
+    sns.set_theme('talk')
+    f, axs = plt.subplots(1, 7, figsize=(12, 6), gridspec_kw={'width_ratios': [1, 1, 8, 2, 1, 1, 8]})
+    plot_brain_regions(df_pid['cosmos_id'], channel_depths=df_pid['axial_um'].values, brain_regions=regions, display=True, ax=axs[0])
+    plot_brain_regions(ccosmos, channel_depths=cdepths, brain_regions=regions, display=True, ax=axs[1], linewidth=0)
     plot_probas(probas_cosmos, legend=False, ax=axs[2])
 
-    plot_brain_regions(df_pid['beryl_id'], channel_depths=df_pid['axial_um'].values,
-                               brain_regions=regions, display=True, ax=axs[3], title='Aligned Beryl')
-    plot_brain_regions(predictions_remap_beryl, channel_depths=df_pid['axial_um'].values,
-                               brain_regions=regions, display=True, ax=axs[4], title='Classified')
-
-    plot_probas(probas_beryl, legend=False, ax=axs[5])
-
+    plot_brain_regions(df_pid['beryl_id'], channel_depths=df_pid['axial_um'].values, brain_regions=regions, display=True, ax=axs[4])
+    plot_brain_regions(cberyl, channel_depths=cdepths, brain_regions=regions, display=True, ax=axs[5], linewidth=0)
+    plot_probas(probas_beryl, legend=False, ax=axs[6])
+    axs[3].set(visible=False)
+    axs[1].set(yticks=[])
+    axs[2].set(yticks=[],  xlabel='probability', title='Coarse parcellation')
+    axs[2].grid(False)
+    axs[5].set(yticks=[])
+    axs[6].set(xlabel='probability', title='Fine parcellation', ylabel='electrode distance from tip (mm)')
+    axs[6].grid(False)
+    axs[6].yaxis.set_ticks_position('right')
+    axs[6].yaxis.set_label_position('right')
+    axs[6].yaxis.set_major_formatter(lambda x, pos: f"{x / 100 :1.1f}")
     f.savefig(OUT_PATH.joinpath(f"{pid}.png"))
 
+    plt.close(f)
+
+
+## %%
+    # from matplotlib.container import BarContainer
+    # [c.get_children()[0].set_linewidth(0) for c in axs[1].containers if isinstance(c, BarContainer)]
+    # [c.get_children()[0].set_linewidth(0) for c in axs[4].containers if isinstance(c, BarContainer)]
