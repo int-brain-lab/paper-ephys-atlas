@@ -75,7 +75,7 @@ compute_features()
 # destination = ROOT_PATH.joinpath(pid)
 # ephys_atlas.rawephys.destripe(pid, one=one, destination=destination, typ='ap', clobber=False)
 
-#
+# CREATE EXTENSION IF NOT EXISTS pgcrypto CASCADE;
 # prefect orion start --host 0.0.0.0
 # prefect config set PREFECT_API_URL="http://127.0.0.1:4200/api"
 # prefect config set PREFECT_ORION_DATABASE_CONNECTION_URL="postgresql+asyncpg://postgres:Kraken45@localhost:5432/orion"

@@ -19,7 +19,7 @@ _logger = setup_logger('ephys_atlas', level='INFO')
 
 AP_RAW_TIMES = [0.5, 0.55]
 LFP_RESAMPLE_FACTOR = 10  # 200 Hz data
-VERSION = '1.1.0'
+VERSION = '1.3.0'
 
 
 def destripe(pid, one=None, typ='ap', prefix="", destination=None, remove_cached=True, clobber=False):
@@ -58,6 +58,7 @@ def destripe(pid, one=None, typ='ap', prefix="", destination=None, remove_cached
     sr = Streamer(pid=pid, one=one, remove_cached=remove_cached, typ=typ)
     chunk_size = sr.chunks['chunk_bounds'][1]
     nsamples = np.ceil((sr.shape[0] - sample_duration - skip_start_end * 2) / sample_spacings)
+    assert nsamples > 0, f"Recording length is too small {sr.shape[0] / sr.fs: 0.2f} secs"
     t0_samples = np.round((np.arange(nsamples) * sample_spacings + skip_start_end) / chunk_size) * chunk_size
     sos = scipy.signal.butter(**butter_kwargs, output='sos')
 
@@ -112,12 +113,8 @@ def localisation(destination=None, clobber=False):
     all_files = list(destination.rglob('ap.npy'))
     for i, ap_file in enumerate(all_files):
         chunk_dir = ap_file.parent
-        file_error = chunk_dir.joinpath('error_localisation.txt')
         file_waveforms = chunk_dir.joinpath('waveforms.npy')
         file_spikes = chunk_dir.joinpath('spikes.pqt')
-        if file_error.exists():
-            _logger.info(f"{i}/{len(all_files)}: {ap_file}, SKIP PREVIOUS ERROR")
-            continue
         if file_waveforms.exists() and file_spikes.exists() and clobber is False:
             _logger.info(f"{i}/{len(all_files)}: {ap_file}, SKIP")
             continue
@@ -127,18 +124,11 @@ def localisation(destination=None, clobber=False):
         data = data / rms(data, axis=-1)[:, np.newaxis]
         wg = WindowGenerator(data.shape[-1], 30000, overlap=0)
         localisation = []
-        try:
-            for first, last in wg.firstlast:
-                loc, wfs = subtract_and_localize_numpy(data[:, first:last].T, geom, **kwargs)
-                cleaned_wfs = wfs if first == 0 else np.concatenate([cleaned_wfs, wfs], axis=0)
-                loc['sample'] += first
-                localisation.append(loc)
-        except (TypeError, ValueError) as e:
-            errstr = traceback.format_exc()
-            _logger.error(f"type error: {ap_file}, {errstr}")
-            with open(file_error, 'w+') as fp:
-                fp.write(errstr)
-            continue
+        for first, last in wg.firstlast:
+            loc, wfs = subtract_and_localize_numpy(data[:, first:last].T, geom, **kwargs)
+            cleaned_wfs = wfs if first == 0 else np.concatenate([cleaned_wfs, wfs], axis=0)
+            loc['sample'] += first
+            localisation.append(loc)
         localisation = pd.concat(localisation)
         np.save(file_waveforms, cleaned_wfs)
         localisation.to_parquet(file_spikes)
