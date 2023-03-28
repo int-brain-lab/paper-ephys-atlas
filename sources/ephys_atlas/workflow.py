@@ -24,7 +24,8 @@ TASKS = {
     },
 }
 
-def report():
+
+def report(one=None):
     """
     Looks at the folder and flag files according to the task specifications
     Builds a dataframe where each row is a pid, and each column is a task
@@ -42,7 +43,7 @@ def report():
     return flow
 
 
-def run_flow(pids=None):
+def run_flow(pids=None, one=None):
     if pids is None:
         pids, alyx_pids = atlas_pids(one)
         pids = sorted(pids)
@@ -94,12 +95,12 @@ def task(version='', depends_on=None, path_task=None, **kwargs):
 
 
 @task(**TASKS['destripe_ap'])
-def destripe_ap(pid):
+def destripe_ap(pid, one):
     destination = ROOT_PATH.joinpath(pid)
     ephys_atlas.rawephys.destripe(pid, one=one, destination=destination, typ='ap', clobber=False)
 
 @task(**TASKS['destripe_lf'])
-def destripe_lf(pid):
+def destripe_lf(pid, one):
     destination = ROOT_PATH.joinpath(pid)
     ephys_atlas.rawephys.destripe(pid, one=one, destination=destination, typ='lf', clobber=False)
 
