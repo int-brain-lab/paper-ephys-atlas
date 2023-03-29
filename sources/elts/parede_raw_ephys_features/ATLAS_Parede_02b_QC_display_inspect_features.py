@@ -10,7 +10,7 @@ import neuropixel
 from ibllib.plots import wiggle
 from viewephys.gui import viewephys
 
-ROOT_PATH = Path("/mnt/s0/ephys-atlas")
+ROOT_PATH = Path("/mnt/s1/ephys-atlas")
 
 h = neuropixel.trace_header(version=1)
 geom = np.c_[h['x'], h['y']]
