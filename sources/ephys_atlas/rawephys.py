@@ -8,12 +8,12 @@ import pandas as pd
 
 import neuropixel
 from neurodsp import voltage
-from neurodsp.utils import rms
+from neurodsp.utils import rms, fcn_cosine
 from brainbox.io.spikeglx import Streamer
 
 from iblutil.util import setup_logger
 from neurodsp.utils import WindowGenerator
-
+from neurodsp.waveforms import peak_trough_tip
 
 _logger = setup_logger('ephys_atlas', level='INFO')
 
@@ -141,3 +141,112 @@ def get_raw_waveform(data, h, df_spikes, iw, trough_offset=42, spike_length_samp
     cind = np.abs(xy[int(df_spikes['trace'].iloc[iw])] - xy) <= extract_radius
     hwav = {k: v[cind] for k, v in h.items()}
     return data[cind, sind].T, hwav
+
+
+def compute_ap_features(pid, root_path=None):
+    """
+    Reads in the destriped APs and computes the AP features
+    :param pid, root_path:
+    :return: Dataframe with the AP features:
+        -   rms_ap (V): RMS of the AP band
+    """
+    assert root_path
+    pfolder = root_path.joinpath(pid)
+    files_destripe = list(pfolder.rglob('ap.npy'))
+    nfiles = len(files_destripe)
+    df_chunks = []
+    rl = 0
+    for i in np.arange(nfiles):
+        file_destripe = files_destripe[i]
+        with open(file_destripe.with_suffix('.yml')) as fp:
+            ap_info = yaml.safe_load(fp)
+        data = np.load(file_destripe).astype(np.float32)
+        df_chunk = pd.DataFrame()
+        df_chunk['channel'] = np.arange(ap_info['nc'])
+        df_chunk['rms_ap'] = rms(data, axis=-1)
+        df_chunks.append(df_chunk)
+        rl += data.shape[1] / ap_info['fs']
+    if len(df_chunks) == 0:
+        return None, None
+    df_chunks = pd.concat(df_chunks)
+    ap_features = df_chunks.groupby('channel').agg(
+        rms_ap=pd.NamedAgg(column="rms_ap", aggfunc="mean"),
+    )
+    return ap_features
+
+
+def get_power_in_band(fscale, period, band):
+    band = np.array(band)
+    # weight the frequencies
+    fweights = fcn_cosine([-np.diff(band), 0])(-abs(fscale - np.mean(band)))
+    p = 10 * np.log10(np.sum(period * fweights / np.sum(fweights), axis=-1))  # # dB relative to v/sqrt(Hz)
+    return p
+
+
+def compute_lf_features(pid, root_path=None, bands=None):
+    """
+    Reads in the destriped LF and computes the LF features
+    :param pid, root_path:
+    :return: Dataframe with the LF features:
+        -   rms_lf (V): RMS of the LF band
+        -   psd_delta (dB rel V ** 2 / Hz): Power in the delta band (also theta, alpha, beta, gamma)
+    """
+    BANDS = {'delta': [0, 4], 'theta': [4, 10], 'alpha': [8, 12], 'beta': [15, 30], 'gamma': [30, 90]}
+    bands = bands or BANDS
+    pfolder = root_path.joinpath(pid)
+    files_lfp = list(pfolder.rglob('lf.npy'))
+    nfiles = len(files_lfp)
+    df_chunks = []
+    for i in np.arange(nfiles):
+        file_lfp = files_lfp[i]
+        with open(file_lfp.with_suffix('.yml')) as fp:
+            lf_info = yaml.safe_load(fp)
+        # loads the LFP and compute spectra for each channel
+        data = np.load(file_lfp).astype(np.float32)
+        fscale, period = scipy.signal.periodogram(data, lf_info['fs'])
+        df_chunk = pd.DataFrame()
+        df_chunk['channel'] = np.arange(lf_info['nc'])
+        df_chunk['rms_lf'] = rms(data, axis=-1)
+        for b in BANDS:
+            df_chunk[f"psd_{b}"] = get_power_in_band(fscale, period, bands[b])
+        df_chunks.append(df_chunk)
+
+    df_chunks = pd.concat(df_chunks)
+    lf_features = df_chunks.groupby('channel').agg(
+        rms_lf=pd.NamedAgg(column="rms_lf", aggfunc="median"),
+        **{f"psd_{b}": pd.NamedAgg(column=f"psd_{b}", aggfunc="median") for b in BANDS}
+    )
+    return lf_features
+
+
+def compute_spikes_features(pid, root_path=None):
+    """
+    Reads in the spikes parquet file and computes spikes features
+    :param pid, root_path:
+    :return: Dataframe with spikes features:
+            'sample'
+             'trace'
+             'x', 'y', 'z', 'alpha'
+             't0'
+             'peak_trace_idx'
+             'peak_time_idx'
+             'peak_val'
+             'trough_time_idx'
+             'trough_val'
+       'tip_time_idx', 'tip_val']
+    """
+    assert root_path
+    pfolder = root_path.joinpath(pid)
+    files_spikes = list(pfolder.rglob('spikes.pqt'))
+    nfiles = len(files_spikes)
+    df_spikes = []
+    for i in np.arange(nfiles):
+        file_spikes = files_spikes[i]
+        file_waveforms = file_spikes.with_name('waveforms.npy')
+        waveforms = np.load(file_waveforms)
+        df_wav = peak_trough_tip(waveforms)
+        df_tmp = pd.read_parquet(file_spikes)
+        df_tmp['t0'] = int(file_spikes.parts[-2][1:])
+        df_spikes.append(df_tmp.merge(df_wav, left_index=True, right_index=True))
+    df_spikes = pd.concat(df_spikes)
+    return df_spikes

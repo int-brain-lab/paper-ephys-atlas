@@ -40,6 +40,19 @@ class TestWorkflows(unittest.TestCase):
         assert not self.path_task.joinpath(pid, '.task_b_ERROR').exists()
         assert self.path_task.joinpath(pid, '.task_b_1.0.0').exists()
 
+    def test_error_dependencies(self):
+
+        @workflow.task(version='1.0.0', path_task=self.path_task)
+        def task_a(pid):
+            raise ValueError("Dont'feel like completing today")
+        @workflow.task(version='1.0.0', path_task=self.path_task, depends_on='task_a')
+        def task_b(pid):
+            pass
+        task_a(pid=pid)
+        assert self.path_task.joinpath(pid, '.task_a_ERROR').exists()
+        task_b(pid=pid)
+        assert not self.path_task.joinpath(pid, '.task_b_1.0.0').exists()
+
     def test_simple_dependencies(self):
         @workflow.task(version='1.0.0', path_task=self.path_task)
         def task_a(pid):
