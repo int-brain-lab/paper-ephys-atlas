@@ -33,6 +33,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+import scipy.interpolate
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from iblutil.numerical import ismember
@@ -109,7 +110,7 @@ clf = classifier.fit(X_train, y_train)
 ## %%
 # Testing the model on
 for pid in Benchmark_pids:
-    # pid = "dab512bd-a02d-4c1f-8dbc-9155a163efc0"
+    pid = "dab512bd-a02d-4c1f-8dbc-9155a163efc0"
     df_pid = df_voltage[df_voltage.pid == pid]
     df_pid = df_pid.reset_index(drop=True)
     nc = df_pid.shape[0]
@@ -135,13 +136,13 @@ for pid in Benchmark_pids:
     predictions_remap_cosmos = regions.remap(regions.acronym2id(predict_region), source_map='Allen', target_map='Cosmos')
     predictions_remap_beryl = regions.remap(regions.acronym2id(predict_region), source_map='Allen', target_map='Beryl')
 
-    import scipy.interpolate
+
 
     cdepths = np.unique(df_channels['axial_um'])
     ccosmos = scipy.interpolate.interp1d(df_pid['axial_um'].values, predictions_remap_cosmos, kind='nearest', fill_value="extrapolate")(cdepths)
     cberyl = scipy.interpolate.interp1d(df_pid['axial_um'].values, predictions_remap_beryl, kind='nearest', fill_value="extrapolate")(cdepths)
 
-    sns.set_theme('talk')
+    sns.set_theme()
     f, axs = plt.subplots(1, 7, figsize=(12, 6), gridspec_kw={'width_ratios': [1, 1, 8, 2, 1, 1, 8]})
     plot_brain_regions(df_pid['cosmos_id'], channel_depths=df_pid['axial_um'].values, brain_regions=regions, display=True, ax=axs[0])
     plot_brain_regions(ccosmos, channel_depths=cdepths, brain_regions=regions, display=True, ax=axs[1], linewidth=0)
@@ -162,8 +163,8 @@ for pid in Benchmark_pids:
     axs[6].yaxis.set_major_formatter(lambda x, pos: f"{x / 100 :1.1f}")
     f.savefig(OUT_PATH.joinpath(f"{pid}.png"))
 
-    plt.close(f)
-
+    # plt.close(f)
+    break
 
 ## %%
     # from matplotlib.container import BarContainer
