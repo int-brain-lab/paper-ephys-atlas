@@ -83,13 +83,15 @@ class TestWorkflows(unittest.TestCase):
         # run task b, with strict dependency will not execute
         task_b(pid=pid)
         assert not self.path_task.joinpath(pid, '.task_b-1.0.0-complete').exists()
-        @workflow.task(version='2.0.0', path_task=self.path_task)
+
+        # here version 2.0.1 is used but minimum version 2.0.0 is required by task b.
+        @workflow.task(version='2.0.1', path_task=self.path_task)
         def task_a(pid):
             pass
 
         # run new task a, the old flag disappear and a new one gets created
         task_a(pid=pid)
-        assert self.path_task.joinpath(pid, '.task_a-2.0.0-complete').exists()
+        assert self.path_task.joinpath(pid, '.task_a-2.0.1-complete').exists()
         assert not self.path_task.joinpath(pid, '.task_a-1.0.0-complete').exists()
 
         # now task b dependency is met
