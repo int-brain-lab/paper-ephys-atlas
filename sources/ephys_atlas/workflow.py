@@ -35,6 +35,20 @@ TASKS = {
     }
 }
 
+def graph(output_file=None)
+    import graphviz
+    from string import ascii_letters
+    dot = graphviz.Digraph(comment='Ephys atlas workflow')
+    tletters = {t: ascii_letters[i] for i, t in enumerate(TASKS)}
+    edges = []
+    for t in TASKS:
+        dot.node(tletters[t], t)
+        for dep in TASKS[t].get('depends_on', []):
+            edges.append(tletters[dep] + tletters[t])
+    dot.edges(edges)
+    if output_file is not None:
+        dot.render(output_file, view=True)
+
 
 def report(one=None, pids=None):
     """
