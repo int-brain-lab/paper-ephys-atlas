@@ -243,6 +243,7 @@ def compute_sorted_features(pid, one, root_path=None):
     ssl = SpikeSortingLoader(one=one, pid=pid)
     spikes, clusters, channels = ssl.load_spike_sorting(dataset_types=['spikes.samples'])
     clusters = ssl.merge_clusters(spikes, clusters, channels)
+    root_path.joinpath(pid).mkdir(exist_ok=True, parents=True)
     # the concat syntax sets a higher level index on the dataframe as pid
     pd.concat({pid: pd.DataFrame(clusters)}, names=['pid']).to_parquet(root_path.joinpath(pid, 'clusters.pqt'))
     pd.concat({pid: pd.DataFrame(spikes)}, names=['pid']).to_parquet(root_path.joinpath(pid, 'spikes_sorted.pqt'))
