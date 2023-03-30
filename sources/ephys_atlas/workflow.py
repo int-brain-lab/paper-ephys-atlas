@@ -242,6 +242,8 @@ def compute_sorted_features(pid, one, root_path=None):
     root_path = root_path or ROOT_PATH
     ssl = SpikeSortingLoader(one=one, pid=pid)
     spikes, clusters, channels = ssl.load_spike_sorting(dataset_types=['spikes.samples'])
+    if spikes == clusters == channels == {}:
+        raise ValueError('No spike sorting found for this session')
     clusters = ssl.merge_clusters(spikes, clusters, channels)
     root_path.joinpath(pid).mkdir(exist_ok=True, parents=True)
     # the concat syntax sets a higher level index on the dataframe as pid
