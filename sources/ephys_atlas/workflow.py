@@ -16,7 +16,8 @@ Each task writes a small flag file in the pid folder to indicate that it has bee
 .compute_sorted_features-1.0.1-error
 
 The decorator also checks the dependencies between tasks and will not run a task if its dependencies are not met.
-Dependencies are defined in the TASKS dictionary as a list of task names, optionally with a version number
+Dependencies are defined in the TASKS dictionary as a list of task names, optionally with a version number.
+This is the minimum version number that will not trigger a re-run of the task.
 depends_on': ['destripe_ap', 'destripe_lf-1.2.0']
 
 Check-out the tests for more details on how to use the decorator in ./tests/test_workflow.py
@@ -24,6 +25,7 @@ Check-out the tests for more details on how to use the decorator in ./tests/test
 
 from pathlib import Path
 import traceback
+import packaging.version
 
 import numpy as np
 import pandas as pd
@@ -158,16 +160,25 @@ def task(version=None, depends_on=None, path_task=None, **kwargs):
             # check that dependencies are met, exit if not
             if depends_on is not None:
                 unmet_dependencies = False
-                # loop on parent tasks and check if they have run, have error, and eventually check version numbers
+                # loop on parent tasks and check if they have run
                 for parent_task in depends_on:
+                    # gets an empty string version if no minumum version is specified
+                    parent_task, required_parent_version = (parent_task + '------').split('-', maxsplit=2)[:2]
                     flag_parent = next(path_task.joinpath(pid).glob(f".{parent_task}*"), None)
+                    # the parent task hasn't run
                     if flag_parent is None:
                         logger.info(f'unmet dependencies for task {func.__name__} for pid {pid}: {parent_task} has not run')
                         unmet_dependencies = True
                     else:
-                        _, version, status = flag_parent.name.split('-')
+                        _, parent_version, status = flag_parent.name.split('-')
+                        # the parent task has errored
                         if status == 'error':
                             logger.info(f'unmet dependencies for task {func.__name__} for pid {pid}: {parent_task} has errored')
+                            unmet_dependencies = True
+                        # the parent task has run with a now deprecated version
+                        if required_parent_version and (packaging.version.parse(required_parent_version) > packaging.version.parse(parent_version)):
+                            logger.info(f'unmet dependencies for task {func.__name__} for pid {pid}: {parent_task} '
+                                        f'ran with a deprecated version {parent_version} < minimum required: {required_parent_version}')
                             unmet_dependencies = True
                 if unmet_dependencies:
                     return
