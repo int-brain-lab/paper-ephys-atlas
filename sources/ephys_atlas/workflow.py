@@ -52,7 +52,7 @@ TASKS = {
         'depends_on': ['destripe_ap'],
     },
     'compute_sorted_features': {
-        'version': '1.0.0',
+        'version': '1.0.1',
         'depends_on': [],
     },
     'compute_raw_features': {
@@ -243,9 +243,10 @@ def compute_sorted_features(pid, one, root_path=None):
     ssl = SpikeSortingLoader(one=one, pid=pid)
     spikes, clusters, channels = ssl.load_spike_sorting(dataset_types=['spikes.samples'])
     clusters = ssl.merge_clusters(spikes, clusters, channels)
-    pd.DataFrame(clusters).set_index('uuids').to_parquet(root_path.joinpath(pid, 'clusters.pqt'))
-    pd.DataFrame(spikes).to_parquet(root_path.joinpath(pid, 'spikes.pqt'))
-    pd.DataFrame(channels).to_parquet(root_path.joinpath(pid, 'channels.pqt'))
+    # the concat syntax sets a higher level index on the dataframe as pid
+    pd.concat({pid: pd.DataFrame(clusters)}, names=['pid']).to_parquet(root_path.joinpath(pid, 'clusters.pqt'))
+    pd.concat({pid: pd.DataFrame(spikes)}, names=['pid']).to_parquet(root_path.joinpath(pid, 'spikes_sorted.pqt'))
+    pd.concat({pid: pd.DataFrame(channels)}, names=['pid']).to_parquet(root_path.joinpath(pid, 'channels.pqt'))
 
 
 @task(**TASKS['localise'])
