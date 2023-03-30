@@ -1,3 +1,27 @@
+"""
+Worfklow management for ephys atlas features computations
+
+For each pid a set of dependent tasks computes features and saves them.
+Each of the tasks are defined in the TASKS dictionary and correspond to a function below
+
+To have an overview of the tasks dependencies, here is the workflow graph:
+>>> from ephys_atlas.workflow import graph, ROOT_PATH
+>>> graph(ROOT_PATH / 'workflow.png')
+
+A decorator handles the file flagging and the dependencies between tasks to allow re-runs and backfills.
+Each task writes a small flag file in the pid folder to indicate that it has been run successfully or not.
+
+.{TASK_NAME}.{TASK_VERSION}.{TASK_STATUS}
+.compute_raw_features-1.0.0-complete
+.compute_sorted_features-1.0.1-error
+
+The decorator also checks the dependencies between tasks and will not run a task if its dependencies are not met.
+Dependencies are defined in the TASKS dictionary as a list of task names, optionally with a version number
+depends_on': ['destripe_ap', 'destripe_lf-1.2.0']
+
+Check-out the tests for more details on how to use the decorator in ./tests/test_workflow.py
+"""
+
 from pathlib import Path
 import traceback
 
@@ -30,12 +54,20 @@ TASKS = {
         'depends_on': [],
     },
     'compute_raw_features': {
-        'version': '1.0.0',
+        'version': '1.0.1',
         'depends_on': ['destripe_lf', 'localise'],
     }
 }
+assert all(['-' not in TASKS for t in TASKS]), 'Task names cannot contain -'
 
-def graph(output_file=None)
+
+def graph(output_file=None):
+    """
+    Display and optionally save the workflow graph
+    Needs graphviz to be installed
+    :param output_file:
+    :return:
+    """
     import graphviz
     from string import ascii_letters
     dot = graphviz.Digraph(comment='Ephys atlas workflow')
@@ -69,18 +101,18 @@ def report(one=None, pids=None):
     return flow
 
 
-def get_pids_for_task(task_name, flow=None, include_errors=True, n_workers=1, worker_id=0):
+def get_pids_for_task(task_name, flow=None, rerun_errors=True, n_workers=1, worker_id=0):
     """
     From a flow dataframe, returns the PIDS that have errored or not been run
     :param task_name:
     :param flow:
-    :param include_errors:
+    :param rerun_errors:
     :param n_workers:
     :param worker_id:
     :return:
     """
-    if include_errors:
-        pids = flow.index[flow[task_name] != f".{task_name}_{TASKS[task_name]['version']}"]
+    if rerun_errors:
+        pids = flow.index[flow[task_name] != f".{task_name}-{TASKS[task_name]['version']}-complete"]
     else:
         raise NotImplementedError
     if n_workers > 1:
@@ -99,28 +131,46 @@ def run_flow(pids=None, one=None):
         # localise(pid) TODO this is in a different environment / or run everything in torch ?
 
 
-def task(version='', depends_on=None, path_task=None, **kwargs):
+def task(version=None, depends_on=None, path_task=None, **kwargs):
+    """
+    Decorator to mark a function as a task
+    :param version:
+    :param depends_on:
+    :param path_task:
+    :param kwargs:
+    :return:
+    """
     depends_on = [depends_on] if isinstance(depends_on, str) else depends_on
     path_task = path_task or ROOT_PATH
+
     def inner(func):
-        def wrapper(pid, *args, **kwargs):
+        def wrapper(pid, *args, version=version, depends_on=depends_on, **kwargs):
             # if the task has already run with the same version number, skip and exit
-            flag_file = path_task.joinpath(pid).joinpath(f'.{func.__name__}_{version}')
+            flag_file = path_task.joinpath(pid).joinpath(f'.{func.__name__}-{version}-complete')
             # remove an eventual error file on a previous run (TODO; rerun errors or not, here we assume yes)
-            error_file = path_task.joinpath(pid).joinpath(f'.{func.__name__}_ERROR')
+            error_file = path_task.joinpath(pid).joinpath(f'.{func.__name__}-{version}-error')
             if flag_file.exists():
                 logger.info(f'skipping task {func.__name__} for pid {pid}')
                 return
             # now remove all error files or previous version files
-            for f in path_task.joinpath(pid).glob(f'.{func.__name__}_*'):
+            for f in path_task.joinpath(pid).glob(f'.{func.__name__}-*'):
                 f.unlink()
             # check that dependencies are met, exit if not
             if depends_on is not None:
+                unmet_dependencies = False
+                # loop on parent tasks and check if they have run, have error, and eventually check version numbers
                 for parent_task in depends_on:
                     flag_parent = next(path_task.joinpath(pid).glob(f".{parent_task}*"), None)
-                    if flag_parent is None or 'ERROR' in flag_parent.name:
-                        logger.info(f'unmet dependencies for task {func.__name__} for pid {pid}')
-                        return
+                    if flag_parent is None:
+                        logger.info(f'unmet dependencies for task {func.__name__} for pid {pid}: {parent_task} has not run')
+                        unmet_dependencies = True
+                    else:
+                        _, version, status = flag_parent.name.split('-')
+                        if status == 'error':
+                            logger.info(f'unmet dependencies for task {func.__name__} for pid {pid}: {parent_task} has errored')
+                            unmet_dependencies = True
+                if unmet_dependencies:
+                    return
             # try and run the task with error catching
             logger.info(f'running task {func.__name__} for pid {pid}')
             path_task.joinpath(pid).mkdir(exist_ok=True, parents=True)
@@ -165,6 +215,7 @@ def destripe_lf(pid, one):
     """
     destination = ROOT_PATH.joinpath(pid)
     ephys_atlas.rawephys.destripe(pid, one=one, destination=destination, typ='lf', clobber=False)
+
 
 @task(**TASKS['compute_sorted_features'])
 def compute_sorted_features(pid, one, root_path=None):
@@ -211,8 +262,10 @@ def compute_raw_features(pid, root_path=None):
     ap_features = ephys_atlas.rawephys.compute_ap_features(pid, root_path=root_path)
     lf_features = ephys_atlas.rawephys.compute_lf_features(pid, root_path=root_path)
     spikes_features = ephys_atlas.rawephys.compute_spikes_features(pid, root_path=root_path)
+    # need to rename and cast this column to have a consistent merge with ap and lf features later
+    spikes_features['channel'] = spikes_features['trace'].astype(np.int16)
 
-    channels_features = spikes_features.groupby('trace').agg(
+    channels_features = spikes_features.groupby('channel').agg(
         alpha_mean=pd.NamedAgg(column="alpha", aggfunc="mean"),
         alpha_std=pd.NamedAgg(column="alpha", aggfunc="std"),
         spike_count=pd.NamedAgg(column="alpha", aggfunc="count"),
