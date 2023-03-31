@@ -2,13 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Feb  3 09:46:19 2023
-
 @author: Joana Catarino, Kcénia Bougrova, Olivier Winter
-
-#%%   Benchmark datasets
-
-'''
-
 1) KS046_2020.12.03_P00         1a276285-8b0e-4cc9-9f0a-a3a002978724
 2) SWC_043_2020.09.20_P00       1e104bf4-7a24-4624-a5b2-c2c8289c0de7
 3) CSH_ZAD_029_2020.09.17_PO1   5d570bf6-a4c6-4bf1-a14b-2c878c84ef0e
@@ -22,9 +16,6 @@ Created on Fri Feb  3 09:46:19 2023
 11) ZM_1898_2019.12.10_P00      e8f9fba4-d151-4b00-bee7-447f0f3e752c
 12) UCLA033_2022.02.15_P01      eebcaf65-7fa4-4118-869d-a084e84530e2
 13) CSH_ZAD_025_2020.08.03_P01  fe380793-8035-414e-b000-09bfe5ece92a
-
-'''
-
 """
 from pathlib import Path
 
@@ -36,75 +27,93 @@ import seaborn as sns
 import scipy.interpolate
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
-from iblutil.numerical import ismember
 
 from ephys_atlas.interactives import plot_probas
 from brainbox.ephys_plots import plot_brain_regions
 from ibllib.atlas import BrainRegions
 
 regions = BrainRegions()
-LOCAL_DATA_PATH = Path("/datadisk/Data/paper-ephys-atlas/features_tables")
-OUT_PATH = Path("/datadisk/Data/paper-ephys-atlas/decoding")
+BENCHMARK = True
+SCALE = True
 
-df_clusters = pd.read_parquet(LOCAL_DATA_PATH.joinpath('clusters.pqt'))
-df_probes = pd.read_parquet(LOCAL_DATA_PATH.joinpath('probes.pqt'))
-df_channels = pd.read_parquet(LOCAL_DATA_PATH.joinpath('channels.pqt'))
-df_depths = pd.read_parquet(LOCAL_DATA_PATH.joinpath('depths.pqt'))
-df_voltage = pd.read_parquet(LOCAL_DATA_PATH.joinpath('raw_ephys_features.pqt'))
+LOCAL_DATA_PATH = Path("/mnt/s0/aggregates/bwm")
+year_week = '2022_W34'
 
-df_voltage = pd.merge(df_voltage, df_channels, left_index=True, right_index=True).dropna()
+
+LOCAL_DATA_PATH = Path("/mnt/s0/aggregates/atlas")
+year_week = '2023_W13'
+
+LOCAL_DATA_PATH = Path("/mnt/s0/aggregates/bwm")
+
+
+DECODING_PATH = Path("/mnt/s1/ephys-atlas-decoding")
+
+
+benchmark_pids = ['1a276285-8b0e-4cc9-9f0a-a3a002978724',
+                  '1e104bf4-7a24-4624-a5b2-c2c8289c0de7',
+                  '5d570bf6-a4c6-4bf1-a14b-2c878c84ef0e',
+                  '5f7766ce-8e2e-410c-9195-6bf089fea4fd',
+                  '6638cfb3-3831-4fc2-9327-194b76cf22e1',
+                  '749cb2b7-e57e-4453-a794-f6230e4d0226',
+                  'd7ec0892-0a6c-4f4f-9d8f-72083692af5c',
+                  'da8dfec1-d265-44e8-84ce-6ae9c109b8bd',
+                  'dab512bd-a02d-4c1f-8dbc-9155a163efc0',
+                  'dc7e9403-19f7-409f-9240-05ee57cb7aea',
+                  'e8f9fba4-d151-4b00-bee7-447f0f3e752c',
+                  'eebcaf65-7fa4-4118-869d-a084e84530e2',
+                  'fe380793-8035-414e-b000-09bfe5ece92a']
+
+
+df_channels = pd.read_parquet(LOCAL_DATA_PATH.joinpath(year_week, 'channels.pqt'))
+df_channels.index.rename('channel', level=1, inplace=True)
+df_raw_features = pd.read_parquet(LOCAL_DATA_PATH.joinpath(year_week, 'raw_ephys_features.pqt'))
+
+pd.set_option('use_inf_as_na',True)
+df_raw_features = pd.merge(df_raw_features, df_channels, left_index=True, right_index=True).dropna()
 # remapping the lowest level of channel location to higher levels mappings
-df_voltage['cosmos_id'] = regions.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Cosmos')
-df_voltage['beryl_id'] = regions.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Beryl')
+df_raw_features['cosmos_id'] = regions.remap(df_raw_features['atlas_id'], source_map='Allen', target_map='Cosmos')
+df_raw_features['beryl_id'] = regions.remap(df_raw_features['atlas_id'], source_map='Allen', target_map='Beryl')
 
 
 # selection and scaling of features
-x_list = ['rms_ap', 'alpha_mean', 'alpha_std', 'spike_rate', 'cloud_x_std', 'cloud_y_std', 'cloud_z_std', 'rms_lf', 'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma']
-X = df_voltage.loc[:, x_list].values
-scaler = StandardScaler()
-scaler.fit(X)
-
-df_voltage = df_voltage.reset_index()
-
-## %%
+x_list = ['rms_ap', 'alpha_mean', 'alpha_std', 'spike_count', 'cloud_x_std', 'cloud_y_std', 'cloud_z_std', 'rms_lf', 'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma']
 
 # Training the model
-n_trees = 30
-max_depth = 25
-max_leaf_nodes = 10000  # to be optimized! change the values until find when the model loses performance
+kwargs = {'n_estimators': 30, 'max_depth': 25, 'max_leaf_nodes': 10000, 'random_state': 420}
 
 
-Benchmark_pids = ['1a276285-8b0e-4cc9-9f0a-a3a002978724', 
-                  '1e104bf4-7a24-4624-a5b2-c2c8289c0de7', 
-                  '5d570bf6-a4c6-4bf1-a14b-2c878c84ef0e', 
-                  '5f7766ce-8e2e-410c-9195-6bf089fea4fd', 
-                  '6638cfb3-3831-4fc2-9327-194b76cf22e1', 
-                  '749cb2b7-e57e-4453-a794-f6230e4d0226', 
-                  'd7ec0892-0a6c-4f4f-9d8f-72083692af5c', 
-                  'da8dfec1-d265-44e8-84ce-6ae9c109b8bd', 
-                  'dab512bd-a02d-4c1f-8dbc-9155a163efc0', 
-                  'dc7e9403-19f7-409f-9240-05ee57cb7aea', 
-                  'e8f9fba4-d151-4b00-bee7-447f0f3e752c', 
-                  'eebcaf65-7fa4-4118-869d-a084e84530e2', 
-                  'fe380793-8035-414e-b000-09bfe5ece92a']
+## %%
+if BENCHMARK:
+    test_idx = df_raw_features.index.get_level_values(0).isin(benchmark_pids)
+    train_idx = ~test_idx
+else:
+    pass
+    # shuffled_pids = np.random.permutation(list(df_raw_features.index.get_level_values(0).unique()))
+    # tlast = int(np.round(shuffled_pids.size / 4))
+    # test_pids = shuffled_pids[:tlast]
+    # train_pids = shuffled_pids[tlast:]
 
-df_voltage2 = df_voltage.copy()
-for i in Benchmark_pids:
-     df_voltage2 = df_voltage2[df_voltage2.pid != i]  # != excludes the pids you don't want to include in your dataframe
+x_train = df_raw_features.loc[train_idx, x_list].values
+x_test = df_raw_features.loc[test_idx, x_list].values
 
-a, _ = ismember(df_voltage2['cosmos_id'], regions.acronym2id(['void', 'root']))
-df_voltage2 = df_voltage2.loc[~a]
-df_voltage2 = df_voltage2.reset_index(drop=True)
+if SCALE:
+    scaler = StandardScaler()
+    scaler.fit(x_test)
+    x_test = scaler.transform(x_test)
+    x_train = scaler.transform(x_train)
 
-X_train = df_voltage2.loc[:, x_list].values
-y_train = df_voltage2['acronym'].values  # we are training the model to already give the output as an acronym instead of an id
 
-# Model
+for mapping in ['beryl_id', 'cosmos_id', 'atlas_id']:
+    y_test = df_raw_features.loc[test_idx, mapping]
+    y_train = df_raw_features.loc[train_idx, mapping]
+    classifier = RandomForestClassifier(verbose=True, **kwargs)
+    clf = classifier.fit(x_train, y_train)
+    y_null = np.random.choice(df_raw_features.loc[train_idx, mapping], y_test.size)
+    print(mapping, clf.score(x_test, y_test), clf.score(x_test, y_null))
 
-classifier = RandomForestClassifier(random_state=42, verbose=True, n_estimators=n_trees,
-                                    max_depth=max_depth, max_leaf_nodes=max_leaf_nodes)
 
-clf = classifier.fit(X_train, y_train)
+
+## %%
 
 
 ## %%
