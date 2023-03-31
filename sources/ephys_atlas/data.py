@@ -11,8 +11,8 @@ def atlas_pids(one, tracing=True):
         'session__project__name__icontains,ibl_neuropixel_brainwide_01',
         'session__qc__lt,50',
         '~json__qc,CRITICAL',
-        # 'session__extended_qc__behavior,1,'
-        'session__json__IS_MOCK,False'
+        # 'session__extended_qc__behavior,1',
+        'session__json__IS_MOCK,False',
     ]
     if tracing:
         django_strg.append('json__extended_qc__tracing_exists,True')
