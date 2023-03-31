@@ -10,15 +10,24 @@ from sklearn.model_selection import train_test_split
 from ibllib.atlas import BrainRegions
 
 regions = BrainRegions()
-LOCAL_DATA_PATH = Path("/datadisk/Data/aggregates/bwm")
+OLD = False
 OUT_PATH = Path("/datadisk/gdrive/2022/08_ephys_atlas_features")
+pd.set_option('use_inf_as_na', True)
+x_list = ['rms_ap', 'alpha_mean', 'alpha_std', 'cloud_x_std', 'cloud_y_std', 'cloud_z_std', 'rms_lf', 'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma']
+if OLD:
+    LOCAL_DATA_PATH = Path("/datadisk/Data/aggregates/bwm")
+    LOCAL_DATA_PATH = Path("/mnt/s0/aggregates/bwm/2022_W34")
 
-df_clusters = pd.read_parquet(LOCAL_DATA_PATH.joinpath('clusters.pqt'))
-df_probes = pd.read_parquet(LOCAL_DATA_PATH.joinpath('probes.pqt'))
-df_channels = pd.read_parquet(LOCAL_DATA_PATH.joinpath('channels.pqt'))
-df_depths = pd.read_parquet(LOCAL_DATA_PATH.joinpath('depths.pqt'))
+    df_channels = pd.read_parquet(LOCAL_DATA_PATH.joinpath('channels.pqt'))
+    x_list += ['spike_rate']
+else:
+    LOCAL_DATA_PATH = Path("/mnt/s0/aggregates/atlas/2023_W13")
+    df_channels = pd.read_parquet(LOCAL_DATA_PATH.joinpath('channels.pqt'))
+    df_channels.index.rename('channel', level=1, inplace=True)
+
+    x_list += ['spike_count', 'peak_trace_idx', 'peak_time_idx', 'peak_val', 'trough_time_idx', 'trough_val']
+
 df_voltage = pd.read_parquet(LOCAL_DATA_PATH.joinpath('raw_ephys_features.pqt'))
-
 df_voltage = pd.merge(df_voltage, df_channels, left_index=True, right_index=True).dropna()
 aids_cosmos = regions.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Cosmos')
 aids_beryl = regions.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Beryl')
@@ -26,12 +35,10 @@ df_voltage['beryl_id'] = aids_beryl
 df_voltage['cosmos_id'] = aids_cosmos
 
 
-# Decode brain regions
-x_list = ['rms_ap', 'alpha_mean', 'alpha_std', 'spike_rate', 'cloud_x_std', 'cloud_y_std', 'cloud_z_std', 'rms_lf', 'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma']
+
 X = df_voltage.loc[:, x_list].values
 scaler = StandardScaler()
 scaler.fit(X)
-
 
 def decode(X, scaler, aids, classifier=None, save_path=None):
     if classifier is None:
@@ -40,7 +47,6 @@ def decode(X, scaler, aids, classifier=None, save_path=None):
     X_train = scaler.transform(X_train)
     X_test = scaler.transform(X_test)
     clf = classifier.fit(X_train, y_train)
-    clf.predict_proba(X_test[:1])
     score_model = clf.score(X_test, y_test)
     y_null = aids_cosmos[np.random.randint(0, aids.size - 1, y_test.size)]
     score_null = clf.score(X_test, y_null)
