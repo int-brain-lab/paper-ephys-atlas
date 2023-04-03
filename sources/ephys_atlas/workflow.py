@@ -52,11 +52,11 @@ TASKS = {
         'depends_on': ['destripe_ap'],
     },
     'compute_sorted_features': {
-        'version': '1.0.1',
+        'version': '1.1.0',
         'depends_on': [],
     },
     'compute_raw_features': {
-        'version': '1.0.1',
+        'version': '1.0.2',
         'depends_on': ['destripe_lf', 'localise'],
     }
 }
@@ -133,12 +133,13 @@ def run_flow(pids=None, one=None):
         # localise(pid) TODO this is in a different environment / or run everything in torch ?
 
 
-def task(version=None, depends_on=None, path_task=None, **kwargs):
+def task(version=None, depends_on=None, path_task=None, force_run=False, **kwargs):
     """
     Decorator to mark a function as a task
     :param version:
     :param depends_on:
     :param path_task:
+    :param force_run: if True, the tasks runs no matter what
     :param kwargs:
     :return:
     """
@@ -146,42 +147,54 @@ def task(version=None, depends_on=None, path_task=None, **kwargs):
     path_task = path_task or ROOT_PATH
 
     def inner(func):
-        def wrapper(pid, *args, version=version, depends_on=depends_on, **kwargs):
+        def wrapper(pid, *args, version=version, depends_on=depends_on, force_run=False, **kwargs):
             # if the task has already run with the same version number, skip and exit
             flag_file = path_task.joinpath(pid).joinpath(f'.{func.__name__}-{version}-complete')
-            # remove an eventual error file on a previous run (TODO; rerun errors or not, here we assume yes)
+            # remove an eventual error file on a previous run (here we ru-run on errors)
             error_file = path_task.joinpath(pid).joinpath(f'.{func.__name__}-{version}-error')
-            if flag_file.exists():
-                logger.info(f'skipping task {func.__name__} for pid {pid}')
+
+            def should_i_run():
+                if force_run:
+                    return True
+                if flag_file.exists():
+                    logger.info(f'skipping task {func.__name__} for pid {pid}')
+                    return False
+                # now remove all error files or previous version files
+                for f in path_task.joinpath(pid).glob(f'.{func.__name__}-*'):
+                    f.unlink()
+                # check that dependencies are met, exit if not
+                if depends_on is not None:
+                    unmet_dependencies = False
+                    # loop on parent tasks and check if they have run
+                    for parent_task in depends_on:
+                        # gets an empty string version if no minumum version is specified
+                        parent_task, required_parent_version = (parent_task + '------').split('-', maxsplit=2)[:2]
+                        flag_parent = next(path_task.joinpath(pid).glob(f".{parent_task}*"), None)
+                        # the parent task hasn't run
+                        if flag_parent is None:
+                            logger.info(
+                                f'unmet dependencies for task {func.__name__} for pid {pid}: {parent_task} has not run')
+                            unmet_dependencies = True
+                        else:
+                            _, parent_version, status = flag_parent.name.split('-')
+                            # the parent task has errored
+                            if status == 'error':
+                                logger.info(
+                                    f'unmet dependencies for task {func.__name__} for pid {pid}: {parent_task} has errored')
+                                unmet_dependencies = True
+                            # the parent task has run with a now deprecated version
+                            if required_parent_version and (
+                                    packaging.version.parse(required_parent_version) > packaging.version.parse(
+                                    parent_version)):
+                                logger.info(f'unmet dependencies for task {func.__name__} for pid {pid}: {parent_task} '
+                                            f'ran with a deprecated version {parent_version} < minimum required: {required_parent_version}')
+                                unmet_dependencies = True
+                    if unmet_dependencies:
+                        return False
+                return True
+
+            if not should_i_run():
                 return
-            # now remove all error files or previous version files
-            for f in path_task.joinpath(pid).glob(f'.{func.__name__}-*'):
-                f.unlink()
-            # check that dependencies are met, exit if not
-            if depends_on is not None:
-                unmet_dependencies = False
-                # loop on parent tasks and check if they have run
-                for parent_task in depends_on:
-                    # gets an empty string version if no minumum version is specified
-                    parent_task, required_parent_version = (parent_task + '------').split('-', maxsplit=2)[:2]
-                    flag_parent = next(path_task.joinpath(pid).glob(f".{parent_task}*"), None)
-                    # the parent task hasn't run
-                    if flag_parent is None:
-                        logger.info(f'unmet dependencies for task {func.__name__} for pid {pid}: {parent_task} has not run')
-                        unmet_dependencies = True
-                    else:
-                        _, parent_version, status = flag_parent.name.split('-')
-                        # the parent task has errored
-                        if status == 'error':
-                            logger.info(f'unmet dependencies for task {func.__name__} for pid {pid}: {parent_task} has errored')
-                            unmet_dependencies = True
-                        # the parent task has run with a now deprecated version
-                        if required_parent_version and (packaging.version.parse(required_parent_version) > packaging.version.parse(parent_version)):
-                            logger.info(f'unmet dependencies for task {func.__name__} for pid {pid}: {parent_task} '
-                                        f'ran with a deprecated version {parent_version} < minimum required: {required_parent_version}')
-                            unmet_dependencies = True
-                if unmet_dependencies:
-                    return
             # try and run the task with error catching
             logger.info(f'running task {func.__name__} for pid {pid}')
             path_task.joinpath(pid).mkdir(exist_ok=True, parents=True)
@@ -249,7 +262,9 @@ def compute_sorted_features(pid, one, root_path=None):
     # the concat syntax sets a higher level index on the dataframe as pid
     pd.concat({pid: pd.DataFrame(clusters)}, names=['pid']).to_parquet(root_path.joinpath(pid, 'clusters.pqt'))
     pd.concat({pid: pd.DataFrame(spikes)}, names=['pid']).to_parquet(root_path.joinpath(pid, 'spikes_sorted.pqt'))
-    pd.concat({pid: pd.DataFrame(channels)}, names=['pid']).to_parquet(root_path.joinpath(pid, 'channels.pqt'))
+    df_channels = pd.concat({pid: pd.DataFrame(channels)}, names=['pid'])
+    df_channels['histology'] = ssl.histology
+    df_channels.to_parquet(root_path.joinpath(pid, 'channels.pqt'))
 
 
 @task(**TASKS['localise'])
@@ -292,6 +307,8 @@ def compute_raw_features(pid, root_path=None):
         peak_val=pd.NamedAgg(column="peak_val", aggfunc="mean"),
         trough_time_idx=pd.NamedAgg(column="trough_time_idx", aggfunc="mean"),
         trough_val=pd.NamedAgg(column="trough_val", aggfunc="mean"),
+        tip_time_idx=pd.NamedAgg(column="tip_time_idx", aggfunc="mean"),
+        tip_val=pd.NamedAgg(column="tip_val", aggfunc="mean"),
     )
 
     channels_features = pd.merge(channels_features, ap_features, left_index=True, right_index=True)
