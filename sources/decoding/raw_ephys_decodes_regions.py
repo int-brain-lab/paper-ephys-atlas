@@ -24,8 +24,7 @@ else:
     LOCAL_DATA_PATH = Path("/mnt/s0/aggregates/atlas/2023_W13")
     df_channels = pd.read_parquet(LOCAL_DATA_PATH.joinpath('channels.pqt'))
     df_channels.index.rename('channel', level=1, inplace=True)
-
-    x_list += ['spike_count', 'peak_trace_idx', 'peak_time_idx', 'peak_val', 'trough_time_idx', 'trough_val']
+    x_list += ['spike_count', 'peak_time_idx', 'peak_val', 'trough_time_idx', 'trough_val', 'tip_time_idx', 'tip_val']
 
 df_voltage = pd.read_parquet(LOCAL_DATA_PATH.joinpath('raw_ephys_features.pqt'))
 df_voltage = pd.merge(df_voltage, df_channels, left_index=True, right_index=True).dropna()
@@ -34,11 +33,10 @@ aids_beryl = regions.remap(df_voltage['atlas_id'], source_map='Allen', target_ma
 df_voltage['beryl_id'] = aids_beryl
 df_voltage['cosmos_id'] = aids_cosmos
 
-
-
 X = df_voltage.loc[:, x_list].values
 scaler = StandardScaler()
 scaler.fit(X)
+
 
 def decode(X, scaler, aids, classifier=None, save_path=None):
     if classifier is None:
@@ -72,16 +70,3 @@ ax.set_title("Feature importances using MDI")
 ax.set_ylabel("Mean decrease in impurity")
 fig.tight_layout()
 # 0.5168615851641402 0.03773181030959933 0.6357002471346008 0.11985055167448287
-
-## %% Decode Beryl and Cosmos using Neural nets
-_, bs, bsn = decode(X, scaler, aids_beryl)
-_, cs, csn = decode(X, scaler, aids_cosmos)
-print(bs, bsn, cs, csn)
-# 0.3504251882698632, 0.03403452100644107, 0.542723150868863, 0.1213878456479013
-
-## %
-from sklearn.naive_bayes import GaussianNB
-_, cs, csn = decode(X, scaler, aids_cosmos, classifier=GaussianNB())
-_, bs, bsn = decode(X, scaler, aids_beryl, classifier=GaussianNB())
-print(bs, bsn, cs, csn)
-# 0.08093171690439588 0.0002140535912354784 0.31541769639416994 0.1029013991321099
