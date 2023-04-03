@@ -13,8 +13,7 @@ for i, pid in enumerate(pids):
     print(i, len(pids))
     workflow.compute_raw_features(pid)
 
-
-pids = workflow.get_pids_for_task(task_name='compute_sorted_features', flow=flow, n_workers=1, worker_id=0)
+pids = workflow.get_pids_for_task(task_name='compute_sorted_features', flow=flow, n_workers=2, worker_id=1)
 for i, pid in enumerate(pids):
     print(i, len(pids))
     workflow.compute_sorted_features(pid, one=one)
