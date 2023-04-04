@@ -53,3 +53,69 @@ def verify_tables(df_voltage, df_clusters, df_channels):
     assert df_clusters.index.names == ['pid', 'cluster_id']
     assert df_channels.index.names == ['pid', 'channel']
     assert df_voltage.index.names == ['pid', 'channel']
+
+
+def compute_depth_dataframe(df_raw_features, df_clusters, df_channels):
+    """
+    Compute a features dataframe for each pid and depth along the probe,
+    merging the raw voltage features, and the clusters features
+    :param df_voltage:
+    :param df_clusters:
+    :param df_channels:
+    :return:
+    """
+    df_depth_clusters = df_clusters.groupby(['pid', 'axial_um']).agg(
+        amp_max=pd.NamedAgg(column="amp_max", aggfunc="mean"),
+        amp_min=pd.NamedAgg(column="amp_min", aggfunc="mean"),
+        amp_median=pd.NamedAgg(column="amp_median", aggfunc="mean"),
+        amp_std_dB=pd.NamedAgg(column="amp_std_dB", aggfunc="mean"),
+        contamination=pd.NamedAgg(column="contamination", aggfunc="mean"),
+        contamination_alt=pd.NamedAgg(column="contamination_alt", aggfunc="mean"),
+        drift=pd.NamedAgg(column="drift", aggfunc="mean"),
+        missed_spikes_est=pd.NamedAgg(column="missed_spikes_est", aggfunc="mean"),
+        noise_cutoff=pd.NamedAgg(column="noise_cutoff", aggfunc="mean"),
+        presence_ratio=pd.NamedAgg(column="presence_ratio", aggfunc="mean"),
+        presence_ratio_std=pd.NamedAgg(column="presence_ratio_std", aggfunc="mean"),
+        slidingRP_viol=pd.NamedAgg(column="slidingRP_viol", aggfunc="mean"),
+        spike_count=pd.NamedAgg(column="spike_count", aggfunc="mean"),
+        firing_rate=pd.NamedAgg(column="firing_rate", aggfunc="mean"),
+        label=pd.NamedAgg(column="label", aggfunc="mean"),
+        x=pd.NamedAgg(column="x", aggfunc="mean"),
+        y=pd.NamedAgg(column="y", aggfunc="mean"),
+        z=pd.NamedAgg(column="z", aggfunc="mean"),
+        acronym=pd.NamedAgg(column="acronym", aggfunc="first"),
+        atlas_id=pd.NamedAgg(column="atlas_id", aggfunc="first"),
+    )
+
+    df_voltage = df_raw_features.merge(df_channels, left_index=True, right_index=True)
+    df_depth_raw = df_voltage.groupby(['pid', 'axial_um']).agg(
+        alpha_mean=pd.NamedAgg(column="alpha_mean", aggfunc="mean"),
+        alpha_std=pd.NamedAgg(column="alpha_std", aggfunc="mean"),
+        spike_count=pd.NamedAgg(column="spike_count", aggfunc="mean"),
+        cloud_x_std=pd.NamedAgg(column="cloud_x_std", aggfunc="mean"),
+        cloud_y_std=pd.NamedAgg(column="cloud_y_std", aggfunc="mean"),
+        cloud_z_std=pd.NamedAgg(column="cloud_z_std", aggfunc="mean"),
+        peak_trace_idx=pd.NamedAgg(column="peak_trace_idx", aggfunc="mean"),
+        peak_time_idx=pd.NamedAgg(column="peak_time_idx", aggfunc="mean"),
+        peak_val=pd.NamedAgg(column="peak_val", aggfunc="mean"),
+        trough_time_idx=pd.NamedAgg(column="trough_time_idx", aggfunc="mean"),
+        trough_val=pd.NamedAgg(column="trough_val", aggfunc="mean"),
+        tip_time_idx=pd.NamedAgg(column="tip_time_idx", aggfunc="mean"),
+        tip_val=pd.NamedAgg(column="tip_val", aggfunc="mean"),
+        rms_ap=pd.NamedAgg(column="rms_ap", aggfunc="mean"),
+        rms_lf=pd.NamedAgg(column="rms_lf", aggfunc="mean"),
+        psd_delta=pd.NamedAgg(column="psd_delta", aggfunc="mean"),
+        psd_theta=pd.NamedAgg(column="psd_theta", aggfunc="mean"),
+        psd_alpha=pd.NamedAgg(column="psd_alpha", aggfunc="mean"),
+        psd_beta=pd.NamedAgg(column="psd_beta", aggfunc="mean"),
+        psd_gamma=pd.NamedAgg(column="psd_gamma", aggfunc="mean"),
+        x=pd.NamedAgg(column="x", aggfunc="mean"),
+        y=pd.NamedAgg(column="y", aggfunc="mean"),
+        z=pd.NamedAgg(column="z", aggfunc="mean"),
+        acronym=pd.NamedAgg(column="acronym", aggfunc="first"),
+        atlas_id=pd.NamedAgg(column="atlas_id", aggfunc="first"),
+        histology=pd.NamedAgg(column="histology", aggfunc="first"),
+    )
+
+    df_depth = df_depth_raw.merge(df_depth_clusters, left_index=True, right_index=True)
+    return df_depth
