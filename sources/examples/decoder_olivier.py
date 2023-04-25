@@ -36,17 +36,12 @@ regions = BrainRegions()
 BENCHMARK = True
 SCALE = True
 
-LOCAL_DATA_PATH = Path("/mnt/s0/aggregates/bwm")
 year_week = '2022_W34'
-
-
-LOCAL_DATA_PATH = Path("/mnt/s0/aggregates/atlas")
 year_week = '2023_W13'
 
-LOCAL_DATA_PATH = Path("/mnt/s0/aggregates/bwm")
-
-
+LOCAL_DATA_PATH = Path("/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding")
 DECODING_PATH = Path("/mnt/s1/ephys-atlas-decoding")
+LOCAL_DATA_PATH = Path("/mnt/s1/ephys-atlas-decoding")
 
 
 benchmark_pids = ['1a276285-8b0e-4cc9-9f0a-a3a002978724',
@@ -77,10 +72,10 @@ df_raw_features['beryl_id'] = regions.remap(df_raw_features['atlas_id'], source_
 
 # selection and scaling of features
 x_list = ['rms_ap', 'alpha_mean', 'alpha_std', 'spike_count', 'cloud_x_std', 'cloud_y_std', 'cloud_z_std', 'rms_lf', 'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma']
-
+x_list += ['peak_time_idx', 'peak_val', 'trough_time_idx', 'trough_val', 'tip_time_idx', 'tip_val']
 # Training the model
-kwargs = {'n_estimators': 30, 'max_depth': 25, 'max_leaf_nodes': 10000, 'random_state': 420}
-
+# kwargs = {'n_estimators': 30, 'max_depth': 25, 'max_leaf_nodes': 10000, 'random_state': 420}
+kwargs = {}
 
 ## %%
 if BENCHMARK:
