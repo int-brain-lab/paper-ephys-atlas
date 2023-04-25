@@ -5,7 +5,7 @@ LABEL = '2022_W34'
 LABEL = '2023_W14'
 
 
-LOCAL_DATA_PATH = Path("/Users/olivier/Documents/datadisk/atlas/tables")
+LOCAL_DATA_PATH = Path("/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding/tables")
 one = ONE(base_url="https://alyx.internationalbrainlab.org", mode='local')
 
 df_raw_features, df_clusters, df_channels = download_tables(label=LABEL, local_path=LOCAL_DATA_PATH, one=one)
