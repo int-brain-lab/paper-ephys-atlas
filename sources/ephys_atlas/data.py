@@ -26,6 +26,15 @@ def atlas_pids(one, tracing=True):
     return [item['id'] for item in insertions], insertions
 
 
+def load_tables(local_path, verify=True):
+    df_clusters = pd.read_parquet(local_path.joinpath('clusters.pqt'))
+    df_channels = pd.read_parquet(local_path.joinpath('channels.pqt'))
+    df_voltage = pd.read_parquet(local_path.joinpath('raw_ephys_features.pqt'))
+    if verify:
+        verify_tables(df_voltage, df_clusters, df_channels)
+    return df_voltage, df_clusters, df_channels
+
+
 def download_tables(local_path, label='2022_W34', one=None, verify=True):
     # The AWS private credentials are stored in Alyx, so that only one authentication is required
     local_path = Path(local_path)
@@ -33,13 +42,7 @@ def download_tables(local_path, label='2022_W34', one=None, verify=True):
     aws.s3_download_folder(f"aggregates/atlas/{label}",
                            local_path,
                            s3=s3, bucket_name=bucket_name)
-
-    df_clusters = pd.read_parquet(local_path.joinpath('clusters.pqt'))
-    df_channels = pd.read_parquet(local_path.joinpath('channels.pqt'))
-    df_voltage = pd.read_parquet(local_path.joinpath('raw_ephys_features.pqt'))
-    if verify:
-        verify_tables(df_voltage, df_clusters, df_channels)
-    return df_voltage, df_clusters, df_channels
+    return load_tables(local_path=local_path, verify=verify)
 
 
 def verify_tables(df_voltage, df_clusters, df_channels):
