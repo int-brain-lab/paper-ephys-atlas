@@ -82,20 +82,30 @@ one = ONE(base_url="https://alyx.internationalbrainlab.org", mode='local')
 
 df_channels = pd.read_parquet(LOCAL_DATA_PATH.joinpath('channels.pqt'))
 df_channels.index.rename('channel', level=1, inplace=True)
-df_raw_features = pd.read_parquet(LOCAL_DATA_PATH.joinpath('raw_ephys_features.pqt'))
+df_raw_features1 = pd.read_parquet(LOCAL_DATA_PATH.joinpath('raw_ephys_features.pqt'))
 
 pd.set_option('use_inf_as_na',True)
-df_raw_features = pd.merge(df_raw_features, df_channels, left_index=True, right_index=True).dropna()
+df_raw_features1 = pd.merge(df_raw_features1, df_channels, left_index=True, right_index=True).dropna()
 
 # remapping the lowest level of channel location to higher levels mappings
-df_raw_features['cosmos_id'] = regions.remap(df_raw_features['atlas_id'], source_map='Allen', target_map='Cosmos')
-df_raw_features['beryl_id'] = regions.remap(df_raw_features['atlas_id'], source_map='Allen', target_map='Beryl')
+df_raw_features1['cosmos_id'] = regions.remap(df_raw_features1['atlas_id'], source_map='Allen', target_map='Cosmos')
+df_raw_features1['beryl_id'] = regions.remap(df_raw_features1['atlas_id'], source_map='Allen', target_map='Beryl')
+
+
+  # use lines 96 to 103 to sort insertions to include in the training dataset based on histology status
+# To include only resolved alignement in the training dataset
+df_raw_features = df_raw_features1.loc[(df_raw_features1.histology == 'resolved') | (df_raw_features1.histology == 'alf')]
+
+# To include resolved and aligned probes in the training dataset
+#df_raw_features = df_raw_features1.loc[(df_raw_features1.histology == 'resolved') | (df_raw_features1.histology == 'alf') | (df_raw_features1.histology == 'aligned')]
+
+#To include only the traced probes in the training dataset
+#df_raw_features = df_raw_features1.loc[(df_raw_features1.histology == 'traced')]
 
 # to elimante void and root from the dataset
 a, _ = ismember(df_raw_features['cosmos_id'], regions.acronym2id(['void', 'root'])) # To exclude void and root when training the model
 df_raw_features = df_raw_features.loc[~a]
 # df_raw_features = df_raw_features.reset_index(drop=True)
-
 
 # selection and scaling of features
 x_list = ['rms_ap', 'alpha_mean', 'alpha_std', 'spike_count', 'cloud_x_std', 'cloud_y_std', 'cloud_z_std', 'rms_lf', 'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma'] #Use this only to give 13 features as input to the model
@@ -153,7 +163,6 @@ for mapping in ['beryl_id', 'cosmos_id', 'atlas_id']:
     print(mapping, clf.score(x_test, y_test), clf.score(x_test, y_null))
     
 #%% Testing the model
-
 
 df_voltage = df_raw_features.reset_index(['pid','channel'])
 
@@ -230,7 +239,7 @@ for pid in benchmark_pids:
     plot_probas(probas_beryl, legend=False, ax=ax7)
     ax7.tick_params(labelsize=9)
     ax7.set_title('Cumulative Probability', fontsize=10, pad=11)
-    ax7.set_ylabel('Probe distance from tip (um)', fontsize=10, labelpad=12)
+    ax7.set_ylabel('Channel number', fontsize=10, labelpad=12)
     ax7.yaxis.set_ticks_position('right')
     ax7.yaxis.set_label_position('right')
     ax7.grid(False)
@@ -243,5 +252,7 @@ for pid in benchmark_pids:
  
     f.savefig(OUT_PATH.joinpath(f'{pid}.png'))
     f.savefig(OUT_PATH.joinpath(f'{pid}.pdf'))
+    
+    print('Done for 'f'{pid}')
     
    
