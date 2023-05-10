@@ -1,14 +1,57 @@
 import logging
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
+import neuropixel
 from one.remote import aws
 
 _logger = logging.getLogger('ibllib')
 
 SPIKES_ATTRIBUTES = ['clusters', 'times', 'depths', 'amps']
 CLUSTERS_ATTRIBUTES = ['channels', 'depths', 'metrics']
+
+EXTRACT_RADIUS_UM = 200  # for localisation , the default extraction radius in um
+
+
+def get_waveforms_coordinates(trace_indices, xy=None, extract_radius_um=EXTRACT_RADIUS_UM, return_indices=False):
+    """
+    Args:
+        trace_indices:
+        xy:
+        extract_radius_um:
+        return_indices:
+
+    Returns:
+    """
+    if xy is None:
+        th = neuropixel.trace_header(version=1)
+        xy = th['x'] + 1j * th['y']
+    channel_lookups = _get_channel_distances_indices(xy, extract_radius_um=extract_radius_um)
+    inds = channel_lookups[trace_indices.astype(np.int32)]
+    # add a dummy channel to have nans in the coordinates
+    inds[np.isnan(inds)] = xy.size
+    wxy = np.r_[xy, np.nan][inds.astype(np.int32)]
+    return wxy
+
+
+def _get_channel_distances_indices(xy, extract_radius_um=EXTRACT_RADIUS_UM):
+    """
+    params: xy: ntr complex array of x and y coordinates of each channel relative to the probe
+    Computes the distance between each channel and all the other channels, and find the
+    indices of the channels that are within the radius.
+    For each row the indices of the channels within the radius are returned.
+    returns: channel_dist: ntr x ntr_wav matrix of channel indices within the radius., where ntr_wav is the
+    """
+    ntr = xy.shape[0]
+    channel_dist = np.zeros((ntr, ntr)) * np.nan
+    for i in np.arange(ntr):
+        cind = np.where(np.abs(xy[i] - xy) <= extract_radius_um)[0]
+        channel_dist[i, :cind.size] = cind
+    # prune the matrix: only so many channels are within the radius
+    channel_dist = channel_dist[:, ~np.all(np.isnan(channel_dist), axis=0)]
+    return channel_dist
 
 
 def atlas_pids(one, tracing=True):
