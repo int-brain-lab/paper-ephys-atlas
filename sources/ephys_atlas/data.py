@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+import yaml
 
 import numpy as np
 import pandas as pd
@@ -165,3 +166,10 @@ def compute_depth_dataframe(df_raw_features, df_clusters, df_channels):
 
     df_depth = df_depth_raw.merge(df_depth_clusters, left_index=True, right_index=True)
     return df_depth
+
+
+def get_config():
+    file_yaml = Path(__file__).parents[2].joinpath('config-ephys-atlas.yaml')
+    with open(file_yaml, 'r') as stream:
+        config = yaml.safe_load(stream)
+    return config
