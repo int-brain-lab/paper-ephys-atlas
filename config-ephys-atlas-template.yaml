@@ -1,0 +1,4 @@
+paths:
+  features: /datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding
+decoding:
+  tag: 2023_W13
