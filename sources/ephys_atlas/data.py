@@ -16,7 +16,7 @@ CLUSTERS_ATTRIBUTES = ['channels', 'depths', 'metrics']
 EXTRACT_RADIUS_UM = 200  # for localisation , the default extraction radius in um
 
 
-def get_waveforms_coordinates(trace_indices, xy=None, extract_radius_um=EXTRACT_RADIUS_UM, return_indices=False):
+def get_waveforms_coordinates(trace_indices, xy=None, extract_radius_um=EXTRACT_RADIUS_UM, return_complex=False):
     """
     Args:
         trace_indices:
@@ -34,7 +34,10 @@ def get_waveforms_coordinates(trace_indices, xy=None, extract_radius_um=EXTRACT_
     # add a dummy channel to have nans in the coordinates
     inds[np.isnan(inds)] = xy.size
     wxy = np.r_[xy, np.nan][inds.astype(np.int32)]
-    return wxy
+    if return_complex:
+        return wxy
+    else:
+        return np.stack((np.real(wxy), np.imag(wxy), np.imag(wxy)), axis=2)
 
 
 def _get_channel_distances_indices(xy, extract_radius_um=EXTRACT_RADIUS_UM):
@@ -81,11 +84,10 @@ def load_tables(local_path, verify=True):
 
 def download_tables(local_path, label='2022_W34', one=None, verify=True):
     # The AWS private credentials are stored in Alyx, so that only one authentication is required
-    local_path = Path(local_path)
+    local_path = Path(local_path).joinpath(label)
     s3, bucket_name = aws.get_s3_from_alyx(alyx=one.alyx)
-    aws.s3_download_folder(f"aggregates/atlas/{label}",
-                           local_path,
-                           s3=s3, bucket_name=bucket_name)
+    local_files = aws.s3_download_folder(f"aggregates/atlas/{label}", local_path, s3=s3, bucket_name=bucket_name)
+    print(local_files)
     return load_tables(local_path=local_path, verify=verify)
 
 
