@@ -8,13 +8,22 @@ To get the features dataframe needed to train models, see [the loading example](
 To get a naive example of decoding model out of ephys features, see [a raw ephys decoder](sources/decoding/raw_ephys_decodes_regions.py)
 
 
+## Configuration instructions
+The configuration file is located in `config-ephys-atlas.yaml`.
+It contains local data storage paths and some parameters for the analysis. To avoid committing changes to this file, it is ignored by git. To make changes to the configuration, copy the template file and edit the copy:
+
+```bash
+cp config-ephys-atlas.template.yaml config-ephys-atlas.yaml
+```
+
+
 ## Install instructions
 Clone the repository
 ```bash
 git clone https://github.com/int-brain-lab/paper-ephys-atlas.git
 ```
 
-Activate your environment of choice (usually `iblenv` as described here: https://github.com/int-brain-lab/iblenv).
+Activate your environment of choice (usually a conda `iblenv` as described here: https://github.com/int-brain-lab/iblenv).
 ```bash
 conda activate iblenv
 ```
@@ -24,5 +33,3 @@ Cd into the repository and install in-place
 cd paper-ephys-atlas
 pip install -e .
 ```
-
-
