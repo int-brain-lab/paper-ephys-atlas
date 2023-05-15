@@ -1,4 +1,5 @@
 paths:
-  features: /datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding
+  features: /datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding  # this is the folder where the features tables will be saved
+  raw-samples: /datadisk/Data/paper-ephys-atlas/ephys-atlas-sample  # this contains raw data samples and localisation results for 13 benchmark insertions
 decoding:
-  tag: 2023_W13
+  tag: 2023_W14  # dataset tag used for the decoding
