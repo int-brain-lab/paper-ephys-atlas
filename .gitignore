@@ -1,6 +1,6 @@
 # paper ephys-atlas
 sources/training_data/
-ephys-atlas-config.yaml
+config-ephys-atlas.yaml
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
