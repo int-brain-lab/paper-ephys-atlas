@@ -37,7 +37,7 @@ def get_waveforms_coordinates(trace_indices, xy=None, extract_radius_um=EXTRACT_
     if return_complex:
         return wxy
     else:
-        return np.stack((np.real(wxy), np.imag(wxy), np.imag(wxy)), axis=2)
+        return np.stack((np.real(wxy), np.imag(wxy), np.zeros_like(np.imag(wxy))), axis=2)
 
 
 def _get_channel_distances_indices(xy, extract_radius_um=EXTRACT_RADIUS_UM):
