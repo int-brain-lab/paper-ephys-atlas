@@ -34,7 +34,6 @@ clusters.index.rename('cluster_id', level=1, inplace=True)
 files_raw_features = [p for p in ROOT_PATH.rglob('raw_ephys_features.pqt') if p.parts[-2] in pids]
 raw_features = dd.read_parquet(files_raw_features).compute()
 
-
 channels.to_parquet(STAGING_PATH.joinpath('channels.pqt'))
 clusters.to_parquet(STAGING_PATH.joinpath('clusters.pqt'))
 raw_features.to_parquet(STAGING_PATH.joinpath('raw_ephys_features.pqt'))
