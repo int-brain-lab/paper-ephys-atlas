@@ -74,12 +74,14 @@ def atlas_pids(one, tracing=True):
 
 
 def load_tables(local_path, verify=True):
+    local_path.mkdir(exist_ok=True)  # no parent here
     df_clusters = pd.read_parquet(local_path.joinpath('clusters.pqt'))
     df_channels = pd.read_parquet(local_path.joinpath('channels.pqt'))
     df_voltage = pd.read_parquet(local_path.joinpath('raw_ephys_features.pqt'))
+    df_probes = pd.read_parquet(local_path.joinpath('probes.pqt'))
     if verify:
         verify_tables(df_voltage, df_clusters, df_channels)
-    return df_voltage, df_clusters, df_channels
+    return df_voltage, df_clusters, df_channels, df_probes
 
 
 def download_tables(local_path, label='2022_W34', one=None, verify=True):
