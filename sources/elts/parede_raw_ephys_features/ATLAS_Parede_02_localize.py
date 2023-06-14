@@ -18,7 +18,7 @@ pids, alyx_pids = atlas_pids(one)
 
 flow = workflow.report(one=one)
 # re-runs all old and error tasks
-pids = flow.index[flow['localise'] != f".localise_{workflow.TASKS['localise']['version']}"]
+pids = flow.index[flow['localise'] != f".localise-{workflow.TASKS['localise']['version']}"]
 for i, pid in enumerate(pids):
     print(i, len(pids))
     workflow.localise(pid)
