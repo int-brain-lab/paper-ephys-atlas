@@ -78,7 +78,7 @@ for i, pid in enumerate(pids):
     df_channels.loc[pid, k] = fanofactor(n_ch=n_ch)
 
 # ==== Step 4: save to dataframe
-# df_channels.to_parquet(STAGING_PATH.joinpath('channels.pqt'))
+# df_channels.to_parquet(AGGREGATE_PATH.joinpath('channels.pqt'))
 
 # ==== Aggregate per brain region to plot
 df_regions = df_channels.groupby('atlas_id').agg({
