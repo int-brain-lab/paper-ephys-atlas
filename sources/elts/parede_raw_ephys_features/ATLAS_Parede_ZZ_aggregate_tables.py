@@ -23,11 +23,10 @@ one = ONE(base_url="https://alyx.internationalbrainlab.org")
 pids, _ = atlas_pids(one)
 
 flow = workflow.report(one=one, pids=pids)
-
 # selects the pids that have no error in the flow
 pids = flow.index[flow.applymap(lambda x: 'error' not in x and x != '').all(axis=1)]
 
-# load the tables, channels, clusters and raw features
+#%% load the tables, channels, clusters and raw features
 files_channels_pqt = [p for p in ROOT_PATH.rglob('channels.pqt') if p.parts[-2] in pids]
 channels = pd.concat([pd.read_parquet(f) for f in files_channels_pqt])
 channels.index.rename('channel', level=1, inplace=True)
@@ -40,7 +39,7 @@ files_raw_features = [p for p in ROOT_PATH.rglob('raw_ephys_features.pqt') if p.
 raw_features = dd.read_parquet(files_raw_features).compute()
 
 
-## Prepare the insertions
+#%% Prepare the insertions
 from ibllib.atlas import Insertion
 from ibllib.atlas import NeedlesAtlas, AllenAtlas
 from ibllib.pipes.histology import interpolate_along_track
