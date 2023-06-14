@@ -13,7 +13,7 @@ from brainbox.io.spikeglx import Streamer
 
 from iblutil.util import setup_logger
 from neurodsp.utils import WindowGenerator
-from neurodsp.waveforms import peak_trough_tip
+from neurodsp.waveforms import compute_spike_features
 
 _logger = setup_logger('ephys_atlas', level='INFO')
 
@@ -244,7 +244,7 @@ def compute_spikes_features(pid, root_path=None):
         file_spikes = files_spikes[i]
         file_waveforms = file_spikes.with_name('waveforms.npy')
         waveforms = np.load(file_waveforms)
-        df_wav = peak_trough_tip(waveforms)
+        df_wav = compute_spike_features(waveforms)
         df_tmp = pd.read_parquet(file_spikes)
         df_tmp['t0'] = int(file_spikes.parts[-2][1:])
         df_spikes.append(df_tmp.merge(df_wav, left_index=True, right_index=True))

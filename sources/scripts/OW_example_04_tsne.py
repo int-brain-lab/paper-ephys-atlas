@@ -14,7 +14,7 @@ STAGING_PATH = Path('/datadisk/FlatIron/tables/bwm')
 
 df_clusters = pd.read_parquet(STAGING_PATH.joinpath('clusters.pqt'))
 df_probes = pd.read_parquet(STAGING_PATH.joinpath('probes.pqt'))
-# df_channels = pd.read_parquet(STAGING_PATH.joinpath('channels.pqt'))
+# df_channels = pd.read_parquet(AGGREGATE_PATH.joinpath('channels.pqt'))
 
 df_voltage = pd.read_parquet(STAGING_PATH.joinpath('channels_voltage_features.pqt'))
 df_voltage['atlas_id_beryl'] = ba.regions.remap(df_voltage['atlas_id'].to_numpy(), target_map='Beryl')

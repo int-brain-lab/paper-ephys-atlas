@@ -11,15 +11,14 @@ from one.api import ONE
 from ephys_atlas.data import atlas_pids
 import ephys_atlas.workflow as workflow
 
-
-ROOT_PATH = Path("/mnt/s0/aggregates/atlas")
+AGGREGATE_PATH = Path("/mnt/s1/aggregates/atlas")
+ROOT_PATH = Path("/mnt/s0/ephys-atlas")
 print(f'aws s3 sync "{ROOT_PATH}" s3://ibl-brain-wide-map-private/aggregates/atlas')
 
 year_week = date.today().isocalendar()[:2]
-STAGING_PATH = Path(ROOT_PATH).joinpath(f'{year_week[0]}_W{year_week[1]:02}')
-STAGING_PATH.mkdir(parents=True, exist_ok=True)
+OUT_PATH = Path(AGGREGATE_PATH).joinpath(f'{year_week[0]}_W{year_week[1]:02}')
+OUT_PATH.mkdir(parents=True, exist_ok=True)
 
-ROOT_PATH = Path("/mnt/s1/ephys-atlas")
 one = ONE(base_url="https://alyx.internationalbrainlab.org")
 pids, _ = atlas_pids(one)
 
@@ -82,7 +81,7 @@ for pid, rec in df_probes.iterrows():
 
 
 ##
-channels.to_parquet(STAGING_PATH.joinpath('channels.pqt'))
-clusters.to_parquet(STAGING_PATH.joinpath('clusters.pqt'))
-raw_features.to_parquet(STAGING_PATH.joinpath('raw_ephys_features.pqt'))
-df_probes.to_parquet(STAGING_PATH.joinpath('probes.pqt'))
+channels.to_parquet(OUT_PATH.joinpath('channels.pqt'))
+clusters.to_parquet(OUT_PATH.joinpath('clusters.pqt'))
+raw_features.to_parquet(OUT_PATH.joinpath('raw_ephys_features.pqt'))
+df_probes.to_parquet(OUT_PATH.joinpath('probes.pqt'))
