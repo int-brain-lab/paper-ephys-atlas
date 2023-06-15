@@ -16,9 +16,10 @@ print(torch.version.cuda)
 one = ONE(base_url="https://alyx.internationalbrainlab.org")
 pids, alyx_pids = atlas_pids(one)
 
-flow = workflow.report(one=one)
 # re-runs all old and error tasks
-pids = flow.index[flow['localise'] != f".localise-{workflow.TASKS['localise']['version']}"]
+report = workflow.report(one=one)
+
+pids = report.flow.get_pids_ready('localise')
 for i, pid in enumerate(pids):
     print(i, len(pids))
     workflow.localise(pid)
