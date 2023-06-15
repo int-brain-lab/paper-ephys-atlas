@@ -7,6 +7,12 @@ import pandas as pd
 
 import neuropixel
 from one.remote import aws
+from iblutil.numerical import ismember
+
+from ibllib.atlas import Insertion
+from ibllib.atlas import NeedlesAtlas, AllenAtlas
+from ibllib.pipes.histology import interpolate_along_track
+
 
 _logger = logging.getLogger('ibllib')
 
@@ -167,9 +173,53 @@ def compute_depth_dataframe(df_raw_features, df_clusters, df_channels):
         atlas_id=pd.NamedAgg(column="atlas_id", aggfunc="first"),
         histology=pd.NamedAgg(column="histology", aggfunc="first"),
     )
-
     df_depth = df_depth_raw.merge(df_depth_clusters, left_index=True, right_index=True)
     return df_depth
+
+
+def compute_channels_micromanipulator_coordinates(df_channels, one=None):
+    """
+    Compute the micromanipulator coordinates for each channel
+    :param df_channels:
+    :param one:
+    :return:
+    """
+    assert one is not None, 'one instance must be provided to fetch the planned trajectories'
+    needles = NeedlesAtlas()
+    allen = AllenAtlas()
+    needles.compute_surface()
+
+    pids = df_channels.index.levels[0]
+    trajs = one.alyx.rest('trajectories', 'list', provenance='Micro-Manipulator')
+
+    mapping = dict(
+        pid='probe_insertion', pname='probe_name', x_target='x', y_target='y', z_target='z',
+        depth_target='depth', theta_target='theta', phi_target='phi', roll_target='roll'
+    )
+
+    tt = [{k: t[v] for k, v in mapping.items()} for t in trajs]
+    df_planned = pd.DataFrame(tt).rename(columns={'probe_insertion': 'pid'}).set_index('pid')
+    df_planned['eid'] = [t['session']['id'] for t in trajs]
+
+    df_probes = df_channels.groupby('pid').agg(histology=pd.NamedAgg(column='histology', aggfunc='first'))
+    df_probes = pd.merge(df_probes, df_planned, how='left', on='pid')
+
+    iprobes, iplan = ismember(pids, df_planned.index)
+    # imiss = np.where(~iprobes)[0]
+
+    for pid, rec in df_probes.iterrows():
+        drec = rec.to_dict()
+        ins = Insertion.from_dict({v: drec[k] for k, v in mapping.items() if 'target' in k}, brain_atlas=needles)
+        txyz = np.flipud(ins.xyz)
+        txyz = allen.bc.i2xyz(needles.bc.xyz2i(txyz / 1e6, round=False, mode="clip")) * 1e6
+        # we interploate the channels from the deepest point up. The neuropixel y coordinate is from the bottom of the probe
+        xyz_mm = interpolate_along_track(txyz, df_channels.loc[pid, 'axial_um'].to_numpy() / 1e6)
+        aid_mm = needles.get_labels(xyz=xyz_mm, mode='clip')
+        df_channels.loc[pid, 'x_target'] = xyz_mm[:, 0]
+        df_channels.loc[pid, 'y_target'] = xyz_mm[:, 1]
+        df_channels.loc[pid, 'z_target'] = xyz_mm[:, 2]
+        df_channels.loc[pid, 'atlas_id_target'] = aid_mm
+    return df_channels, df_probes
 
 
 def get_config():
