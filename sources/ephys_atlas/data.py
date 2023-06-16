@@ -22,7 +22,7 @@ CLUSTERS_ATTRIBUTES = ['channels', 'depths', 'metrics']
 EXTRACT_RADIUS_UM = 200  # for localisation , the default extraction radius in um
 
 
-def get_waveforms_coordinates(trace_indices, xy=None, extract_radius_um=EXTRACT_RADIUS_UM, return_complex=False):
+def get_waveforms_coordinates(trace_indices, xy=None, extract_radius_um=EXTRACT_RADIUS_UM, return_complex=False, return_indices=False):
     """
     Args:
         trace_indices:
@@ -40,10 +40,12 @@ def get_waveforms_coordinates(trace_indices, xy=None, extract_radius_um=EXTRACT_
     # add a dummy channel to have nans in the coordinates
     inds[np.isnan(inds)] = xy.size
     wxy = np.r_[xy, np.nan][inds.astype(np.int32)]
-    if return_complex:
-        return wxy
+    if not return_complex:
+        wxy = np.stack((np.real(wxy), np.imag(wxy), np.zeros_like(np.imag(wxy))), axis=2)
+    if return_indices:
+        return wxy, inds
     else:
-        return np.stack((np.real(wxy), np.imag(wxy), np.zeros_like(np.imag(wxy))), axis=2)
+        return wxy
 
 
 def _get_channel_distances_indices(xy, extract_radius_um=EXTRACT_RADIUS_UM):
