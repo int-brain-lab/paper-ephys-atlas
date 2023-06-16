@@ -26,6 +26,7 @@ Check-out the tests for more details on how to use the decorator in ./tests/test
 from pathlib import Path
 import traceback
 import packaging.version
+from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
@@ -37,10 +38,10 @@ import ephys_atlas.rawephys
 from ephys_atlas.data import atlas_pids
 
 
-ROOT_PATH = Path("/mnt/s1/ephys-atlas")
+ROOT_PATH = Path("/mnt/s0/ephys-atlas")
 logger = setup_logger(name='paper-ephys-atlas', level='INFO')
 
-TASKS = {
+TASKS = OrderedDict({
     'destripe_ap': {
         'version': '1.3.0',
     },
@@ -53,13 +54,12 @@ TASKS = {
     },
     'compute_sorted_features': {
         'version': '1.1.0',
-        'depends_on': [],
     },
     'compute_raw_features': {
-        'version': '1.0.2',
+        'version': '1.0.3',
         'depends_on': ['destripe_lf', 'localise'],
     }
-}
+})
 assert all(['-' not in TASKS for t in TASKS]), 'Task names cannot contain -'
 
 
@@ -93,33 +93,51 @@ def report(one=None, pids=None):
     if pids is None:
         pids, _ = atlas_pids(one)
         pids = sorted(pids)
-    flow = pd.DataFrame(index=pids, columns=list(TASKS.keys())).fillna('')
+    tasks = pd.DataFrame(index=pids, columns=list(TASKS.keys())).fillna('')
 
-    for pid in flow.index:
+    for pid in tasks.index:
         for t in TASKS:
             task_file = next(ROOT_PATH.joinpath(pid).glob(f'.{t}*'), None)
             if task_file:
-                flow.loc[pid, t] = task_file.name
-    return flow
+                tasks.loc[pid, t] = task_file.name
+    return tasks
 
 
-def get_pids_for_task(task_name, flow=None, rerun_errors=True, n_workers=1, worker_id=0):
-    """
-    From a flow dataframe, returns the PIDS that have errored or not been run
-    :param task_name:
-    :param flow:
-    :param rerun_errors:
-    :param n_workers:
-    :param worker_id:
-    :return:
-    """
-    if rerun_errors:
-        pids = flow.index[flow[task_name] != f".{task_name}-{TASKS[task_name]['version']}-complete"]
-    else:
-        raise NotImplementedError
-    if n_workers > 1:
-        pids = np.array_split(pids, n_workers)[worker_id]
-    return pids
+@pd.api.extensions.register_dataframe_accessor("flow")
+class Flow():
+    """ This adds a few methods to the Dataframe object for convenience """
+
+    def __init__(self, pandas_obj):
+        self._obj = pandas_obj
+
+    def versions(self):
+        return self.applymap(lambda x: (x+'-').split('-')[1])
+
+    def print_report(self):
+        """ Prints a command line report of current status of tasks"""
+        flow = self._obj
+        npids = flow.shape[0]
+        print("complete=  error:e   unmet deps:u   old version:0  new- \n")
+        for task_name, task in TASKS.items():
+            nnew = sum(flow[task_name] == '')
+            nold = sum(flow[task_name].apply(lambda x: x.endswith('complete') & ((x+'-').split('-')[1] != task['version'])))
+            nerr = sum(flow[task_name] == f".{task_name}-{task['version']}-error")
+            ncomplete = sum(flow[task_name] == f".{task_name}-{task['version']}-complete")
+            nnr = sum(flow[task_name] == f".{task_name}-{task['version']}-unmet_dependencies")
+            print(f"{ncomplete:4d}= {nerr:4d}* {nnr:4d}/ {nold:4d}+ {nnew:4d}-", task_name)
+            print('=' * int(ncomplete / npids * 100) +
+                  'e' * int(nerr / npids * 100) +
+                  'u' * int(nnr / npids * 100) +
+                  'o' * int(nold / npids * 100) +
+                  '-' * int(nnew / npids * 100))
+
+    def get_pids_ready(self, task_name=None, include_errors=False):
+        """ For a given task name, returns pids ready to run"""
+        assert task_name
+        flow = self._obj
+        # todo add options for versions / errors, here we get only the new tasks
+        pids = flow.index[~flow[task_name].apply(lambda x: x.startswith(f".{task_name}-{TASKS[task_name]['version']}"))]
+        return pids
 
 
 def run_flow(pids=None, one=None):
@@ -152,6 +170,7 @@ def task(version=None, depends_on=None, path_task=None, force_run=False, **kwarg
             flag_file = path_task.joinpath(pid).joinpath(f'.{func.__name__}-{version}-complete')
             # remove an eventual error file on a previous run (here we ru-run on errors)
             error_file = path_task.joinpath(pid).joinpath(f'.{func.__name__}-{version}-error')
+            unmet_deps_file = path_task.joinpath(pid).joinpath(f'.{func.__name__}-{version}-unmet_dependencies')
 
             def should_i_run():
                 if force_run:
@@ -190,6 +209,7 @@ def task(version=None, depends_on=None, path_task=None, force_run=False, **kwarg
                                             f'ran with a deprecated version {parent_version} < minimum required: {required_parent_version}')
                                 unmet_dependencies = True
                     if unmet_dependencies:
+                        unmet_deps_file.touch()
                         return False
                 return True
 
