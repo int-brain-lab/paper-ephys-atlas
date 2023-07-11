@@ -93,7 +93,7 @@ class AtlasDataModel(object):
         # Subplot with peak-tip-trough
         # New row to remove share axis
         new_wav = wav[np.newaxis, :, :]
-        df, arr_out = compute_spike_features(new_wav, return_peak_trace=True)
+        df, arr_out = compute_spike_features(new_wav, return_peak_channel=True)
         plot_peaktiptrough(df, new_wav, axs[1, 0], nth_wav=0)
         axs[1, 0].set_ylabel('(Volt)')
         axs[1, 0].set_xlabel('(samples)')
