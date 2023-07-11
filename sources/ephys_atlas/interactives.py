@@ -20,7 +20,7 @@ from neurodsp.voltage import kfilt
 
 class AtlasDataModel(object):
 
-    def __init__(self, ROOT_PATH, one, pid, t0=2500):
+    def __init__(self, ROOT_PATH, one, pid, t0=1500):
         self.ROOT_PATH = ROOT_PATH
         self.one = one
         self.pid = pid
@@ -31,7 +31,10 @@ class AtlasDataModel(object):
         path_t0 = next(self.path_pid.glob(f'T0{self.T0}*'))
 
         self.path_qc.mkdir(exist_ok=True)
-        self.ap = np.load(path_t0.joinpath('ap.npy')).astype(np.float32)
+        if path_t0.joinpath('destriped.npy').exists():
+            self.ap = np.load(path_t0.joinpath('destriped.npy')).astype(np.float32)
+        else:
+            self.ap = np.load(path_t0.joinpath('ap.npy'))
         self.raw = np.load(path_t0.joinpath('raw.npy')).astype(np.float32)
         self.zscore = rms(self.ap)
         with open(path_t0.joinpath('ap.yml'), 'r') as f:
@@ -41,8 +44,12 @@ class AtlasDataModel(object):
         self.spikes = pd.read_parquet(path_t0.joinpath('spikes.pqt')) if path_t0.joinpath('spikes.pqt').exists() else None
         self.waveforms = np.load(path_t0.joinpath('waveforms.npy'))
 
-        ssl = SpikeSortingLoader(pid=pid, one=one)
-        self.channels = ssl.load_channels()
+        if path_t0.joinpath('channels.npy').exists():
+            ch_load = np.load(path_t0.joinpath('channels.npy'), allow_pickle=True)
+            self.channels = dict(ch_load.item())
+        else:
+            ssl = SpikeSortingLoader(pid=pid, one=one)
+            self.channels = ssl.load_channels()
         self.eqcs = {}
         self.kfilt = None
 
