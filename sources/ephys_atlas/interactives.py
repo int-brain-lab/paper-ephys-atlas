@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from neurodsp.waveforms import peak_trough_tip, plot_peaktiptrough
+from neurodsp.waveforms import plot_peaktiptrough, compute_spike_features
 
 
 from ibllib.atlas import BrainRegions
@@ -93,7 +93,7 @@ class AtlasDataModel(object):
         # Subplot with peak-tip-trough
         # New row to remove share axis
         new_wav = wav[np.newaxis, :, :]
-        df, arr_out = peak_trough_tip(new_wav, return_peak_trace=True)
+        df, arr_out = compute_spike_features(new_wav, return_peak_trace=True)
         plot_peaktiptrough(df, new_wav, axs[1, 0], nth_wav=0)
         axs[1, 0].set_ylabel('(Volt)')
         axs[1, 0].set_xlabel('(samples)')
