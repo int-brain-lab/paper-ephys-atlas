@@ -92,11 +92,14 @@ def load_tables(local_path, verify=True):
     return df_voltage, df_clusters, df_channels, df_probes
 
 
-def download_tables(local_path, label='2022_W34', one=None, verify=True):
+def download_tables(local_path, label=None, one=None, verify=True):
     # The AWS private credentials are stored in Alyx, so that only one authentication is required
     local_path = Path(local_path).joinpath(label)
     s3, bucket_name = aws.get_s3_from_alyx(alyx=one.alyx)
-    local_files = aws.s3_download_folder(f"aggregates/atlas/{label}", local_path, s3=s3, bucket_name=bucket_name)
+    if label is None:
+        local_files = aws.s3_download_folder(f"aggregates/atlas/latest", local_path, s3=s3, bucket_name=bucket_name)
+    else:
+        local_files = aws.s3_download_folder(f"aggregates/atlas/{label}", local_path, s3=s3, bucket_name=bucket_name)
     print(local_files)
     return load_tables(local_path=local_path, verify=verify)
 
