@@ -5,19 +5,16 @@ import ephys_atlas.workflow as workflow
 one = ONE(base_url="https://alyx.internationalbrainlab.org")
 pids, alyx_pids = atlas_pids(one)
 
-flow = workflow.report(one=one)
+report = workflow.report(one=one)
 
-
-# re-runs all old and error tasks
-pids = flow.index[~flow['destripe_ap'].apply(lambda x: x.startswith(f".destripe_ap-{workflow.TASKS['destripe_ap']['version']}"))]
+pids = report.flow.get_pids_ready('destripe_ap', include_errors=True)
 len(pids)
 for i, pid in enumerate(pids):
     print(i, len(pids))
     workflow.destripe_ap(pid, one)
 
 
-pids = flow.index[~flow['destripe_lf'].apply(lambda x: x.startswith(f".destripe_lf-{workflow.TASKS['destripe_lf']['version']}"))]
-len(pids)
+pids = report.flow.get_pids_ready('destripe_lf', include_errors=True)
 for i, pid in enumerate(pids):
     print(i, len(pids))
     workflow.destripe_lf(pid, one)

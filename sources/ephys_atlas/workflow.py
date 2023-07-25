@@ -35,7 +35,7 @@ from iblutil.util import setup_logger
 from brainbox.io.one import SpikeSortingLoader
 
 import ephys_atlas.rawephys
-from ephys_atlas.data import atlas_pids
+from ephys_atlas.data import atlas_pids, compute_channels_micromanipulator_coordinates
 
 
 ROOT_PATH = Path("/mnt/s0/ephys-atlas")
@@ -117,7 +117,7 @@ class Flow():
         """ Prints a command line report of current status of tasks"""
         flow = self._obj
         npids = flow.shape[0]
-        print("complete=  error:e   unmet deps:u   old version:0  new- \n")
+        print("complete=  error:*   unmet deps:/   old version:0  new-")
         for task_name, task in TASKS.items():
             nnew = sum(flow[task_name] == '')
             nold = sum(flow[task_name].apply(lambda x: x.endswith('complete') & ((x+'-').split('-')[1] != task['version'])))
@@ -126,17 +126,20 @@ class Flow():
             nnr = sum(flow[task_name] == f".{task_name}-{task['version']}-unmet_dependencies")
             print(f"{ncomplete:4d}= {nerr:4d}* {nnr:4d}/ {nold:4d}+ {nnew:4d}-", task_name)
             print('=' * int(ncomplete / npids * 100) +
-                  'e' * int(nerr / npids * 100) +
-                  'u' * int(nnr / npids * 100) +
-                  'o' * int(nold / npids * 100) +
+                  '*' * int(nerr / npids * 100) +
+                  '/' * int(nnr / npids * 100) +
+                  '+' * int(nold / npids * 100) +
                   '-' * int(nnew / npids * 100))
 
     def get_pids_ready(self, task_name=None, include_errors=False):
         """ For a given task name, returns pids ready to run"""
         assert task_name
         flow = self._obj
-        # todo add options for versions / errors, here we get only the new tasks
-        pids = flow.index[~flow[task_name].apply(lambda x: x.startswith(f".{task_name}-{TASKS[task_name]['version']}"))]
+        # rejects tasks that ran with the same version
+        include = ~flow[task_name].apply(lambda x: x.startswith(f".{task_name}-{TASKS[task_name]['version']}"))
+        if include_errors:
+            include = np.logical_or(flow[task_name].apply(lambda x: x.endswith("error")), include)
+        pids = flow.index[include]
         return pids
 
 
@@ -277,6 +280,13 @@ def compute_sorted_features(pid, one, root_path=None):
     spikes, clusters, channels = ssl.load_spike_sorting(dataset_types=['spikes.samples'])
     if spikes == clusters == channels == {}:
         raise ValueError('No spike sorting found for this session')
+    # here the channels object comes in two flavours: raw channels ('localCoordinates', 'rawInd')
+    # and processed channels ('x', 'y', 'z', 'acronym', 'atlas_id', 'axial_um', 'lateral_um')
+
+    from ephys_atlas import data
+    if 'localCoordinates' in channels:
+        channels = dict(axial_um=channels['localCoordinates'][:, 1], lateral_um=channels['localCoordinates'][:, 0])
+
     clusters = ssl.merge_clusters(spikes, clusters, channels)
     root_path.joinpath(pid).mkdir(exist_ok=True, parents=True)
     # the concat syntax sets a higher level index on the dataframe as pid
