@@ -38,7 +38,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import train_test_split
 
-from ephys_atlas.interactives import plot_probas
+from ephys_atlas.plots import plot_probas
 from brainbox.ephys_plots import plot_brain_regions
 from ephys_atlas.data import download_tables, compute_depth_dataframe, load_tables
 from ibllib.atlas import BrainRegions
