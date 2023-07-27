@@ -28,7 +28,7 @@ import scipy.interpolate
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 
-from ephys_atlas.interactives import plot_probas
+from ephys_atlas.plots import plot_probas
 from brainbox.ephys_plots import plot_brain_regions
 from ibllib.atlas import BrainRegions
 
