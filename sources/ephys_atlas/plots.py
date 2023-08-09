@@ -7,7 +7,7 @@ import numpy as np
 from ibllib.atlas import BrainRegions
 
 
-def region_bars(atlas_id, feature, label, regions=None):
+def region_bars(atlas_id, feature, label='', regions=None, scale='linear'):
     """
     Display one feature for all Beryl regions on histograms with the
     Allen atlas colours ala brainwide map
@@ -30,7 +30,7 @@ def region_bars(atlas_id, feature, label, regions=None):
     rids = rids[ordre]
 
     fig, ax = plt.subplots(ncols=ncols, figsize=(ncols * 4 / 3, ncols * 7 / 3))
-
+    xlims = [np.nanmin(_feature), np.nanmax(_feature)]
 
     for k, k0 in zip(range(3), reversed(range(3))):
         cind = slice(k0 * nfeats // ncols, (k0 + 1) * nfeats // ncols)
@@ -40,9 +40,8 @@ def region_bars(atlas_id, feature, label, regions=None):
 
         ax[k].barh(np.arange(nbars), _feature[cind], fill=False, edgecolor=_colours, height=barwidth)
         ax[k].barh(np.arange(nbars), _feature[cind], color=_colours, height=barwidth)
-        ax[k].set_xscale("log")
+        ax[k].set(xscale=scale, yticks=np.arange(nbars), xlim=xlims)
         ax[k].tick_params(axis='y', pad=19, left=False)
-        ax[k].set_yticks(np.arange(nbars))
         ax[k].set_yticklabels(_acronyms, fontsize=fs, ha='left')
 
         # # indicate 10% with black line
@@ -73,6 +72,7 @@ def region_bars(atlas_id, feature, label, regions=None):
         plt.setp(ax[k].get_xminorticklabels(), visible=False)
 
     fig.tight_layout()
+    return fig, ax
 
 
 def plot_probas(probas, regions=None, ax=None, legend=False):
