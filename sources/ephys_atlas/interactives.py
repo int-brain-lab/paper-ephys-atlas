@@ -21,6 +21,12 @@ from neurodsp.voltage import kfilt
 class AtlasDataModel(object):
 
     def __init__(self, ROOT_PATH, one, pid, t0=1500):
+        """
+        :param ROOT_PATH:
+        :param one:
+        :param pid:
+        :param t0:
+        """
         self.ROOT_PATH = ROOT_PATH
         self.one = one
         self.pid = pid
@@ -28,14 +34,14 @@ class AtlasDataModel(object):
         self.path_pid = self.ROOT_PATH.joinpath(self.pid)
         self.path_qc = self.path_pid.joinpath('pics')
         self.T0 = t0
-        path_t0 = next(self.path_pid.glob(f'T0{self.T0}*'))
+        path_t0 = next(self.path_pid.glob(f'T{str(self.T0).zfill(5)}*'))
 
         self.path_qc.mkdir(exist_ok=True)
         if path_t0.joinpath('destriped.npy').exists():
             self.ap = np.load(path_t0.joinpath('destriped.npy')).astype(np.float32)
         else:
             self.ap = np.load(path_t0.joinpath('ap.npy'))
-        self.raw = np.load(path_t0.joinpath('raw.npy')).astype(np.float32)
+        self.ap_raw = np.load(path_t0.joinpath('ap_raw.npy')).astype(np.float32)
         self.zscore = rms(self.ap)
         with open(path_t0.joinpath('ap.yml'), 'r') as f:
             ap_info = yaml.safe_load(f)

@@ -11,7 +11,7 @@ import ephys_atlas.workflow as workflow
 
 AGGREGATE_PATH = Path("/mnt/s1/aggregates/atlas")
 ROOT_PATH = Path("/mnt/s0/ephys-atlas")
-print(f'aws s3 sync "{ROOT_PATH}" s3://ibl-brain-wide-map-private/aggregates/atlas')
+print(f'aws s3 sync "{AGGREGATE_PATH}" s3://ibl-brain-wide-map-private/aggregates/atlas')
 
 year_week = date.today().isocalendar()[:2]
 OUT_PATH = Path(AGGREGATE_PATH).joinpath(f'{year_week[0]}_W{year_week[1]:02}')
@@ -38,10 +38,11 @@ raw_features = dd.read_parquet(files_raw_features).compute()
 
 
 #%% Prepare the insertions
-channels, df_probes = data.compute_channels_micromanipulator_coordinates(channels)
+channels, df_probes = data.compute_channels_micromanipulator_coordinates(channels, one=one)
 
 
 #%%
+print(f"writing to {OUT_PATH}")
 channels.to_parquet(OUT_PATH.joinpath('channels.pqt'))
 clusters.to_parquet(OUT_PATH.joinpath('clusters.pqt'))
 raw_features.to_parquet(OUT_PATH.joinpath('raw_ephys_features.pqt'))
