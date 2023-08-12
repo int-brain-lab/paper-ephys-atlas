@@ -4,12 +4,12 @@ from one.api import ONE
 from one.remote import aws
 import ephys_atlas.data
 # http://benchmarks.internationalbrainlab.org.s3-website-us-east-1.amazonaws.com/#/0/4
-
+# aws s3 sync  /mnt/s0/ephys-atlas-sample s3://ibl-brain-wide-map-private/resources/ephys-atlas-sample
 
 config = ephys_atlas.data.get_config()
 LOCAL_DATA_PATH = Path(config['paths']['raw-samples'])
 
-one = ONE(base_url='https://alyx.internationalbrainlab.org')
+one = ONE(base_url='https://alyx.internationalbrainlab.org', mode='remote')
 s3, bucket_name = aws.get_s3_from_alyx(alyx=one.alyx)
 
 
