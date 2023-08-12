@@ -28,7 +28,7 @@ class TestWaveformsCoordinates(unittest.TestCase):
         file_waveforms = sample_folder.joinpath('waveforms.npy')
         df_spikes = pd.read_parquet(file_spikes)
         waveforms = np.load(file_waveforms)
-        wxy = ephys_atlas.data.get_waveforms_coordinates(df_spikes['trace'])
+        wxy = ephys_atlas.data.get_waveforms_coordinates(df_spikes['trace'], return_complex=True)
 
         # test a random waveform
         iw = 182
