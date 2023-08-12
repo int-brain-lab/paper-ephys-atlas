@@ -66,7 +66,7 @@ def _get_channel_distances_indices(xy, extract_radius_um=EXTRACT_RADIUS_UM):
     return channel_dist
 
 
-def atlas_pids(one, tracing=True):
+def atlas_pids(one, tracing=False):
     django_strg = [
         'session__project__name__icontains,ibl_neuropixel_brainwide_01',
         'session__qc__lt,50',
@@ -92,12 +92,12 @@ def load_tables(local_path, verify=True):
     return df_voltage, df_clusters, df_channels, df_probes
 
 
-def download_tables(local_path, label='2022_W34', one=None, verify=True):
+def download_tables(local_path, label='latest', one=None, verify=True):
     # The AWS private credentials are stored in Alyx, so that only one authentication is required
     local_path = Path(local_path).joinpath(label)
     s3, bucket_name = aws.get_s3_from_alyx(alyx=one.alyx)
     local_files = aws.s3_download_folder(f"aggregates/atlas/{label}", local_path, s3=s3, bucket_name=bucket_name)
-    print(local_files)
+    assert len(local_files), f"aggregates/atlas/{label} not found on AWS"
     return load_tables(local_path=local_path, verify=verify)
 
 
@@ -221,6 +221,14 @@ def compute_channels_micromanipulator_coordinates(df_channels, one=None):
         df_channels.loc[pid, 'y_target'] = xyz_mm[:, 1]
         df_channels.loc[pid, 'z_target'] = xyz_mm[:, 2]
         df_channels.loc[pid, 'atlas_id_target'] = aid_mm
+        if df_channels.loc[pid, 'x'].isna().all():
+            df_channels.loc[pid, 'histology'] = 'planned'
+            df_channels.loc[pid, 'z'] = df_channels.loc[pid]['z_target'].values
+            df_channels.loc[pid, 'y'] = df_channels.loc[pid]['y_target'].values
+            df_channels.loc[pid, 'x'] = df_channels.loc[pid]['x_target'].values
+            df_channels.loc[pid, 'atlas_id'] = df_channels.loc[pid]['atlas_id_target'].values
+            df_channels.loc[pid, 'acronym'] = needles.regions.id2acronym(df_channels.loc[pid]['atlas_id_target'])
+
     return df_channels, df_probes
 
 

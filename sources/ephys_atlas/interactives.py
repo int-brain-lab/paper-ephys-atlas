@@ -1,20 +1,16 @@
-from pathlib import Path
-from typing import Union
 import yaml
 
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 from neurodsp.waveforms import plot_peaktiptrough, compute_spike_features
 
 
 from ibllib.atlas import BrainRegions
-from iblutil.numerical import ismember
 from brainbox.io.one import SpikeSortingLoader
 from ibllib.plots import wiggle
 from neurodsp.utils import rms
-from viewephys.gui import viewephys, EphysViewer
+from viewephys.gui import viewephys
 from neurodsp.voltage import kfilt
 
 
@@ -149,37 +145,3 @@ class AtlasDataModel(object):
             return self.ap[cind, sind], hwav
 
 
-def plot_probas(probas, regions=None, ax=None, legend=False):
-    """
-    Cumulative probability display of regions predictions
-    :param probas:
-    :param regions:
-    :param ax:
-    :param legend:
-    :return:
-    """
-    if regions is None:
-        regions = BrainRegions()
-    if ax is None:
-        fig, ax = plt.subplots()
-
-    # need to sort the probability columns as per the Allen order
-    _, regions_indices = ismember(probas.columns.values, regions.id)
-    probas = probas.loc[:, probas.columns[np.argsort(regions.order[regions_indices])]]
-
-    # cumsum
-    data = probas.values.cumsum(axis=-1)
-
-    for i in np.arange(probas.shape[1]):
-        ir = regions.id2index(probas.columns[i])[1][0][0]
-        ax.fill_betweenx(
-            probas.index.values.astype(np.int16),
-            data[:, i], label=regions.acronym[ir],
-            zorder=-i,
-            color=regions.rgb[ir] / 255)
-    ax.margins(y=0)
-    ax.set_xlim(0, None)
-    ax.set_axisbelow(False)
-    if legend:
-        ax.legend()
-    return ax
