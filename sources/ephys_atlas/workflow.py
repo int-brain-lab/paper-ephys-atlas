@@ -298,7 +298,7 @@ def compute_sorted_features(pid, one, root_path=None):
 
 
 @task(**TASKS['localise'])
-def localise(pid):
+def localise(pid, clobber=False):
     """
     :param pid:
     :param root_path:
@@ -307,7 +307,7 @@ def localise(pid):
         TXXXX/waveforms.npy
     """
     destination = ROOT_PATH.joinpath(pid)
-    ephys_atlas.rawephys.localisation(destination, clobber=False)
+    ephys_atlas.rawephys.localisation(destination, clobber=clobber)
 
 
 @task(**TASKS['compute_raw_features'])
