@@ -26,8 +26,8 @@ regions = BrainRegions()
 config = ephys_atlas.data.get_config()
 # this path contains channels.pqt, clusters.pqt and raw_ephys_features.pqt
 path_features = Path(config['paths']['features']).joinpath('latest')
-
-df_voltage, df_clusters, df_channels = ephys_atlas.data.load_tables(path_features)
+# ephys_atlas.data.download_tables() can be used if features are not on disk
+df_voltage, df_clusters, df_channels, df_probes = ephys_atlas.data.load_tables(path_features)
 df_voltage = pd.merge(df_voltage, df_channels, left_index=True, right_index=True).dropna()
 
 aids_cosmos = regions.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Cosmos')
@@ -41,13 +41,6 @@ scaler = StandardScaler()
 scaler.fit(X)
 stratify = df_voltage.index.get_level_values('pid')
 kwargs = {'n_estimators': 30, 'max_depth': 25, 'max_leaf_nodes': 10000, 'random_state': 420}
-
-# auto-encoder or contrastive learning
-# take your learned features and model spikes
-# phase / frequency / amplitude
-accuracy_score(df_voltage['atlas_id'], df_voltage['atlas_id_planned'])  # 0.12
-accuracy_score(df_voltage['beryl_id'], regions.remap(df_voltage['atlas_id_planned'], source_map='Allen', target_map='Beryl'))  # 0.19 - 0.91
-accuracy_score(df_voltage['cosmos_id'], regions.remap(df_voltage['atlas_id_planned'], source_map='Allen', target_map='Cosmos'))  # 0.44 - 0.95
 
 
 # It would also be informative to check that the target location error increases as a function of depth.  Can just scatterplot error vs depth (instead of histogram()
@@ -89,3 +82,10 @@ fig.tight_layout()
 
 
 ##
+# auto-encoder or contrastive learning
+# take your learned features and model spikes
+# phase / frequency / amplitude
+accuracy_score(df_voltage['atlas_id'], df_voltage['atlas_id_planned'])  # 0.12
+accuracy_score(df_voltage['beryl_id'], regions.remap(df_voltage['atlas_id_planned'], source_map='Allen', target_map='Beryl'))  # 0.19 - 0.91
+accuracy_score(df_voltage['cosmos_id'], regions.remap(df_voltage['atlas_id_planned'], source_map='Allen', target_map='Cosmos'))  # 0.44 - 0.95
+
