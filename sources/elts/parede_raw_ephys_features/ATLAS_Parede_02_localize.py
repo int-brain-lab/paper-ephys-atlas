@@ -18,6 +18,7 @@ pids, alyx_pids = atlas_pids(one)
 
 # re-runs all old and error tasks
 report = workflow.report(one=one)
+report.flow.print_report()
 
 pids = report.flow.get_pids_ready('localise', include_errors=True)
 for i, pid in enumerate(pids):

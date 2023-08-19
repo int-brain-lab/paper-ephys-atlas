@@ -14,6 +14,7 @@ from brainbox.io.spikeglx import Streamer
 from iblutil.util import setup_logger
 from neurodsp.utils import WindowGenerator
 from neurodsp.waveforms import compute_spike_features
+from neurodsp.voltage import current_source_density
 
 _logger = setup_logger('ephys_atlas', level='INFO')
 
@@ -183,15 +184,16 @@ def get_power_in_band(fscale, period, band):
     return p
 
 
-def compute_lf_features(pid, root_path=None, bands=None):
+def compute_lf_features(pid, root_path=None, bands=None, csd=False):
     """
     Reads in the destriped LF and computes the LF features
     :param pid, root_path:
+    :param csd: False: if set to True, computes current source density from the RMS trace
     :return: Dataframe with the LF features:
         -   rms_lf (V): RMS of the LF band
         -   psd_delta (dB rel V ** 2 / Hz): Power in the delta band (also theta, alpha, beta, gamma)
     """
-    BANDS = {'delta': [0, 4], 'theta': [4, 10], 'alpha': [8, 12], 'beta': [15, 30], 'gamma': [30, 90]}
+    BANDS = {'delta': [0, 4], 'theta': [4, 10], 'alpha': [8, 12], 'beta': [15, 30], 'gamma': [30, 90], 'lfp': [0, 90]}
     bands = bands or BANDS
     pfolder = root_path.joinpath(pid)
     files_lfp = list(pfolder.rglob('lf.npy'))
