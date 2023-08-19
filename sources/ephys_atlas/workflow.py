@@ -56,7 +56,7 @@ TASKS = OrderedDict({
         'version': '1.1.0',
     },
     'compute_raw_features': {
-        'version': '1.0.3',
+        'version': '1.1.0',
         'depends_on': ['destripe_lf', 'localise'],
     }
 })
@@ -212,7 +212,8 @@ def task(version=None, depends_on=None, path_task=None, force_run=False, **kwarg
                                             f'ran with a deprecated version {parent_version} < minimum required: {required_parent_version}')
                                 unmet_dependencies = True
                     if unmet_dependencies:
-                        unmet_deps_file.touch()
+                        if unmet_deps_file.parent.exists():
+                            unmet_deps_file.touch()
                         return False
                 return True
 
