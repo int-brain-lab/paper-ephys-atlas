@@ -8,6 +8,7 @@ one = ONE(base_url="https://alyx.internationalbrainlab.org")
 pids, alyx_pids = atlas_pids(one)
 
 report = workflow.report(one=one)
+report.flow.print_report()
 
 pids = report.flow.get_pids_ready('compute_sorted_features', include_errors=True)
 for i, pid in enumerate(pids):
