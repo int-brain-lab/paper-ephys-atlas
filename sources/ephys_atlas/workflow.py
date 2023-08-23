@@ -56,7 +56,7 @@ TASKS = OrderedDict({
         'version': '1.1.0',
     },
     'compute_raw_features': {
-        'version': '1.1.0',
+        'version': '1.3.0',
         'depends_on': ['destripe_lf', 'localise'],
     }
 })
@@ -320,30 +320,34 @@ def compute_raw_features(pid, root_path=None):
         raw_ephys_features.pqt
     """
     root_path = root_path or ROOT_PATH
-    ap_features = ephys_atlas.rawephys.compute_ap_features(pid, root_path=root_path)
-    lf_features = ephys_atlas.rawephys.compute_lf_features(pid, root_path=root_path)
+    ap_features, fs = ephys_atlas.rawephys.compute_ap_features(pid, root_path=root_path)
+    lf_features = ephys_atlas.rawephys.compute_lf_features(pid, root_path=root_path, current_source=False)
+    cs_features = ephys_atlas.rawephys.compute_lf_features(pid, root_path=root_path, current_source=True)
     spikes_features = ephys_atlas.rawephys.compute_spikes_features(pid, root_path=root_path)
     # need to rename and cast this column to have a consistent merge with ap and lf features later
     spikes_features['channel'] = spikes_features['trace'].astype(np.int16)
+
+    fcn_mean_time = lambda x: np.mean((x - ephys_atlas.rawephys.TROUGH_OFFSET)) / fs
 
     channels_features = spikes_features.groupby('channel').agg(
         alpha_mean=pd.NamedAgg(column="alpha", aggfunc="mean"),
         alpha_std=pd.NamedAgg(column="alpha", aggfunc="std"),
         spike_count=pd.NamedAgg(column="alpha", aggfunc="count"),
-        cloud_x_std=pd.NamedAgg(column="x", aggfunc="std"),
-        cloud_y_std=pd.NamedAgg(column="y", aggfunc="std"),
-        cloud_z_std=pd.NamedAgg(column="z", aggfunc="std"),
-        peak_trace_idx=pd.NamedAgg(column="peak_trace_idx", aggfunc="mean"),
-        peak_time_idx=pd.NamedAgg(column="peak_time_idx", aggfunc="mean"),
+        peak_time_secs=pd.NamedAgg(column="peak_time_idx", aggfunc=fcn_mean_time),
         peak_val=pd.NamedAgg(column="peak_val", aggfunc="mean"),
-        trough_time_idx=pd.NamedAgg(column="trough_time_idx", aggfunc="mean"),
+        trough_time_secs=pd.NamedAgg(column="trough_time_idx", aggfunc=fcn_mean_time),
         trough_val=pd.NamedAgg(column="trough_val", aggfunc="mean"),
-        tip_time_idx=pd.NamedAgg(column="tip_time_idx", aggfunc="mean"),
+        tip_time_secs=pd.NamedAgg(column="tip_time_idx", aggfunc=fcn_mean_time),
         tip_val=pd.NamedAgg(column="tip_val", aggfunc="mean"),
+        recovery_time_secs=pd.NamedAgg(column="recovery_time_idx", aggfunc=fcn_mean_time),
+        depolarisation_slope=pd.NamedAgg(column="depolarisation_slope", aggfunc="mean"),
+        repolarisation_slope=pd.NamedAgg(column="repolarisation_slope", aggfunc="mean"),
+        recovery_slope=pd.NamedAgg(column="recovery_slope", aggfunc="mean"),
+        polarity=pd.NamedAgg(column='invert_sign_peak', aggfunc=lambda x: -x.mean()),
     )
-
     channels_features = pd.merge(channels_features, ap_features, left_index=True, right_index=True)
     channels_features = pd.merge(channels_features, lf_features, left_index=True, right_index=True)
+    channels_features = pd.merge(channels_features, cs_features, left_index=True, right_index=True, suffixes=('', '_csd'))
     # add the pid as the main index to prepare for concatenation
     channels_features = pd.concat({pid: channels_features}, names=['pid'])
     channels_features.to_parquet(root_path.joinpath(pid, 'raw_ephys_features.pqt'))
