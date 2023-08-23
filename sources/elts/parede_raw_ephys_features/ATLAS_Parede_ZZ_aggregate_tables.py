@@ -14,7 +14,7 @@ import ephys_atlas.workflow as workflow
 _logger = setup_logger(level='INFO')
 AGGREGATE_PATH = Path("/mnt/s1/aggregates/atlas")
 ROOT_PATH = Path("/mnt/s0/ephys-atlas")
-print(f'aws s3 sync "{AGGREGATE_PATH}" s3://ibl-brain-wide-map-private/aggregates/atlas')
+print(f'aws --profile ibl s3 sync "{AGGREGATE_PATH}" s3://ibl-brain-wide-map-private/aggregates/atlas')
 
 year_week = date.today().isocalendar()[:2]
 OUT_PATH = Path(AGGREGATE_PATH).joinpath(f'{year_week[0]}_W{year_week[1]:02}')
@@ -45,15 +45,9 @@ _logger.info('Aggregating ephys features tables')
 files_raw_features = [p for p in ROOT_PATH.rglob('raw_ephys_features.pqt') if p.parts[-2] in pids]
 raw_features = dd.read_parquet(files_raw_features).compute()
 
-#%% We will compute the micromanipulator coordinates
 _logger.info('Get micromanipulator coordinates')
 channels, df_probes = data.compute_channels_micromanipulator_coordinates(channels, one=one)
 
-#%% Prepare the insertions
-channels, df_probes = data.compute_channels_micromanipulator_coordinates(channels)
-
-
-#%%
 print(f"writing to {OUT_PATH}")
 channels.to_parquet(OUT_PATH.joinpath('channels.pqt'))
 clusters.to_parquet(OUT_PATH.joinpath('clusters.pqt'))

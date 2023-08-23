@@ -15,12 +15,15 @@ from iblutil.util import setup_logger
 from neurodsp.utils import WindowGenerator
 from neurodsp.waveforms import compute_spike_features
 from neurodsp.voltage import current_source_density
+from neurodsp.cadzow import cadzow_np1
+from neuropixel import trace_header
 
 _logger = setup_logger('ephys_atlas', level='INFO')
 
 AP_RAW_TIMES = [0.5, 0.55]
 LFP_RESAMPLE_FACTOR = 10  # 200 Hz data
 VERSION = '1.3.0'
+TROUGH_OFFSET = 42
 
 
 def destripe(pid, one=None, typ='ap', prefix="", destination=None, remove_cached=True, clobber=False):
@@ -105,7 +108,7 @@ def localisation(destination=None, clobber=False):
         tpca=None,
         device=None,
         probe="np1",
-        trough_offset=42,
+        trough_offset=TROUGH_OFFSET,
         spike_length_samples=121,
         loc_workers=1
     )
@@ -173,7 +176,7 @@ def compute_ap_features(pid, root_path=None):
     ap_features = df_chunks.groupby('channel').agg(
         rms_ap=pd.NamedAgg(column="rms_ap", aggfunc="mean"),
     )
-    return ap_features
+    return ap_features, ap_info['fs']
 
 
 def get_power_in_band(fscale, period, band):
@@ -184,7 +187,7 @@ def get_power_in_band(fscale, period, band):
     return p
 
 
-def compute_lf_features(pid, root_path=None, bands=None, csd=False):
+def compute_lf_features(pid, root_path=None, bands=None, current_source=False):
     """
     Reads in the destriped LF and computes the LF features
     :param pid, root_path:
@@ -205,6 +208,10 @@ def compute_lf_features(pid, root_path=None, bands=None, csd=False):
             lf_info = yaml.safe_load(fp)
         # loads the LFP and compute spectra for each channel
         data = np.load(file_lfp).astype(np.float32)
+        if current_source:
+            h = trace_header(version=1)
+            cadzow = cadzow_np1(data, rank=2, fs=250, niter=1)
+            data = current_source_density(cadzow, h=h)
         fscale, period = scipy.signal.periodogram(data, lf_info['fs'])
         df_chunk = pd.DataFrame()
         df_chunk['channel'] = np.arange(lf_info['nc'])
