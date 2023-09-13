@@ -9,8 +9,8 @@ import neuropixel
 from one.remote import aws
 from iblutil.numerical import ismember
 
-from ibllib.atlas import Insertion
-from ibllib.atlas import NeedlesAtlas, AllenAtlas
+from iblatlas.atlas import Insertion
+from iblatlas.atlas import NeedlesAtlas, AllenAtlas
 from ibllib.pipes.histology import interpolate_along_track
 
 

@@ -4,7 +4,7 @@ a given coordinate and aggregate each brain region by proportion. This is done
 by specifying a "radius_um" parameter in the Atlas lookup function.
 """
 import numpy as np
-from ibllib.atlas import AllenAtlas
+from iblatlas.atlas import AllenAtlas
 
 ba = AllenAtlas()
 xyz = np.array([0, -.0024, -.0038])

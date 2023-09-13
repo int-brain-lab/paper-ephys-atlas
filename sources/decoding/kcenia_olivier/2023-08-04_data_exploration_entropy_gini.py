@@ -6,7 +6,7 @@ import numpy as np
 
 import ephys_atlas.data
 import ephys_atlas.plots
-from ibllib.atlas import BrainRegions
+from iblatlas.regions import BrainRegions
 
 DEFAULT_NQ = 25
 br = BrainRegions()

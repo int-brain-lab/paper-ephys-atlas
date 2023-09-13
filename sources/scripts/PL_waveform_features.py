@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from neurodsp.utils import rms
 import neuropixel
 from ibllib.plots import wiggle
-from ibllib.atlas import AllenAtlas
+from iblatlas.atlas import AllenAtlas
 from viewephys.gui import viewephys
 
 #from os.path import join

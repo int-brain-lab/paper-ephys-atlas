@@ -2,7 +2,7 @@ import abc
 import pandas as pd
 import numpy as np
 
-from ibllib.atlas import AllenAtlas
+from iblatlas.atlas import AllenAtlas
 from iblutil.numerical import ismember
 
 _SEED = 462

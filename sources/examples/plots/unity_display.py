@@ -307,7 +307,7 @@ import pandas as pd
 from pathlib import Path
 from one.remote import aws
 from one.api import ONE
-from ibllib.atlas import BrainRegions
+from iblatlas.regions import BrainRegions
 regions = BrainRegions()
 LOCAL_DATA_PATH = Path("/mnt/s0/aggregates/bwm")
 
