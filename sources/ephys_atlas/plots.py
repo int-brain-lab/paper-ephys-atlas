@@ -7,7 +7,7 @@ import numpy as np
 from ibllib.atlas import BrainRegions
 
 
-def region_bars(atlas_id, feature, label='', regions=None, scale='linear'):
+def region_bars(atlas_id, feature, label='', regions=None, scale='linear', xlims=None):
     """
     Display one feature for all Beryl regions on histograms with the
     Allen atlas colours ala brainwide map
@@ -30,7 +30,7 @@ def region_bars(atlas_id, feature, label='', regions=None, scale='linear'):
     rids = rids[ordre]
 
     fig, ax = plt.subplots(ncols=ncols, figsize=(ncols * 4 / 3, ncols * 7 / 3))
-    xlims = [np.nanmin(_feature), np.nanmax(_feature)]
+    xlims = xlims or [np.nanmin(_feature), np.nanmax(_feature)]
 
     for k, k0 in zip(range(3), reversed(range(3))):
         cind = slice(k0 * nfeats // ncols, (k0 + 1) * nfeats // ncols)

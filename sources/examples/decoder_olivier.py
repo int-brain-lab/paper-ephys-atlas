@@ -26,22 +26,21 @@ import seaborn as sns
 
 import scipy.interpolate
 from sklearn.preprocessing import StandardScaler
+import sklearn.metrics
 from sklearn.ensemble import RandomForestClassifier
 
 from ephys_atlas.plots import plot_probas
 from brainbox.ephys_plots import plot_brain_regions
 from ibllib.atlas import BrainRegions
-
+import ephys_atlas.data
 regions = BrainRegions()
 BENCHMARK = True
-SCALE = True
+SCALE = False
 
-year_week = '2022_W34'
-year_week = '2023_W13'
+label = '2023_W34'
 
 LOCAL_DATA_PATH = Path("/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding")
-DECODING_PATH = Path("/mnt/s1/ephys-atlas-decoding")
-LOCAL_DATA_PATH = Path("/mnt/s1/ephys-atlas-decoding")
+# LOCAL_DATA_PATH = Path("/mnt/s1/ephys-atlas-decoding")
 
 
 benchmark_pids = ['1a276285-8b0e-4cc9-9f0a-a3a002978724',
@@ -58,53 +57,93 @@ benchmark_pids = ['1a276285-8b0e-4cc9-9f0a-a3a002978724',
                   'eebcaf65-7fa4-4118-869d-a084e84530e2',
                   'fe380793-8035-414e-b000-09bfe5ece92a']
 
-
-df_channels = pd.read_parquet(LOCAL_DATA_PATH.joinpath(year_week, 'channels.pqt'))
-df_channels.index.rename('channel', level=1, inplace=True)
-df_raw_features = pd.read_parquet(LOCAL_DATA_PATH.joinpath(year_week, 'raw_ephys_features.pqt'))
-
-pd.set_option('use_inf_as_na',True)
-df_raw_features = pd.merge(df_raw_features, df_channels, left_index=True, right_index=True).dropna()
-# remapping the lowest level of channel location to higher levels mappings
-df_raw_features['cosmos_id'] = regions.remap(df_raw_features['atlas_id'], source_map='Allen', target_map='Cosmos')
-df_raw_features['beryl_id'] = regions.remap(df_raw_features['atlas_id'], source_map='Allen', target_map='Beryl')
+df_voltage, df_clusters, df_channels, df_probes = ephys_atlas.data.load_tables(LOCAL_DATA_PATH.joinpath(label), verify=True)
+df_voltage.replace([np.inf, -np.inf], np.nan, inplace=True)
 
 
+df_voltage = pd.merge(df_voltage, df_channels, left_index=True, right_index=True).dropna()
+# df_voltage = df_voltage.loc[df_voltage['histology'].isin(['alf', 'resolved']), :]
+df_voltage['cosmos_id'] = regions.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Cosmos')
+df_voltage['beryl_id'] = regions.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Beryl')
+
+df_voltage = df_voltage.loc[~df_voltage['atlas_id'].isin(regions.acronym2id(['void']))]
+# for feat in ['rms_ap', 'rms_lf']:
+#     df_voltage[feat] = 20 * np.log10(df_voltage[feat])
+print(f"{df_voltage.shape[0]} channels")
 # selection and scaling of features
-x_list = ['rms_ap', 'alpha_mean', 'alpha_std', 'spike_count', 'cloud_x_std', 'cloud_y_std', 'cloud_z_std', 'rms_lf', 'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma']
-x_list += ['peak_time_idx', 'peak_val', 'trough_time_idx', 'trough_val', 'tip_time_idx', 'tip_val']
+# old versions
+# x_list = ['rms_ap', 'alpha_mean', 'alpha_std', 'spike_count', 'cloud_x_std', 'cloud_y_std', 'cloud_z_std', 'rms_lf', 'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma']
+# x_list += ['peak_time_idx', 'peak_val', 'trough_time_idx', 'trough_val', 'tip_time_idx', 'tip_val']
+
+x_list = ['rms_ap', 'alpha_mean', 'alpha_std', 'spike_count', 'rms_lf', 'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma']
+x_list += ['peak_time_secs', 'peak_val', 'trough_time_secs', 'trough_val', 'tip_time_secs', 'tip_val']
+x_list += ['polarity', 'depolarisation_slope', 'repolarisation_slope', 'recovery_time_secs', 'recovery_slope']
+x_list += ['psd_lfp_csd']
 # Training the model
 # kwargs = {'n_estimators': 30, 'max_depth': 25, 'max_leaf_nodes': 10000, 'random_state': 420}
-kwargs = {}
+kwargs = {'n_estimators': 30, 'max_depth': 25, 'max_leaf_nodes': 10000, 'random_state': 420, 'n_jobs': -1, 'criterion': 'entropy'}
 
-## %%
 if BENCHMARK:
-    test_idx = df_raw_features.index.get_level_values(0).isin(benchmark_pids)
+    test_idx = df_voltage.index.get_level_values(0).isin(benchmark_pids)
     train_idx = ~test_idx
-else:
-    pass
-    # shuffled_pids = np.random.permutation(list(df_raw_features.index.get_level_values(0).unique()))
-    # tlast = int(np.round(shuffled_pids.size / 4))
-    # test_pids = shuffled_pids[:tlast]
-    # train_pids = shuffled_pids[tlast:]
 
-x_train = df_raw_features.loc[train_idx, x_list].values
-x_test = df_raw_features.loc[test_idx, x_list].values
+x_train = df_voltage.loc[train_idx, x_list].values
+x_test = df_voltage.loc[test_idx, x_list].values
 
 if SCALE:
     scaler = StandardScaler()
-    scaler.fit(x_test)
+    scaler.fit(x_train)
     x_test = scaler.transform(x_test)
     x_train = scaler.transform(x_train)
 
 
-for mapping in ['beryl_id', 'cosmos_id', 'atlas_id']:
-    y_test = df_raw_features.loc[test_idx, mapping]
-    y_train = df_raw_features.loc[train_idx, mapping]
+for mapping in ['cosmos_id', 'beryl_id', 'atlas_id']:
+    y_test = df_voltage.loc[test_idx, mapping]
+    y_train = df_voltage.loc[train_idx, mapping]
     classifier = RandomForestClassifier(verbose=True, **kwargs)
     clf = classifier.fit(x_train, y_train)
-    y_null = np.random.choice(df_raw_features.loc[train_idx, mapping], y_test.size)
+    y_null = np.random.choice(df_voltage.loc[train_idx, mapping], y_test.size)
     print(mapping, clf.score(x_test, y_test), clf.score(x_test, y_null))
+
+    # feature_imp[i, :] = clf.feature_importances_
+    break
+    if mapping == 'atlas_id':
+        predict_regions_proba = pd.DataFrame(clf.predict_proba(x_test).T)
+        predict_regions_proba['beryl_aids'] = regions.remap(clf.classes_, source_map='Allen', target_map='Beryl')
+        predict_regions_proba['cosmos_aids'] = regions.remap(clf.classes_, source_map='Allen', target_map='Cosmos')
+        probas_beryl = predict_regions_proba.groupby('beryl_aids').sum().drop(columns='cosmos_aids').T
+        probas_cosmos = predict_regions_proba.groupby('cosmos_aids').sum().drop(columns='beryl_aids').T
+        sb = sklearn.metrics.accuracy_score(regions.remap(y_test, source_map='Allen', target_map='Beryl'), probas_beryl.columns[np.argmax(probas_beryl.values, axis=1)].values)
+        sc = sklearn.metrics.accuracy_score(regions.remap(y_test, source_map='Allen', target_map='Cosmos'), probas_cosmos.columns[np.argmax(probas_cosmos.values, axis=1)].values)
+        print(f"remapped scores: beryl {sb}, cosmos {sc}")
+
+
+import seaborn as sns
+sns.set_context('paper')
+f, ax = plt.subplots(1, 1)
+ax.bar(x_list, clf.feature_importances_)
+ax.set(ylabel='Feature importance')
+ax.set_xticklabels(x_list, rotation=90)
+# f.tight_layout()
+
+# removed both void and root 2023_W33
+# beryl_id 0.25095227425498545 0.03136903428187318
+# cosmos_id 0.6287250728209725 0.1382478153708268
+
+# removed only void 2023_W33
+# beryl_id 0.25829432118868306 0.09200081416649705
+# cosmos_id 0.5583146753511093 0.11764705882352941
+
+# removed only void 2023_W34 same features
+# beryl_id 0.2589049460614696 0.0789741502137187
+# cosmos_id 0.5713413393038876 0.1245674740484429
+
+# removed only void 2023_W34 add new spike features
+# beryl_id 0.2597191125585182 0.0964787299002646
+
+# cosmos_id 0.5570934256055363 0.11683289232648077
+# atlas_id 0.18318746183594545 0.02177895379605129
+# remapped scores: beryl 0.2475066151027885, cosmos 0.5308365560757174
 
 
 
@@ -133,24 +172,20 @@ for pid in Benchmark_pids:
     predict_regions_proba['cosmos_aids'] = regions.remap(regions.acronym2id(clf.classes_), source_map='Allen', target_map='Cosmos')
     probas_beryl = predict_regions_proba.groupby('beryl_aids').sum().drop(columns='cosmos_aids').T
     probas_cosmos = predict_regions_proba.groupby('cosmos_aids').sum().drop(columns='beryl_aids').T
-
-
-
-
     predictions_remap_cosmos = regions.remap(regions.acronym2id(predict_region), source_map='Allen', target_map='Cosmos')
     predictions_remap_beryl = regions.remap(regions.acronym2id(predict_region), source_map='Allen', target_map='Beryl')
 
 
-
-    cdepths = np.unique(df_channels['axial_um'])
-    ccosmos = scipy.interpolate.interp1d(df_pid['axial_um'].values, predictions_remap_cosmos, kind='nearest', fill_value="extrapolate")(cdepths)
-    cberyl = scipy.interpolate.interp1d(df_pid['axial_um'].values, predictions_remap_beryl, kind='nearest', fill_value="extrapolate")(cdepths)
-
-    sns.set_theme()
-    f, axs = plt.subplots(1, 7, figsize=(12, 6), gridspec_kw={'width_ratios': [1, 1, 8, 2, 1, 1, 8]})
-    plot_brain_regions(df_pid['cosmos_id'], channel_depths=df_pid['axial_um'].values, brain_regions=regions, display=True, ax=axs[0])
-    plot_brain_regions(ccosmos, channel_depths=cdepths, brain_regions=regions, display=True, ax=axs[1], linewidth=0)
-    plot_probas(probas_cosmos, legend=False, ax=axs[2])
+# .//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#     cdepths = np.unique(df_channels['axial_um'])
+#     ccosmos = scipy.interpolate.interp1d(df_pid['axial_um'].values, predictions_remap_cosmos, kind='nearest', fill_value="extrapolate")(cdepths)
+#     cberyl = scipy.interpolate.interp1d(df_pid['axial_um'].values, predictions_remap_beryl, kind='nearest', fill_value="extrapolate")(cdepths)
+#
+#     sns.set_theme()
+#     f, axs = plt.subplots(1, 7, figsize=(12, 6), gridspec_kw={'width_ratios': [1, 1, 8, 2, 1, 1, 8]})
+#     plot_brain_regions(df_pid['cosmos_id'], channel_depths=df_pid['axial_um'].values, brain_regions=regions, display=True, ax=axs[0])
+#     plot_brain_regions(ccosmos, channel_depths=cdepths, brain_regions=regions, display=True, ax=axs[1], linewidth=0)
+99999999999ioorrrrrrrrrrrrrrrrrrrrrrrrmkjg-0tf    plot_probas(probas_cosmos, legend=False, ax=axs[2])
 
     plot_brain_regions(df_pid['beryl_id'], channel_depths=df_pid['axial_um'].values, brain_regions=regions, display=True, ax=axs[4])
     plot_brain_regions(cberyl, channel_depths=cdepths, brain_regions=regions, display=True, ax=axs[5], linewidth=0)
