@@ -5,7 +5,38 @@ import numpy as np
 from ibllib.atlas import AllenAtlas
 from iblutil.numerical import ismember
 
-_SEED = 462
+import ephys_atlas.data
+
+_SEED = 7654
+
+
+def train_test_split_indices(df_voltage, test_size=0.25, seed=_SEED, include_benchmarks=True):
+    """
+    Splits the features dataframe into a training and a test set, stratified by pid, with optionally
+    pinning some insertions as test insertions
+    :param df_voltage: voltage features dataframe
+    :param test_size: proportion of the set to be used as test set (0-1)
+    :param seed: random seed
+    :param include_benchmarks (True): include benchmark probes in the test set
+    :return: boolean vectors (nfeats,) train_idx, test_idx
+    """
+    pids = df_voltage.iloc[:, 0].groupby('pid').count()
+    if include_benchmarks:
+        benchmark_idx, _ = ismember(df_voltage.index.get_level_values(0), ephys_atlas.data.BENCHMARK_PIDS)
+        # this is the number of test channels to add to the benchmark to reach the test_size overall proportion
+        ntest_channels = benchmark_idx.size * test_size - np.sum(benchmark_idx)
+        pids = pids.iloc[~ismember(pids.index.get_level_values(0), ephys_atlas.data.BENCHMARK_PIDS)[0]]
+        test_size = ntest_channels / pids.sum()
+        fixed_test_pids = ephys_atlas.data.BENCHMARK_PIDS
+    else:
+        fixed_test_pids = []
+    # shuffle pids and take the first n pids that best match the desired proportion test_size
+    pids = pids.sample(frac=1, random_state=seed)
+    ilast = np.searchsorted(pids.cumsum() / pids.sum(), test_size)
+    test_idx, _ = ismember(df_voltage.index.get_level_values(0), list(pids.index[:ilast]) + fixed_test_pids)
+    train_idx = ~test_idx
+    return train_idx, test_idx
+
 
 class AbstractModel(abc.ABC):
 

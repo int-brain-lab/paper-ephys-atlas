@@ -9,8 +9,7 @@ import neuropixel
 from one.remote import aws
 from iblutil.numerical import ismember
 
-from ibllib.atlas import Insertion
-from ibllib.atlas import NeedlesAtlas, AllenAtlas
+from ibllib.atlas import Insertion, NeedlesAtlas, AllenAtlas, BrainRegions
 from ibllib.pipes.histology import interpolate_along_track
 
 
@@ -20,6 +19,20 @@ SPIKES_ATTRIBUTES = ['clusters', 'times', 'depths', 'amps']
 CLUSTERS_ATTRIBUTES = ['channels', 'depths', 'metrics']
 
 EXTRACT_RADIUS_UM = 200  # for localisation , the default extraction radius in um
+
+BENCHMARK_PIDS = ['1a276285-8b0e-4cc9-9f0a-a3a002978724',
+                  '1e104bf4-7a24-4624-a5b2-c2c8289c0de7',
+                  '5d570bf6-a4c6-4bf1-a14b-2c878c84ef0e',
+                  '5f7766ce-8e2e-410c-9195-6bf089fea4fd',
+                  '6638cfb3-3831-4fc2-9327-194b76cf22e1',
+                  '749cb2b7-e57e-4453-a794-f6230e4d0226',
+                  'd7ec0892-0a6c-4f4f-9d8f-72083692af5c',
+                  'da8dfec1-d265-44e8-84ce-6ae9c109b8bd',
+                  'dab512bd-a02d-4c1f-8dbc-9155a163efc0',
+                  'dc7e9403-19f7-409f-9240-05ee57cb7aea',
+                  'e8f9fba4-d151-4b00-bee7-447f0f3e752c',
+                  'eebcaf65-7fa4-4118-869d-a084e84530e2',
+                  'fe380793-8035-414e-b000-09bfe5ece92a']
 
 
 def get_waveforms_coordinates(trace_indices, xy=None, extract_radius_um=EXTRACT_RADIUS_UM, return_complex=False, return_indices=False):
@@ -81,7 +94,31 @@ def atlas_pids(one, tracing=False):
     return [item['id'] for item in insertions], insertions
 
 
+def load_voltage_features(local_path, regions=None):
+    """
+    Load the voltage features, drop  NaNs and merge the channel information at the Allen, Beryl and Cosmos levels
+    :param local_path: full path to folder containing the features table "/data/ephys-atlas/2023_W34"
+    :param regions:
+    :return:
+    """
+    regions = BrainRegions() if regions is None else regions
+    if local_path is None:
+        ## data loading section
+        config = get_config()
+        # this path contains channels.pqt, clusters.pqt and raw_ephys_features.pqt
+        local_path = Path(config['paths']['features']).joinpath('latest')
+    df_voltage, df_clusters, df_channels, df_probes = load_tables(Path(local_path))
+    df_voltage.replace([np.inf, -np.inf], np.nan, inplace=True)
+    df_voltage = pd.merge(df_voltage, df_channels, left_index=True, right_index=True).dropna()
+    df_voltage['cosmos_id'] = regions.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Cosmos')
+    df_voltage['beryl_id'] = regions.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Beryl')
+    return df_voltage
+
+
 def load_tables(local_path, verify=True):
+    """
+    :param local_path: path to the folder containing the tables
+    """
     local_path.mkdir(exist_ok=True)  # no parent here
     df_clusters = pd.read_parquet(local_path.joinpath('clusters.pqt'))
     df_channels = pd.read_parquet(local_path.joinpath('channels.pqt'))
