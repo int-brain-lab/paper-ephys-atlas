@@ -112,7 +112,7 @@ def load_voltage_features(local_path, regions=None):
     df_voltage = pd.merge(df_voltage, df_channels, left_index=True, right_index=True).dropna()
     df_voltage['cosmos_id'] = regions.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Cosmos')
     df_voltage['beryl_id'] = regions.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Beryl')
-    return df_voltage
+    return df_voltage, df_clusters, df_channels, df_probes
 
 
 def load_tables(local_path, verify=True):
