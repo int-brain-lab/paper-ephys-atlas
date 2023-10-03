@@ -2,7 +2,7 @@ import abc
 import pandas as pd
 import numpy as np
 
-from ibllib.atlas import AllenAtlas
+from iblatlas.atlas import AllenAtlas
 from iblutil.numerical import ismember
 
 import ephys_atlas.data
@@ -80,12 +80,17 @@ class NullModel01(AbstractModel):
         self.df_regions = None  # see the fit function
         self.atlas = AllenAtlas() if ba is None else ba
 
-    def predict(self, X):
+    def predict(self, atlas_id):
+        isin, idfr = ismember(atlas_id, self.df_regions.index)
+        return self.df_regions.iloc[idfr, :], isin
+
+    def predict_xyz(self, X):
         """
         :param X: np.array of x, y, z coordinates or dataframe containing x, y and z fields
         :param kwargs:
         :return:
         """
+        # fixme: this is outdated
         if self.df_regions is None:
             return
         # the input features X is a 3 columns array of xyz coordinates
@@ -94,25 +99,22 @@ class NullModel01(AbstractModel):
         aids = self.atlas.get_labels(X, mapping='Beryl')
         # here the prediction is a simple lookup of the existing dataframe
         isin, idfr = ismember(aids, self.df_regions.index)
-        return self.df_regions.iloc[idfr]['spike_rate']['median'].values
+        return self.df_regions.iloc[idfr]['spike_rate']['median'].values, isin
 
-    def fit(self, X, y='atlas_id_beryl'):
-        """Aggregates all channels per region"""
-        gb_regions = X.groupby(y)
-        percentiles = np.arange(10) / 10
-        quantile_funcs = [(p, lambda x: x.quantile(p)) for p in percentiles]
-        self.df_regions = gb_regions.agg({
-            'rms_ap': ('median', 'var', *quantile_funcs),
-            'rms_lf': ('median', 'var', *quantile_funcs),
-            'psd_gamma': 'median',
-            'psd_delta': 'median',
-            'psd_alpha': 'median',
-            'psd_beta': 'median',
-            'psd_theta': 'median',
-            'spike_rate': ('median', 'var', *quantile_funcs),
-            'acronym': 'first',
-            'x': 'count',
-        })
+    def fit(self, df_voltage, x_list, y_name='atlas_id'):
+        """
+
+        :param df_voltage:
+        :param xlist:
+        :param yname: 'atlas_id' or 'beryl_id' or 'cosmos_id'
+        :return:
+        """
+        # percentiles = np.arange(10) / 10
+        # quantile_funcs = [(p, lambda x: x.quantile(p)) for p in percentiles]
+        self.df_regions = df_voltage.groupby(y_name).agg(
+            **{x: pd.NamedAgg(column=x, aggfunc='median') for x in x_list},
+            channel_count=pd.NamedAgg(column=x_list[0], aggfunc='count'),
+        )
 
     def score(self, X, y, **kwargs):
         pass
