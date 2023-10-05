@@ -20,13 +20,13 @@ from neuropixel import trace_header
 
 _logger = setup_logger('ephys_atlas', level='INFO')
 
-AP_RAW_TIMES = [0.5, 0.55]
-LFP_RESAMPLE_FACTOR = 10  # 200 Hz data
+AP_RAW_TIMES = [5., 6.]
+LFP_RESAMPLE_FACTOR = 5  # 200 Hz data
 VERSION = '1.3.0'
 TROUGH_OFFSET = 42
 
 
-def destripe(pid, one=None, typ='ap', prefix="", destination=None, remove_cached=True, clobber=False, save_raw=False):
+def destripe(pid, one=None, typ='ap', prefix="", destination=None, remove_cached=True, clobber=False):
     """
     Stream chunks of data from a given probe insertion
 
@@ -45,7 +45,6 @@ def destripe(pid, one=None, typ='ap', prefix="", destination=None, remove_cached
     :param typ: frequency band ("ap" or "lf")
     :param prefix:
     :param destination: Path to save data
-    :param save_raw: whether to save raw data as .npy as well
     :return:
     """
     assert one
@@ -69,13 +68,12 @@ def destripe(pid, one=None, typ='ap', prefix="", destination=None, remove_cached
 
     for s0 in t0_samples:
         t0 = int(s0 / chunk_size)
-        file_destripe = destination.joinpath(f"T{t0:05d}", f"{typ}.npy")
+        file_destripe = destination.joinpath(f"T{t0:05d}", f"{typ}_destripe.npy")
         file_yaml = file_destripe.with_suffix('.yml')
         if file_destripe.exists() and clobber is False:
             continue
         tsel = slice(int(s0), int(s0) + int(sample_duration))
         raw = sr[tsel, :-sr.nsync].T
-        butt = scipy.signal.sosfiltfilt(sos, raw)[:, int(sr.fs * raw_sample_times[0]):int(sr.fs * raw_sample_times[1])]
         if typ == 'ap':
             destripe = voltage.destripe(raw, fs=sr.fs, neuropixel_version=1, channel_labels=True)
             # saves a 0.05 secs snippet of the butterworth filtered data at 0.5sec offset for QC purposes
@@ -83,16 +81,16 @@ def destripe(pid, one=None, typ='ap', prefix="", destination=None, remove_cached
         elif typ == 'lf':
             destripe = voltage.destripe_lfp(raw, fs=sr.fs, neuropixel_version=1, channel_labels=True)
             destripe = scipy.signal.decimate(destripe, LFP_RESAMPLE_FACTOR, axis=1, ftype='fir')
-            butt = scipy.signal.decimate(butt, LFP_RESAMPLE_FACTOR, axis=1, ftype='fir')
+            raw = scipy.signal.decimate(raw, LFP_RESAMPLE_FACTOR, axis=1, ftype='fir')
             fs_out = sr.fs / LFP_RESAMPLE_FACTOR
         file_destripe.parent.mkdir(exist_ok=True, parents=True)
         np.save(file_destripe, destripe.astype(np.float16))
+        np.save(file_destripe.parent.joinpath(f'{typ}_raw.npy'),
+                raw.astype(np.float16)[:, int(sr.fs * raw_sample_times[0]):int(sr.fs * raw_sample_times[1])]
+                )
         with open(file_yaml, 'w+') as fp:
             yaml.dump(dict(fs=fs_out, eid=eid, pid=pid, pname=pname, nc=raw.shape[0], dtype="float16"), fp)
-        np.save(file_destripe.parent.joinpath(f'{typ}_raw.npy'), butt.astype(np.float16))
-        if save_raw:
-            file_raw = file_destripe.parent.joinpath(f"{typ}_true_raw.npy")
-            np.save(file_raw, raw.astype(np.float16))
+        
 
 
 def localisation(destination=None, clobber=False):
