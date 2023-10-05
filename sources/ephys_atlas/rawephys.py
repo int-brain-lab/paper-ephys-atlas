@@ -26,7 +26,7 @@ VERSION = '1.3.0'
 TROUGH_OFFSET = 42
 
 
-def destripe(pid, one=None, typ='ap', prefix="", destination=None, remove_cached=True, clobber=False):
+def destripe(pid, one=None, typ='ap', prefix="", destination=None, remove_cached=True, clobber=False, save_raw=False):
     """
     Stream chunks of data from a given probe insertion
 
@@ -40,11 +40,12 @@ def destripe(pid, one=None, typ='ap', prefix="", destination=None, remove_cached
         │   ├── spikes.pqt
         │   └── waveforms.npy
 
-    :param pid:
-    :param one:
-    :param typ:
+    :param pid: probe insertion UUID
+    :param one: one.api.ONE instance
+    :param typ: frequency band ("ap" or "lf")
     :param prefix:
-    :param destination:
+    :param destination: Path to save data
+    :param save_raw: whether to save raw data as .npy as well
     :return:
     """
     assert one
@@ -89,6 +90,9 @@ def destripe(pid, one=None, typ='ap', prefix="", destination=None, remove_cached
         with open(file_yaml, 'w+') as fp:
             yaml.dump(dict(fs=fs_out, eid=eid, pid=pid, pname=pname, nc=raw.shape[0], dtype="float16"), fp)
         np.save(file_destripe.parent.joinpath(f'{typ}_raw.npy'), butt.astype(np.float16))
+        if save_raw:
+            file_raw = file_destripe.parent.joinpath(f"{typ}_true_raw.npy")
+            np.save(file_raw, raw.astype(np.float16))
 
 
 def localisation(destination=None, clobber=False):
