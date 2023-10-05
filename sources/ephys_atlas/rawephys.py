@@ -58,7 +58,7 @@ def destripe(pid, one=None, typ='ap', prefix="", destination=None, remove_cached
         raw_sample_times = AP_RAW_TIMES
     elif typ == 'lf':
         sample_duration, sample_spacings, skip_start_end = (20 * 2_500, 1_000 * 2_500, 500 * 2_500)
-        butter_kwargs = {'N': 3, 'Wn': 2 / 2500 * 2, 'btype': 'highpass'}
+        butter_kwargs = {'N': 3, 'Wn': [2 / 2500 * 2, 200 / 2500 * 2], 'btype': 'bandpass'}
         raw_sample_times = [0, sample_duration]
     sr = Streamer(pid=pid, one=one, remove_cached=remove_cached, typ=typ)
     chunk_size = sr.chunks['chunk_bounds'][1]
