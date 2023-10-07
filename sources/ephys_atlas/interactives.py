@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from neurodsp.waveforms import plot_peaktiptrough, compute_spike_features
 
 
-from ibllib.atlas import BrainRegions
+from iblatlas.atlas import BrainRegions
 from brainbox.io.one import SpikeSortingLoader
 from ibllib.plots import wiggle
 from neurodsp.utils import rms

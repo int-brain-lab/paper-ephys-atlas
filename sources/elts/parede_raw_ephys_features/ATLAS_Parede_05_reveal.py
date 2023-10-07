@@ -28,7 +28,7 @@ pid = pids[0]
 from viewephys.gui import viewephys
 from brainbox.io.one import SpikeSortingLoader
 from one.api import ONE
-from ibllib.atlas import BrainRegions
+from iblatlas.atlas import BrainRegions
 
 one = ONE(base_url="https://alyx.internationalbrainlab.org")
 FS = 30000

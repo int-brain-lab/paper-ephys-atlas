@@ -17,7 +17,7 @@ from sklearn.model_selection import KFold
 from sklearn.metrics import accuracy_score, confusion_matrix
 from iblutil.numerical import ismember
 from decoding.model_functions import load_channel_data
-from ibllib.atlas import BrainRegions
+from iblatlas.atlas import BrainRegions
 from joblib import dump
 import argparse
 br = BrainRegions()

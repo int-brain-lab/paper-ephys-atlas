@@ -4,8 +4,8 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 
-from ibllib.atlas.genes import allen_gene_expression
-from ibllib.atlas import AllenAtlas
+from iblatlas.atlas.genes import allen_gene_expression
+from iblatlas.atlas import AllenAtlas
 
 ba = AllenAtlas()
 df_genes, gene_expression = allen_gene_expression()

@@ -41,7 +41,7 @@ from sklearn.model_selection import train_test_split
 from ephys_atlas.plots import plot_probas
 from brainbox.ephys_plots import plot_brain_regions
 from ephys_atlas.data import download_tables, compute_depth_dataframe, load_tables
-from ibllib.atlas import BrainRegions
+from iblatlas.atlas import BrainRegions
 from iblutil.numerical import ismember
 from joblib import dump
 

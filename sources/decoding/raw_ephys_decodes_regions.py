@@ -10,7 +10,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 
-from ibllib.atlas import BrainRegions
+from iblatlas.atlas import BrainRegions
 import ephys_atlas.data
 
 pd.set_option('use_inf_as_na', True)
