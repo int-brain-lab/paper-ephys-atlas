@@ -3,8 +3,8 @@ Examples on how to use the atlas structure, and its coordinate system.
 """
 # Authors : Gaelle, Mayo
 
-from ibllib.atlas.regions import BrainRegions
-from ibllib.atlas import AllenAtlas, ALLEN_CCF_LANDMARKS_MLAPDV_UM
+from iblatlas.atlas.regions import BrainRegions
+from iblatlas.atlas import AllenAtlas, ALLEN_CCF_LANDMARKS_MLAPDV_UM
 import numpy as np
 
 
