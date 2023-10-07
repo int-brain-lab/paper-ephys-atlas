@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 
 import matplotlib.pyplot as plt
-from ibllib.atlas import AllenAtlas
-from ibllib.atlas.flatmaps import plot_swanson, annotate_swanson
+from iblatlas.atlas import AllenAtlas
+from iblatlas.atlas.flatmaps import plot_swanson, annotate_swanson
 import matplotlib.pyplot as plt
 cmap = 'Blues'
 ba = AllenAtlas()

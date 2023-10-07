@@ -8,7 +8,7 @@ from os.path import join, dirname, realpath, split
 import pandas as pd
 from joblib import load
 from iblutil.numerical import ismember
-from ibllib.atlas import BrainRegions
+from iblatlas.atlas import BrainRegions
 br = BrainRegions()
 
 

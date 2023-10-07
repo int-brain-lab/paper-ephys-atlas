@@ -4,7 +4,7 @@ from matplotlib.ticker import MultipleLocator
 
 import numpy as np
 
-from ibllib.atlas import BrainRegions
+from iblatlas.atlas import BrainRegions
 
 
 def region_bars(atlas_id, feature, label='', regions=None, scale='linear', xlims=None):
