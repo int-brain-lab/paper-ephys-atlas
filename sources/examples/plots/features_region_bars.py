@@ -5,7 +5,7 @@ import pandas as pd
 from brainwidemap.meta import meta_bwm
 import ephys_atlas.data
 import ephys_atlas.plots
-from ibllib.atlas import BrainRegions
+from iblatlas.atlas import BrainRegions
 
 br = BrainRegions()
 local_path = Path("/Users/olivier/Documents/datadisk/paper-ephys-atlas/ephys-atlas-decoding/latest")

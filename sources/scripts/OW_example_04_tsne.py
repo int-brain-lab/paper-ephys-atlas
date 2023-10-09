@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 import matplotlib.pyplot as plt
-from ibllib.atlas import AllenAtlas
+from iblatlas.atlas import AllenAtlas
 
 
 ba = AllenAtlas()

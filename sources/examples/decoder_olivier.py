@@ -31,7 +31,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 from ephys_atlas.plots import plot_probas_df
 from brainbox.ephys_plots import plot_brain_regions
-from ibllib.atlas import BrainRegions
+from iblatlas.atlas import BrainRegions
 import ephys_atlas.data
 regions = BrainRegions()
 BENCHMARK = True
