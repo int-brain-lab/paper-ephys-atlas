@@ -38,7 +38,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import train_test_split
 
-from ephys_atlas.plots import plot_probas
+from ephys_atlas.plots import plot_probas_df
 from brainbox.ephys_plots import plot_brain_regions
 from ephys_atlas.data import download_tables, compute_depth_dataframe, load_tables
 from ibllib.atlas import BrainRegions
@@ -219,7 +219,7 @@ for pid in benchmark_pids:
     ax2.set_title('Predicted', fontsize=10, pad=11)
     ax2.set(yticks=[])
  
-    plot_probas(probas_cosmos, legend=False, ax=ax3)
+    plot_probas_df(probas_cosmos, legend=False, ax=ax3)
     ax3.tick_params(labelsize=9)
     ax3.set_title('Cumulative Probability', fontsize=10, pad=11)
     ax3.yaxis.set_ticks_position('right')
@@ -236,7 +236,7 @@ for pid in benchmark_pids:
     ax6.set_title('Predicted', fontsize=10, pad=11)
     ax6.set(yticks=[])
  
-    plot_probas(probas_beryl, legend=False, ax=ax7)
+    plot_probas_df(probas_beryl, legend=False, ax=ax7)
     ax7.tick_params(labelsize=9)
     ax7.set_title('Cumulative Probability', fontsize=10, pad=11)
     ax7.set_ylabel('Channel number', fontsize=10, labelpad=12)
