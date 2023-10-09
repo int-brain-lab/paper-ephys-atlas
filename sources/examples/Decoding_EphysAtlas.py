@@ -23,7 +23,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 from joblib import dump
 
-from ibllib.atlas import BrainRegions
+from iblatlas.atlas import BrainRegions
 
 
 #%%   Benchmark datasets

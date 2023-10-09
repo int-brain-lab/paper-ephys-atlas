@@ -7,7 +7,7 @@ from one.api import ONE
 from brainbox.io.spikeglx import Streamer
 from neurodsp.voltage import destripe
 from brainbox.io.one import SpikeSortingLoader
-from ibllib.atlas import AllenAtlas
+from iblatlas.atlas import AllenAtlas
 from scipy import signal
 from viewephys.gui import viewephys
 from numpy import angle

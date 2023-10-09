@@ -5,7 +5,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from ibllib.atlas import AllenAtlas
+from iblatlas.atlas import AllenAtlas
 
 
 ba = AllenAtlas()
@@ -92,7 +92,7 @@ df_regions = gb_regions.agg({
 
 # # Plot PSD on coronal slice
 # # From https://int-brain-lab.github.io/iblenv/notebooks_external/atlas_plotting_scalar_on_slice.html
-# from ibllib.atlas.plots import plot_scalar_on_slice
+# from iblatlas.atlas.plots import plot_scalar_on_slice
 #
 # acro_plot = df_regions['acronym'].values.flatten()[1:]
 # data_plot = df_regions['psd_gamma'].values.flatten()[1:]
@@ -124,7 +124,7 @@ df_regions = gb_regions.agg({
 
 # Plot PSD on coronal slice
 # From https://int-brain-lab.github.io/iblenv/notebooks_external/atlas_plotting_scalar_on_slice.html
-from ibllib.atlas.plots import plot_scalar_on_slice
+from iblatlas.atlas.plots import plot_scalar_on_slice
 
 acro_plot = df_regions['acronym'].values.flatten()[1:]
 data_plot = df_regions['psd_gamma'].values.flatten()[1:]

@@ -15,7 +15,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import KFold
 from sklearn.metrics import accuracy_score
 from iblutil.numerical import ismember
-from ibllib.atlas import BrainRegions
+from iblatlas.atlas import BrainRegions
 from joblib import dump
 import argparse
 br = BrainRegions()

@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, confusion_matrix
-from ibllib.atlas import BrainRegions
+from iblatlas.atlas import BrainRegions
 from joblib import load
 from model_functions import load_channel_data, load_trained_model
 import matplotlib.pyplot as plt

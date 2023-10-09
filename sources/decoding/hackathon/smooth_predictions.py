@@ -7,7 +7,7 @@ Created on Sat May 21 17:05:48 2022
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from ibllib.atlas import BrainRegions
+from iblatlas.atlas import BrainRegions
 from joblib import load
 from model_functions import load_channel_data, load_trained_model
 import matplotlib.pyplot as plt
