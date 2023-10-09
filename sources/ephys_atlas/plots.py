@@ -75,7 +75,34 @@ def region_bars(atlas_id, feature, label='', regions=None, scale='linear', xlims
     return fig, ax
 
 
-def plot_probas(probas, regions=None, ax=None, legend=False):
+def plot_cumulative_probas(probas, depths, aids, regions=None, ax=None, legend=False):
+    """
+    :param probas: (ndepths x nregions) array of probabilities for each region that sum to 1 for each depth
+    :param depths: (ndepths) vector of depths
+    :param aids: (nregions) vector of atlas_ids
+    :param regions: optional: iblatlas.BrainRegion object
+    :param ax:
+    :param legend:
+    :return:
+    """
+    regions = regions or BrainRegions()
+    _, rids = ismember(aids, regions.id)
+    cprobas = probas.cumsum(axis=1)
+    for i, ir in enumerate(rids):
+        ax.fill_betweenx(
+            depths,
+            cprobas[:, i], label=regions.acronym[ir],
+            zorder=-i,
+            color=regions.rgb[ir] / 255)
+    ax.margins(y=0)
+    ax.set_xlim(0, 1)
+    ax.set_axisbelow(False)
+    if legend:
+        ax.legend()
+    return ax
+
+
+def plot_probas_df(probas, regions=None, **kwargs):
     """
     Cumulative probability display of regions predictions
     :param probas:
@@ -84,14 +111,13 @@ def plot_probas(probas, regions=None, ax=None, legend=False):
     :param legend:
     :return:
     """
-    if regions is None:
-        regions = BrainRegions()
-    if ax is None:
-        fig, ax = plt.subplots()
-
-    # need to sort the probability columns as per the Allen order
-    _, regions_indices = ismember(probas.columns.values, regions.id)
+    regions = regions or BrainRegions()
+    _, rids = ismember(probas.columns.values, regions.id)
     probas = probas.loc[:, probas.columns[np.argsort(regions.order[regions_indices])]]
+
+    plot_cumulative_probas(probas, depths, aids, regions=None, ax=None, legend=False)
+    # need to sort the probability columns as per the Allen order
+
 
     # cumsum
     data = probas.values.cumsum(axis=-1)
