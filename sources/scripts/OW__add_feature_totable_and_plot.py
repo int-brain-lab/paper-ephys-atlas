@@ -8,10 +8,10 @@
 '''
 
 from one.api import ONE
-from ibllib.atlas import AllenAtlas
+from iblatlas.atlas import AllenAtlas
 import pandas as pd
 from pathlib import Path
-from ibllib.atlas.flatmaps import plot_swanson
+from iblatlas.atlas.flatmaps import plot_swanson
 import matplotlib.pyplot as plt
 import numpy as np
 from ephys_atlas.data import bwm_pids

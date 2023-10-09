@@ -20,8 +20,8 @@ from neuropixel import trace_header
 
 _logger = setup_logger('ephys_atlas', level='INFO')
 
-AP_RAW_TIMES = [0.5, 0.55]
-LFP_RESAMPLE_FACTOR = 10  # 200 Hz data
+AP_RAW_TIMES = [5., 6.]
+LFP_RESAMPLE_FACTOR = 5  # 200 Hz data
 VERSION = '1.3.0'
 TROUGH_OFFSET = 42
 
@@ -40,11 +40,11 @@ def destripe(pid, one=None, typ='ap', prefix="", destination=None, remove_cached
         │   ├── spikes.pqt
         │   └── waveforms.npy
 
-    :param pid:
-    :param one:
-    :param typ:
+    :param pid: probe insertion UUID
+    :param one: one.api.ONE instance
+    :param typ: frequency band ("ap" or "lf")
     :param prefix:
-    :param destination:
+    :param destination: Path to save data
     :return:
     """
     assert one
@@ -57,7 +57,7 @@ def destripe(pid, one=None, typ='ap', prefix="", destination=None, remove_cached
         raw_sample_times = AP_RAW_TIMES
     elif typ == 'lf':
         sample_duration, sample_spacings, skip_start_end = (20 * 2_500, 1_000 * 2_500, 500 * 2_500)
-        butter_kwargs = {'N': 3, 'Wn': 2 / 2500 * 2, 'btype': 'highpass'}
+        butter_kwargs = {'N': 3, 'Wn': [2 / 2500 * 2, 200 / 2500 * 2], 'btype': 'bandpass'}
         raw_sample_times = [0, sample_duration]
     sr = Streamer(pid=pid, one=one, remove_cached=remove_cached, typ=typ)
     chunk_size = sr.chunks['chunk_bounds'][1]
@@ -68,13 +68,12 @@ def destripe(pid, one=None, typ='ap', prefix="", destination=None, remove_cached
 
     for s0 in t0_samples:
         t0 = int(s0 / chunk_size)
-        file_destripe = destination.joinpath(f"T{t0:05d}", f"{typ}.npy")
+        file_destripe = destination.joinpath(f"T{t0:05d}", f"{typ}_destripe.npy")
         file_yaml = file_destripe.with_suffix('.yml')
         if file_destripe.exists() and clobber is False:
             continue
         tsel = slice(int(s0), int(s0) + int(sample_duration))
         raw = sr[tsel, :-sr.nsync].T
-        butt = scipy.signal.sosfiltfilt(sos, raw)[:, int(sr.fs * raw_sample_times[0]):int(sr.fs * raw_sample_times[1])]
         if typ == 'ap':
             destripe = voltage.destripe(raw, fs=sr.fs, neuropixel_version=1, channel_labels=True)
             # saves a 0.05 secs snippet of the butterworth filtered data at 0.5sec offset for QC purposes
@@ -82,13 +81,16 @@ def destripe(pid, one=None, typ='ap', prefix="", destination=None, remove_cached
         elif typ == 'lf':
             destripe = voltage.destripe_lfp(raw, fs=sr.fs, neuropixel_version=1, channel_labels=True)
             destripe = scipy.signal.decimate(destripe, LFP_RESAMPLE_FACTOR, axis=1, ftype='fir')
-            butt = scipy.signal.decimate(butt, LFP_RESAMPLE_FACTOR, axis=1, ftype='fir')
+            raw = scipy.signal.decimate(raw, LFP_RESAMPLE_FACTOR, axis=1, ftype='fir')
             fs_out = sr.fs / LFP_RESAMPLE_FACTOR
         file_destripe.parent.mkdir(exist_ok=True, parents=True)
         np.save(file_destripe, destripe.astype(np.float16))
+        np.save(file_destripe.parent.joinpath(f'{typ}_raw.npy'),
+                raw.astype(np.float16)[:, int(sr.fs * raw_sample_times[0]):int(sr.fs * raw_sample_times[1])]
+                )
         with open(file_yaml, 'w+') as fp:
             yaml.dump(dict(fs=fs_out, eid=eid, pid=pid, pname=pname, nc=raw.shape[0], dtype="float16"), fp)
-        np.save(file_destripe.parent.joinpath(f'{typ}_raw.npy'), butt.astype(np.float16))
+        
 
 
 def localisation(destination=None, clobber=False):

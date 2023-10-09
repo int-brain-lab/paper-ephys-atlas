@@ -11,7 +11,7 @@ from os.path import join, split
 from model_functions import load_channel_data
 from joblib import dump
 from iblutil.numerical import ismember
-from ibllib.atlas import BrainRegions
+from iblatlas.atlas import BrainRegions
 import pathlib
 import argparse
 br = BrainRegions()
