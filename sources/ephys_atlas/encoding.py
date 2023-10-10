@@ -10,6 +10,30 @@ import ephys_atlas.data
 _SEED = 7654
 
 
+def voltage_features_set(features_list=None):
+    """
+    THis function returns the list of features columns names depending on their provenance.
+    This is useful to select the columns for taraining
+    :param feature_set_list: optional, defaults to ['raw_ap', 'raw_lf', 'localisation', 'waveforms']
+    :return:
+    """
+    features_list = features_list or ['raw_ap', 'raw_lf', 'localisation', 'waveforms']
+    x_list = []
+    if 'raw_ap' in features_list:  # full mode
+        x_list += ['rms_ap']
+    if 'raw_lf' in features_list:
+        x_list += ['rms_lf', 'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'psd_lfp_csd']
+    if 'localisation' in features_list:
+        x_list += ['alpha_mean', 'alpha_std', 'spike_count']
+    if 'waveforms' in features_list:
+        x_list += ['peak_time_secs', 'peak_val', 'trough_time_secs', 'trough_val', 'tip_time_secs', 'tip_val',
+                   'polarity', 'depolarisation_slope', 'repolarisation_slope', 'recovery_time_secs',
+                   'recovery_slope']
+    if 'micro-manipulator' in features_list:
+        x_list += ['x_target', 'y_target', 'z_target']
+    return x_list
+
+
 def train_test_split_indices(df_voltage, test_size=0.25, seed=_SEED, include_benchmarks=True):
     """
     Splits the features dataframe into a training and a test set, stratified by pid, with optionally
