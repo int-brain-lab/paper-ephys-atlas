@@ -4,21 +4,17 @@ Code to compute the KS-test, per brain region pair 1-to-1
 
 from pathlib import Path
 from neurodsp.waveforms import peak_to_trough_ratio
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import seaborn as sns
 from scipy.stats import ks_2samp
 import pandas as pd
 import numpy as np
-
 import ephys_atlas.data
 import ephys_atlas.plots
 from iblatlas.atlas import BrainRegions
 from one.api import ONE
 
-
 one = ONE(mode='remote')
 br = BrainRegions()
+
 local_path = Path("/Users/gaelle/Documents/Work/EphysAtlas/Data/")
 local_result = local_path.parent.joinpath('Fig3_Result')
 label = '2023_W34'
@@ -118,7 +114,11 @@ diagonal = np.diag_indices(regions.size)
 
 ##
 # Save
-local_result_b = local_result.joinpath(brain_id)
+if USE_DEBIAS:
+    local_result_b = local_result.joinpath(brain_id).joinpath('use_debias')
+else:
+    local_result_b = local_result.joinpath(brain_id).joinpath('normal')
+
 if not local_result_b.exists():
     local_result_b.mkdir()
 
