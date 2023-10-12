@@ -115,9 +115,9 @@ diagonal = np.diag_indices(regions.size)
 ##
 # Save
 if USE_DEBIAS:
-    local_result_b = local_result.joinpath(brain_id).joinpath('use_debias')
+    local_result_b = local_result.joinpath(brain_id).joinpath('use_debias').joinpath(label)
 else:
-    local_result_b = local_result.joinpath(brain_id).joinpath('normal')
+    local_result_b = local_result.joinpath(brain_id).joinpath('normal').joinpath(label)
 
 if not local_result_b.exists():
     local_result_b.mkdir()
