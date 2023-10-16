@@ -100,38 +100,3 @@ def plot_cumulative_probas(probas, depths, aids, regions=None, ax=None, legend=F
     if legend:
         ax.legend()
     return ax
-
-
-def plot_probas_df(probas, regions=None, **kwargs):
-    """
-    Cumulative probability display of regions predictions
-    :param probas:
-    :param regions:
-    :param ax:
-    :param legend:
-    :return:
-    """
-    regions = regions or BrainRegions()
-    _, rids = ismember(probas.columns.values, regions.id)
-    probas = probas.loc[:, probas.columns[np.argsort(regions.order[regions_indices])]]
-
-    plot_cumulative_probas(probas, depths, aids, regions=None, ax=None, legend=False)
-    # need to sort the probability columns as per the Allen order
-
-
-    # cumsum
-    data = probas.values.cumsum(axis=-1)
-
-    for i in np.arange(probas.shape[1]):
-        ir = regions.id2index(probas.columns[i])[1][0][0]
-        ax.fill_betweenx(
-            probas.index.values.astype(np.int16),
-            data[:, i], label=regions.acronym[ir],
-            zorder=-i,
-            color=regions.rgb[ir] / 255)
-    ax.margins(y=0)
-    ax.set_xlim(0, None)
-    ax.set_axisbelow(False)
-    if legend:
-        ax.legend()
-    return ax
