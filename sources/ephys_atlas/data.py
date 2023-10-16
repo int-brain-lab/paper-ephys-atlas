@@ -37,13 +37,14 @@ BENCHMARK_PIDS = ['1a276285-8b0e-4cc9-9f0a-a3a002978724',
 
 def get_waveforms_coordinates(trace_indices, xy=None, extract_radius_um=EXTRACT_RADIUS_UM, return_complex=False, return_indices=False):
     """
+    Reproduces the localisation code channel selection when extracting waveforms from raw data.
     Args:
-        trace_indices:
-        xy:
-        extract_radius_um:
-        return_indices:
-
-    Returns:
+        trace_indices: np.array (nspikes,): index of the trace of the detected spike )
+        xy: (optional)
+        extract_radius_um: radius from peak trace: all traces within this radius will be included
+        return_complex: if True, returns the complex coordinates, otherwise returns a 3D x, y, z array
+        return_indices: if True, returns the indices of the channels within the radius
+    Returns: (np.array, np.array) (nspikes, ntraces, n_coordinates) of axial and transverse coordinates, (nspikes, ntraces) of indices
     """
     if xy is None:
         th = neuropixel.trace_header(version=1)
@@ -51,12 +52,12 @@ def get_waveforms_coordinates(trace_indices, xy=None, extract_radius_um=EXTRACT_
     channel_lookups = _get_channel_distances_indices(xy, extract_radius_um=extract_radius_um)
     inds = channel_lookups[trace_indices.astype(np.int32)]
     # add a dummy channel to have nans in the coordinates
-    inds[np.isnan(inds)] = xy.size
+    inds[np.isnan(inds)] = xy.size - 1
     wxy = np.r_[xy, np.nan][inds.astype(np.int32)]
     if not return_complex:
         wxy = np.stack((np.real(wxy), np.imag(wxy), np.zeros_like(np.imag(wxy))), axis=2)
     if return_indices:
-        return wxy, inds
+        return wxy, inds.astype(int)
     else:
         return wxy
 
