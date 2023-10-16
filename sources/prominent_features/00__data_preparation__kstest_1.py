@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 import ephys_atlas.data
 import ephys_atlas.plots
+from ephys_atlas.encoding import voltage_features_set
 from iblatlas.atlas import BrainRegions
 from one.api import ONE
 
@@ -21,7 +22,7 @@ label = '2023_W34'
 USE_DEBIAS = False
 
 # Select brain region level to do analysis over
-brain_id = 'beryl_id'
+brain_id = 'cosmos_id'
 
 # Select set of features to do analysis over
 features = ['alpha_mean', 'alpha_std', 'spike_count', 'peak_time_secs', 'peak_val',
@@ -33,6 +34,9 @@ features = ['alpha_mean', 'alpha_std', 'spike_count', 'peak_time_secs', 'peak_va
             'psd_beta_csd', 'psd_gamma_csd', 'spike_count_log',
             'peak_to_trough_duration', 'peak_to_trough_ratio', 'peak_to_trough_ratio_log']
 
+# TODO
+FEATURE_SET = ['raw_ap', 'raw_lf', 'localisation', 'waveforms']
+x_list = voltage_features_set(FEATURE_SET)
 
 ##
 # Load and prepare dataframe
@@ -72,6 +76,10 @@ df_voltage['peak_to_trough_duration'] = df_voltage['trough_time_secs'] - df_volt
 ##
 # Regions of DF
 regions = df_voltage[brain_id].unique()
+# reorganise order
+if brain_id == 'cosmos_id':
+    regions = br.acronym2id(['Isocortex', 'HPF', 'CTXsp', 'OLF', 'CNU', 'HY', 'TH', 'MB', 'HB', 'CB'])
+
 
 ##
 # Run KS test 1-by-1
