@@ -95,6 +95,7 @@ amp = wav[ipeak, ic] - wav[itrough, ic]
 #   min to max amplitude iV
 # aggregates per channel:
 #   ratio of positive spiking
+#
 #   peak to trough
 #   amplitude of positive spikes
 #   amplitude of negative spikes
