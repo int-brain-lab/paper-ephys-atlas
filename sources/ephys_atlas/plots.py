@@ -125,3 +125,25 @@ def plot_cumulative_probas(probas, depths, aids, regions=None, ax=None, legend=F
     if legend:
         ax.legend()
     return ax
+
+
+'''
+Plot utils functions for similarity analysis
+'''
+
+def plot_feature_importance(features_sort, val_sort, ax=None):
+    '''
+    Plot a colorbar of the feature importance
+    :param features_sort: sorted list of features
+    :param val_sort: value of interst (e.g. log(p) value from KS test), sorted
+    :param ax:
+    :return:
+    '''
+    if ax is None:
+        fig, ax = plt.subplots(1, 1)
+    plt.imshow(np.expand_dims(val_sort, axis=1))
+    ax.set_yticks(np.arange(features_sort.size))
+    ax.set_yticklabels(features_sort)
+    ax.set_xticks([])
+    plt.show()
+    return plt
