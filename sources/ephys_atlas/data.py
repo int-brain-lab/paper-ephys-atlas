@@ -4,7 +4,7 @@ import yaml
 
 import numpy as np
 import pandas as pd
-
+from neurodsp.waveforms import peak_to_trough_ratio
 import neuropixel
 from one.remote import aws
 from iblutil.numerical import ismember
@@ -323,3 +323,21 @@ def prepare_mat_plot(array_in, id_feat, diag_val=0):
     mat_plot[np.tril_indices_from(mat_plot)] = diag_val  # replace Nan by 0
     mat_plot = mat_plot + mat_plot.T  # add transpose for display
     return mat_plot
+
+
+def prepare_df_voltage(df_voltage, df_channels, br=None):
+    if br is None:
+        br = BrainRegions()
+    df_voltage = pd.merge(df_voltage, df_channels, left_index=True, right_index=True).dropna()
+    df_voltage['cosmos_id'] = br.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Cosmos')
+    df_voltage['beryl_id'] = br.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Beryl')
+
+    df_voltage = df_voltage.loc[~df_voltage['cosmos_id'].isin(br.acronym2id(['void', 'root']))]
+    for feat in ['rms_ap', 'rms_lf']:
+        df_voltage[feat] = 20 * np.log10(df_voltage[feat])
+    df_voltage['spike_count_log'] = np.log10(df_voltage['spike_count'] + 1)
+
+    # Add in peak_to_trough_ratio + peak_to_trough_duration
+    df_voltage = peak_to_trough_ratio(df_voltage)
+    df_voltage['peak_to_trough_duration'] = df_voltage['trough_time_secs'] - df_voltage['peak_time_secs']
+    return df_voltage
