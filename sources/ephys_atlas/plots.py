@@ -8,7 +8,10 @@ from iblatlas.atlas import BrainRegions
 from ephys_atlas.data import compute_summary_stat
 
 
-def kde_plot(feature, brain_id, df_voltage, br=None, ax=None, summary=None):
+def kde_plot(feature, df_voltage, brain_id='cosmos_id', regions_id=None,
+             br=None, ax=None, summary=None):
+    if regions_id is not None:  # remove all the rows that aren't part of this set of region first
+        df_voltage = df_voltage[df_voltage[brain_id].isin(regions_id)]
     if br is None:
         br = BrainRegions()
     if ax is None:
@@ -131,6 +134,7 @@ def plot_cumulative_probas(probas, depths, aids, regions=None, ax=None, legend=F
 Plot utils functions for similarity analysis
 '''
 
+
 def plot_feature_importance(features_sort, val_sort, ax=None):
     '''
     Plot a colorbar of the feature importance
@@ -147,3 +151,5 @@ def plot_feature_importance(features_sort, val_sort, ax=None):
     ax.set_xticks([])
     plt.show()
     return plt
+
+
