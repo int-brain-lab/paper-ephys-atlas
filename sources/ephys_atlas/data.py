@@ -275,3 +275,16 @@ def get_config():
     with open(file_yaml, 'r') as stream:
         config = yaml.safe_load(stream)
     return config
+
+
+def compute_summary_stat(df_voltage, features):
+    '''
+    Summary statistics
+    :param df_voltage:
+    :param features:
+    :return:
+    '''
+    summary = df_voltage.loc[:, features].agg(['median', lambda x: x.quantile(0.05), lambda x: x.quantile(0.95)]).T
+    summary.columns = ['median', 'q05', 'q95']
+    summary['dq'] = summary['q95'] - summary['q05']
+    return summary
