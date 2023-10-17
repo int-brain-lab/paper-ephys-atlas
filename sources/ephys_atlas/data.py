@@ -298,3 +298,17 @@ def sort_feature(values, features, ascending=True):
     features_sort = features[id_sort]
     values_sort = values[id_sort]
     return values_sort, features_sort
+
+
+def prepare_mat_plot(array_in, id_feat, diag_val=0):
+    '''
+    From the matrix storing the results of brain-to-brain regions comparison, in the upper triangle,
+    create a matrix with transpose
+    :param array_in:
+    :param id_feat:
+    :return:
+    '''
+    mat_plot = np.squeeze(array_in[:, :, id_feat].copy())
+    mat_plot[np.tril_indices_from(mat_plot)] = diag_val  # replace Nan by 0
+    mat_plot = mat_plot + mat_plot.T  # add transpose for display
+    return mat_plot

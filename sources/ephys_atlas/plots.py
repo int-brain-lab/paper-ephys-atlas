@@ -167,6 +167,14 @@ def plot_feature_colorbar(features_sort, val_sort, ax=None):
 
 
 def plot_similarity_matrix(mat_plot, regions, ax=None, br=None):
+    '''
+    Plot the similarity matrix as imshow
+    :param mat_plot: matrix to plot
+    :param regions: list of regions id as ordered in the matrix
+    :param ax:
+    :param br:
+    :return:
+    '''
     if ax is None:
         fig, ax = plt.subplots(1, 1)
     if br is None:
