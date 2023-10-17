@@ -1,10 +1,35 @@
 import matplotlib.pyplot as plt
 from iblutil.numerical import ismember
 from matplotlib.ticker import MultipleLocator
-
+import seaborn as sns
 import numpy as np
-
+import matplotlib.patches as patches
 from iblatlas.atlas import BrainRegions
+from ephys_atlas.data import compute_summary_stat
+
+
+def kde_plot(feature, brain_id, df_voltage, br=None, ax=None, summary=None):
+    if br is None:
+        br = BrainRegions()
+    if ax is None:
+        fig, ax = plt.subplots(1, 1)
+    if summary is None:
+        summary = compute_summary_stat(df_voltage, feature)
+
+    caids, cids, _ = np.intersect1d(br.id, np.unique(df_voltage[brain_id]), return_indices=True)
+    palette = sns.color_palette(br.rgb[cids] / 255)
+
+    kpl = sns.kdeplot(df_voltage, x=feature, hue=brain_id, fill=False, common_norm=False, palette=palette,
+                      legend=True, ax=ax)
+    kpl.legend(labels=np.flipud(br.acronym[cids]))
+    sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
+
+    rec = patches.Rectangle((summary.loc[feature, 'q05'], 0), summary.loc[feature, 'dq'],
+                            kpl.get_ylim()[1], alpha=0.1, color='k')
+    kpl.add_patch(rec)
+    kpl.set(title=feature, xlim=summary.loc[feature, 'median'] + summary.loc[feature, 'dq'] * np.array([-0.5, 0.5]) * 2)
+    plt.tight_layout()
+    return plt
 
 
 def region_bars(atlas_id, feature, label='', regions=None, scale='linear', xlims=None):
