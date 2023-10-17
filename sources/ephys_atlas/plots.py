@@ -8,7 +8,7 @@ from iblatlas.atlas import BrainRegions
 from ephys_atlas.data import compute_summary_stat
 
 
-def kde_plot(feature, df_voltage, brain_id='cosmos_id', regions_id=None,
+def plot_kde(feature, df_voltage, brain_id='cosmos_id', regions_id=None,
              br=None, ax=None, summary=None):
     '''
     Plot KDEs for a given feature
@@ -43,7 +43,8 @@ def kde_plot(feature, df_voltage, brain_id='cosmos_id', regions_id=None,
     kpl.add_patch(rec)
     kpl.set(title=feature, xlim=summary.loc[feature, 'median'] + summary.loc[feature, 'dq'] * np.array([-0.5, 0.5]) * 2)
     plt.tight_layout()
-    return plt
+    if ax is None:
+        return fig, ax
 
 
 def region_bars(atlas_id, feature, label='', regions=None, scale='linear', xlims=None):
@@ -146,11 +147,11 @@ Plot utils functions for similarity analysis
 '''
 
 
-def plot_feature_importance(features_sort, val_sort, ax=None):
+def plot_feature_colorbar(features_sort, val_sort, ax=None):
     '''
     Plot a colorbar of the feature importance
     :param features_sort: sorted list of features
-    :param val_sort: value of interst (e.g. log(p) value from KS test), sorted
+    :param val_sort: value of interest (e.g. log(p) value from KS test), sorted
     :param ax:
     :return:
     '''
@@ -161,6 +162,24 @@ def plot_feature_importance(features_sort, val_sort, ax=None):
     ax.set_yticklabels(features_sort)
     ax.set_xticks([])
     plt.show()
-    return plt
+    if ax is None:
+        return fig, ax
 
 
+def plot_similarity_matrix(mat_plot, regions, ax=None, br=None):
+    if ax is None:
+        fig, ax = plt.subplots(1, 1)
+    if br is None:
+        br = BrainRegions()
+    # Plot
+    plt.imshow(mat_plot)
+    plt.colorbar()
+    plt.show()
+    # Set tick labels as brain region acronyms
+    regions_ac = br.id2acronym(regions)
+    ax.set_xticks(np.arange(regions.size))
+    ax.set_xticklabels(regions_ac, rotation=90)
+    ax.set_yticks(np.arange(regions.size))
+    ax.set_yticklabels(regions_ac)
+    if ax is None:
+        return fig, ax
