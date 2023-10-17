@@ -5,6 +5,7 @@ Code to compute the KS-test, per brain region pair 1-to-1
 from pathlib import Path
 from neurodsp.waveforms import peak_to_trough_ratio
 from scipy.stats import ks_2samp
+from scipy.special import kl_div, rel_entr
 import pandas as pd
 import numpy as np
 import ephys_atlas.data
@@ -12,17 +13,21 @@ import ephys_atlas.plots
 from ephys_atlas.encoding import voltage_features_set
 from iblatlas.atlas import BrainRegions
 from one.api import ONE
+import os
 
 one = ONE(mode='remote')
 br = BrainRegions()
 
 local_path = Path("/Users/gaelle/Documents/Work/EphysAtlas/Data/")
 local_result = local_path.parent.joinpath('Fig3_Result')
-label = '2023_W34'
+label = '2023_W41'
 USE_DEBIAS = False
 
 # Select brain region level to do analysis over
-brain_id = 'cosmos_id'
+brain_id = 'beryl_id'
+
+# Select test to perform
+test_todo = 'ks-test'  # ks-test ; kl-test
 
 # Select set of features to do analysis over
 features = ['alpha_mean', 'alpha_std', 'spike_count', 'peak_time_secs', 'peak_val',
@@ -82,7 +87,7 @@ if brain_id == 'cosmos_id':
 
 
 ##
-# Run KS test 1-by-1
+# Run test 1-by-1
 
 # Create an array containing two regions to compare
 reg_arr = np.empty(shape=[regions.size, regions.size, 2])  # 10x10x2 for Cosmos
@@ -93,11 +98,12 @@ for i_reg, reg in enumerate(regions):  # Fill in the array
 # Fill in result array with Nans
 results_arr = np.empty(shape=[regions.size, regions.size, len(features)])
 results_arr[:] = np.nan
+results_arr1 = results_arr.copy()
 
 # Run over the half portion of the array
 for i_reg, reg in enumerate(regions):
     reg_comp_arr = reg_arr[i_reg+1:, i_reg, 0]  # Regions to compare against start from the next available
-    # print(f'-- Region: {reg}, {i_reg}/{len(regions)} ----')
+    print(f'-- Region: {reg}, {i_reg}/{len(regions)} ----')
     # Prepare dataframe per brain regions
     brain_groupby = df_voltage.groupby(brain_id)
     df_reg = brain_groupby.get_group(reg)
@@ -107,8 +113,33 @@ for i_reg, reg in enumerate(regions):
         # print(f'-- Region compare: {reg_comp}, {i_reg+i_reg_comp+1} ----')
 
         for i_feat, feat in enumerate(features):
-            ks = ks_2samp(df_reg[feat], df_reg_comp[feat])
-            results_arr[i_reg, i_reg+i_reg_comp+1, i_feat] = ks.pvalue
+            # Distributions to compare
+            x = df_reg[feat]
+            y = df_reg_comp[feat]
+            # Increments in the similarity matrix for storage
+            inc0 = i_reg
+            inc1 = i_reg+i_reg_comp+1
+            inc2 = i_feat
+            if test_todo == 'ks-test':
+                ks = ks_2samp(x, y)
+                results_arr[inc0, inc1, inc2] = ks.pvalue
+                results_arr1[inc0, inc1, inc2] = ks.statistic
+            elif test_todo == 'kl-test':
+                # prepare probability distribution function (sum of probabilities = 1) ; create histograms
+                bin_size = 200
+                # Use same range, make sure bins are the same across the 2 PDFs
+                range = (np.min(np.hstack((x, y))), np.max(np.hstack((x, y))))
+                x_bin, x_edge = np.histogram(x, bins=bin_size, range=range)
+                y_bin, y_edge = np.histogram(y, bins=bin_size, range=range)
+                np.testing.assert_equal(x_edge, y_edge)
+                # Divide by N samples to get PDF
+                x_pdf = x_bin / len(x)
+                y_pdf = y_bin / len(y)
+                # Measure divergence and sum (these are non-symmetrical)
+                kl = kl_div(x_pdf, y_pdf)
+                kl_r = rel_entr(x_pdf, y_pdf)
+                results_arr[inc0, inc1, inc2] = sum(kl)
+                results_arr1[inc0, inc1, inc2] = sum(kl_r)
 
 results_log = np.log10(results_arr)
 
@@ -123,13 +154,15 @@ diagonal = np.diag_indices(regions.size)
 ##
 # Save
 if USE_DEBIAS:
-    local_result_b = local_result.joinpath(brain_id).joinpath('use_debias').joinpath(label)
+    local_result_b = local_result.joinpath(brain_id).joinpath('use_debias').joinpath(label).joinpath(test_todo)
 else:
-    local_result_b = local_result.joinpath(brain_id).joinpath('normal').joinpath(label)
+    local_result_b = local_result.joinpath(brain_id).joinpath('normal').joinpath(label).joinpath(test_todo)
 
 if not local_result_b.exists():
-    local_result_b.mkdir()
+    os.makedirs(local_result_b)
 
+np.save(local_result_b.joinpath('results_arr.npy'), results_arr, allow_pickle=True)
+np.save(local_result_b.joinpath('results_arr1.npy'), results_arr1, allow_pickle=True)
 np.save(local_result_b.joinpath('results_log.npy'), results_log, allow_pickle=True)
 np.save(local_result_b.joinpath('results_regions.npy'), regions, allow_pickle=True)
 np.save(local_result_b.joinpath('results_features.npy'), features, allow_pickle=True)
