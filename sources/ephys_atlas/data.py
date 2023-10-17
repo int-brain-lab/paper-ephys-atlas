@@ -284,6 +284,11 @@ def compute_summary_stat(df_voltage, features):
     :param features:
     :return:
     '''
+    # The behavior of loc is inconsistent
+    # If you input a str instead of a list, it returns a Series instead of a dataframe
+    if type(features) != list:  # Make sure input is a list
+        features = [features]
+
     summary = df_voltage.loc[:, features].agg(['median', lambda x: x.quantile(0.05), lambda x: x.quantile(0.95)]).T
     summary.columns = ['median', 'q05', 'q95']
     summary['dq'] = summary['q95'] - summary['q05']
@@ -291,7 +296,13 @@ def compute_summary_stat(df_voltage, features):
 
 
 def sort_feature(values, features, ascending=True):
-    # Sort the value (metrics being p-value, or else)
+    '''
+    Sort the value (metrics being p-value, or else)
+    :param values:
+    :param features:
+    :param ascending:
+    :return:
+    '''
     id_sort = np.argsort(values)
     if not ascending:
         id_sort = np.flip(id_sort)
@@ -302,10 +313,10 @@ def sort_feature(values, features, ascending=True):
 
 def prepare_mat_plot(array_in, id_feat, diag_val=0):
     '''
-    From the matrix storing the results of brain-to-brain regions comparison, in the upper triangle,
-    create a matrix with transpose
-    :param array_in:
-    :param id_feat:
+    From the matrix storing the results of brain-to-brain regions comparison in the upper triangle for all features,
+    select a feature and create a matrix with transpose for plotting in 2D
+    :param array_in: array of N region x N region x N feature
+    :param id_feat: index of feature that will be displayed
     :return:
     '''
     mat_plot = np.squeeze(array_in[:, :, id_feat].copy())
