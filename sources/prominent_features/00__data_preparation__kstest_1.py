@@ -3,7 +3,7 @@ Code to compute the KS-test, per brain region pair 1-to-1
 '''
 
 from pathlib import Path
-from neurodsp.waveforms import peak_to_trough_ratio
+from ephys_atlas.data import prepare_df_voltage
 from scipy.stats import ks_2samp
 from scipy.special import kl_div, rel_entr
 import pandas as pd
@@ -39,7 +39,7 @@ features = ['alpha_mean', 'alpha_std', 'spike_count', 'peak_time_secs', 'peak_va
             'psd_beta_csd', 'psd_gamma_csd', 'spike_count_log',
             'peak_to_trough_duration', 'peak_to_trough_ratio', 'peak_to_trough_ratio_log']
 
-# TODO
+# TODO the function prepare_df_voltage adds in features
 FEATURE_SET = ['raw_ap', 'raw_lf', 'localisation', 'waveforms']
 x_list = voltage_features_set(FEATURE_SET)
 
@@ -54,29 +54,7 @@ else:
     df_voltage, df_clusters, df_channels, df_probes = ephys_atlas.data.download_tables(
         local_path, label=label, one=one, verify=True)
 
-# Drop nan
-df_voltage = pd.merge(df_voltage, df_channels, left_index=True, right_index=True).dropna()
-
-# Remap
-df_voltage['cosmos_id'] = br.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Cosmos')
-df_voltage['beryl_id'] = br.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Beryl')
-
-# Remove void and root
-df_voltage = df_voltage.loc[~df_voltage['cosmos_id'].isin(br.acronym2id(['void', 'root']))]
-
-##
-# Add/change features
-# RMS in DB
-for feat in ['rms_ap', 'rms_lf']:
-    df_voltage[feat] = 20 * np.log10(df_voltage[feat])
-
-# Add in spike_count_log
-df_voltage['spike_count_log'] = np.log10(df_voltage['spike_count'] + 1)
-
-# Add in peak_to_trough_ratio + peak_to_trough_duration
-df_voltage = peak_to_trough_ratio(df_voltage)
-df_voltage['peak_to_trough_duration'] = df_voltage['trough_time_secs'] - df_voltage['peak_time_secs']
-
+df_voltage = prepare_df_voltage(df_voltage, df_channels)
 
 ##
 # Regions of DF
