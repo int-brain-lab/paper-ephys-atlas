@@ -10,6 +10,17 @@ from ephys_atlas.data import compute_summary_stat
 
 def kde_plot(feature, df_voltage, brain_id='cosmos_id', regions_id=None,
              br=None, ax=None, summary=None):
+    '''
+    Plot KDEs for a given feature
+    :param feature: str containing the feature name, e.g. 'peak_to_trough_ratio_log'
+    :param df_voltage: dataframe of feature values ; must contain the column brain_id
+    :param brain_id: parcelation chosen, e.g. 'cosmos_id' or 'beryl_id'
+    :param regions_id: array of region ids to be  plotted (as per brain_id parcelation), e.g. [21, 234]
+    :param br: brain region object
+    :param ax: axis for plotting
+    :param summary: summary statistics
+    :return:
+    '''
     if regions_id is not None:  # remove all the rows that aren't part of this set of region first
         df_voltage = df_voltage[df_voltage[brain_id].isin(regions_id)]
     if br is None:
