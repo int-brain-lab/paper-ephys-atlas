@@ -288,3 +288,13 @@ def compute_summary_stat(df_voltage, features):
     summary.columns = ['median', 'q05', 'q95']
     summary['dq'] = summary['q95'] - summary['q05']
     return summary
+
+
+def sort_feature(values, features, ascending=True):
+    # Sort the value (metrics being p-value, or else)
+    id_sort = np.argsort(values)
+    if not ascending:
+        id_sort = np.flip(id_sort)
+    features_sort = features[id_sort]
+    values_sort = values[id_sort]
+    return values_sort, features_sort
