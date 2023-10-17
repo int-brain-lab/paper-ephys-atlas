@@ -24,6 +24,6 @@ def load_ks_result(local_result_path, brain_id='beryl_id', label='2023_W41', tes
     results_log = np.load(local_result_b.joinpath('results_log.npy'), allow_pickle=True)
     regions = np.load(local_result_b.joinpath('results_regions.npy'), allow_pickle=True)
     features = np.load(local_result_b.joinpath('results_features.npy'), allow_pickle=True)
-    results = np.load(local_result_b.joinpath('results_arr.npy'), allow_pickle=True)
-    results_arr1 = np.load(local_result_b.joinpath('results_arr1.npy'), allow_pickle=True)
-    return results_log, regions, features, results, results_arr1
+    # results = np.load(local_result_b.joinpath('results_arr.npy'), allow_pickle=True)
+    # results_arr1 = np.load(local_result_b.joinpath('results_arr1.npy'), allow_pickle=True)
+    return results_log, regions, features  #, results, results_arr1
