@@ -2,17 +2,20 @@ from pathlib import Path
 
 import pandas as pd
 
-from brainwidemap.meta import meta_bwm
+# from brainwidemap.meta import meta_bwm
 import ephys_atlas.data
 import ephys_atlas.plots
 from iblatlas.atlas import BrainRegions
 
 br = BrainRegions()
-local_path = Path("/Users/olivier/Documents/datadisk/paper-ephys-atlas/ephys-atlas-decoding/latest")
+# local_path = Path("/Users/olivier/Documents/datadisk/paper-ephys-atlas/ephys-atlas-decoding/latest")
+local_data_path = Path('/Users/gaelle/Documents/Work/EphysAtlas/Data')
+label = '2023_W41'
+local_path = local_data_path.joinpath(label)
 df_voltage, df_clusters, df_channels, df_probes = ephys_atlas.data.load_tables(local_path, verify=True)
 df = df_voltage.merge(df_channels, left_index=True, right_index=True)
 
-dfa, palette = meta_bwm.get_allen_info()
+# dfa, palette = meta_bwm.get_allen_info()
 df['atlas_id_beryl'] = br.remap(df['atlas_id'], source_map='Allen', target_map='Beryl')
 df['pids'] = df.index.get_level_values(0)
 # Index(['alpha_mean', 'alpha_std', 'spike_count', 'cloud_x_std', 'cloud_y_std',
