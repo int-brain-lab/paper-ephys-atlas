@@ -23,6 +23,7 @@ def plot_kde(feature, df_voltage, brain_id='cosmos_id', regions_id=None,
     '''
     if regions_id is not None:  # remove all the rows that aren't part of this set of region first
         df_voltage = df_voltage[df_voltage[brain_id].isin(regions_id)]
+        # df_voltage = df_voltage.loc[df_voltage[brain_id].isin(regions_id)]
     if br is None:
         br = BrainRegions()
     if ax is None:
