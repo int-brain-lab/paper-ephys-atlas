@@ -15,8 +15,8 @@ from iblutil.numerical import ismember
 # av = atlasview.view()
 LOCAL_DATA_PATH = Path("/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding")
 
-
-ba = AllenAtlas(25)
+# instantiate the Allen atlas
+ba = AllenAtlas(res_um=25)
 ba.compute_surface()
 
 str_mapping = 'Cosmos'
@@ -26,17 +26,17 @@ volume = ba.regions.mappings[str_mapping][ba.label]  # ap, ml, dv
 mask = ba.mask()
 volume[~mask] = -1
 
+# getting the unique set of regions for the given mapping
 aids_unique = np.unique(ba.regions.id[ba.regions.mappings[str_mapping]])
 _, ir_unique = ismember(aids_unique, ba.regions.id)
 
-ba.regions.acronym[ir_unique]
 up = volume[:, :, :-1].flatten()
 lo = volume[:, :, 1:].flatten()
 iok = np.logical_and(up >= 0, lo >= 0)
 _, icc_up = ismember(up[iok], ir_unique)
 _, icc_lo = ismember(lo[iok], ir_unique)
 
-
+# here we count the number of voxel from each reagion
 state_transitions = sp.coo_matrix(  # (data, (i, j))
     (np.ones_like(icc_lo), (icc_up, icc_lo)), shape=(ir_unique.size, ir_unique.size)).todense()
 states_count = sp.coo_matrix(
