@@ -14,12 +14,12 @@ import seaborn as sns
 
 from iblatlas.atlas import BrainRegions
 from iblutil.numerical import ismember
-
+from brainbox.ephys_plots import plot_brain_regions
 import ephys_atlas.encoding
 import ephys_atlas.plots
 from ephys_atlas.decoding import viterbi
 
-FOLDER_GDRIVE = Path("/datadisk/gdrive/2023/07_HMM_Decoding")
+FOLDER_GDRIVE = Path("/datadisk/gdrive/2023/10_HMM_Decoding")
 
 features_list = ephys_atlas.encoding.voltage_features_set()
 
@@ -60,25 +60,27 @@ transition_down = transition_down[itr, :][:, itr]
 transition_up = transition_up[itr, :][:, itr]
 transition_up = transition_up / np.sum(transition_up, axis=1)[:, np.newaxis]
 transition_down = transition_down / np.sum(transition_down, axis=1)[:, np.newaxis]
+emission = confusion_matrix
 np.testing.assert_equal(np.sum(itr), classes.size)
+
 
 if label == 'cosmos':
     fig, ax = plt.subplots(1, 1, figsize=(7, 6))
-    sns.heatmap(confusion_matrix * 100, vmin=0, vmax=50, cmap='Blues', annot=True, ax=ax, fmt='.1f')
+    sns.heatmap(emission * 100, vmin=0, vmax=50, cmap='Blues', annot=True, ax=ax, fmt='.1f')
     ax.set(
         xticklabels=regions.id2acronym(classes),
         yticklabels=regions.id2acronym(classes),
         xlabel='True region',
         ylabel='Predicted region',
-        title='Confusion matrix / Emission Probabilities (%)'
+        title='Emission Probabilities (%)'
     )
     fig, ax = plt.subplots(1, 1, figsize=(7, 6))
     sns.heatmap(transition_down * 100, vmin=0, vmax=1.2, annot=True, fmt='.1f', ax=ax, cmap='Blues')
     ax.set(
         xticklabels=regions.id2acronym(classes),
         yticklabels=regions.id2acronym(classes),
-        xlabel='Upper region',
-        ylabel='Lower region',
+        xlabel='Lower region',
+        ylabel='Upper region',
         title='Transition Probabilities (%)'
     )
 
@@ -92,22 +94,25 @@ for pid in pids:
     # pid = np.random.choice(pids)  # fixme
     _, predictions = ismember(df_depths.loc[pid, f'{label}_prediction'].values, classes)
     nd, nr = (predictions.shape[0], classes.size)
-    probas = df_depths.loc[pid, regions.id2acronym(classes)].values
+    probas = df_depths.loc[pid, regions.id2acronym(classes)].values  # this is the (ndepths, nregions) matrix of probabilities
+
+    # probas / classes_priors
+    # probas / classes_priors
 
     n_runs = 1000
     all_obs = np.zeros((nd, n_runs), dtype=int)
     all_vit = np.zeros((nd, n_runs))
     vprobs = np.zeros(n_runs)
+    vit, _ = viterbi(emission, transition_down, classes_priors, predictions)
 
     for i in range(n_runs):
         # generates a random set of observed states according to the classifier output probabilities
         all_obs[:, i] = np.flipud(np.mod(np.searchsorted(probas.flatten().cumsum(), np.random.rand(nd) + np.arange(nd)), nr))
         # run the viterbi algorithm once on the predicted labels for reference
-        vit, _ = viterbi(confusion_matrix, transition_down, classes_priors, predictions)
         match method:
             case 'one_way':
                 init_hidden_probs = probas[0, :]
-                cl, p = viterbi(confusion_matrix, transition_down, init_hidden_probs, all_obs[:, i])
+                cl, p = viterbi(emission, transition_down, init_hidden_probs, all_obs[:, i])
                 vprobs[i] = p
                 all_vit[:, i] = cl
             case 'two_ways':
@@ -116,10 +121,10 @@ for pid in pids:
                 init_hidden_probs = probas[dstart, :]
                 # we take a random set of observed states according to the classifier output probabilities
                 # this is the downward part
-                all_vit[dstart:nd, i], pdown = viterbi(confusion_matrix, transition_down, init_hidden_probs, all_obs[dstart:nd, i])
+                all_vit[dstart:nd, i], pdown = viterbi(emission, transition_down, init_hidden_probs, all_obs[dstart:nd, i])
                 # this is the upward part, note that we transpose the transition matrix to reflect the shift in direction
                 _vit, pup = viterbi(
-                    confusion_matrix, transition_up, init_hidden_probs, np.flipud(all_obs[0:dstart, i]))
+                    emission, transition_up, init_hidden_probs, np.flipud(all_obs[0:dstart, i]))
                 all_vit[0:dstart, i] = np.flipud(_vit)
                 vprobs[i] = np.sqrt(pup * pdown)
 
@@ -140,7 +145,7 @@ for pid in pids:
     hacc = sklearn.metrics.accuracy_score(df_depths.loc[pid, f'{label}_id'].values, classes[vit_pred])
     pacc = sklearn.metrics.accuracy_score(df_depths.loc[pid, f'{label}_id'].values, df_depths.loc[pid, f'{label}_prediction'].values)
     vacc = sklearn.metrics.accuracy_score(df_depths.loc[pid, f'{label}_id'].values, classes[vit])
-    continue
+
     fig, axs = plt.subplots(1, 7, figsize=(16, 8), gridspec_kw={'width_ratios': [1, 1, 7, 1, 1, 1, 7]})
     depths = df_depths.loc[pid].index.values
     plot_brain_regions(df_depths.loc[pid][f'{label}_id'].values, channel_depths=df_depths.loc[pid].index.values,
@@ -177,9 +182,29 @@ print(acc, acc_hmm, acc_vit)
 
 ## %%
 df_acc = df_depths.loc[:, ['hmm', 'hmm_stochastic', f'{label}_prediction']].apply(lambda x: x == df_depths.loc[:, f'{label}_id'].values)
-# df_acc = df_acc.groupby(['pid']).mean()
-df_acc = df_acc.stack().reset_index().rename(columns={'level_2': 'method', 0: 'accuracy'}).groupby(['pid', 'method']).mean().reset_index()
-# sns.catplot(df_acc, x='pid', y='accuracy', hue='method', ax=ax, kind='bar', palette='dark', alpha=0.6)
+
+df_acc_s = df_acc.groupby('pid').mean()
+# df_acc_s = df_acc_s.apply(lambda x: x - df_acc_s['cosmos_prediction'])
+df_acc_s = df_acc_s.stack().reset_index().rename(columns={'level_1': 'method', 0: 'accuracy'})
+df_acc_s['pid'] = df_acc_s['pid'].apply(lambda x: x[:6])
+
 fig, ax = plt.subplots(figsize=(12, 4))
-sns.boxplot(df_acc, x='accuracy', y='method', ax=ax)
+sns.boxplot(df_acc_s, x='accuracy', y='method', ax=ax)
 fig.tight_layout()
+
+## %%
+## %%
+
+
+df_acc_s = df_acc.groupby('pid').mean()
+df_acc_s = df_acc_s.apply(lambda x: x - df_acc_s['cosmos_prediction']).reset_index()
+df_acc_s['pid'] = df_acc_s['pid'].apply(lambda x: x[:6])
+
+fig, ax = plt.subplots()
+sns.lineplot(df_acc_s, x='pid', y='hmm', ax=ax, palette='pastel')
+sns.lineplot(df_acc_s, x='pid', y='hmm_stochastic', ax=ax, palette='pastel')
+plt.xticks(rotation=45)
+
+plt.legend(['hmm', 'hmm_stochastic'])
+plt.title('Accuracy difference with Cosmos prediction')
+plt.tight_layout()

@@ -24,6 +24,7 @@ LOCAL_DATA_PATH = Path("/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding")
 
 
 df_voltage, _, _, _ = ephys_atlas.data.load_voltage_features(LOCAL_DATA_PATH.joinpath(label))
+# here we split the training and testing sets making sure the benchmark insertions are part of the testing set
 train_idx, test_idx = ephys_atlas.encoding.train_test_split_indices(df_voltage, include_benchmarks=True)
 print(f"{df_voltage.shape[0]} channels", f'training set {np.sum(test_idx) / test_idx.size}')
 
