@@ -135,7 +135,7 @@ def localisation(destination=None, clobber=False):
             cleaned_wfs = wfs if first == 0 else np.concatenate([cleaned_wfs, wfs], axis=0)
             loc['sample'] += first
             localisation.append(loc)
-        localisation = pd.concat(localisation)
+        localisation = pd.concat(localisation).reset_index()
         np.save(file_waveforms, cleaned_wfs)
         localisation.to_parquet(file_spikes)
 

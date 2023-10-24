@@ -61,10 +61,10 @@ SCALE = True
 '''
 LABEL = '2022_W34'
 LABEL = '2023_W14'
-LOCAL_DATA_PATH = Path("C:/Users/Asus/int-brain-lab/ephys_atlas/tables")
+FOLDER_GDRIVE = Path("C:/Users/Asus/int-brain-lab/ephys_atlas/tables")
 one = ONE(base_url="https://alyx.internationalbrainlab.org", mode='local')
 
-df_raw_features, df_clusters, df_channels = download_tables(label=LABEL, local_path=LOCAL_DATA_PATH, one=one)
+df_raw_features, df_clusters, df_channels = download_tables(label=LABEL, local_path=FOLDER_GDRIVE, one=one)
 df_depths = compute_depth_dataframe(df_raw_features, df_clusters, df_channels)
 df_voltage = df_raw_features.merge(df_channels, left_index=True, right_index=True)
 
