@@ -40,7 +40,7 @@ SCALE = False
 label = '2023_W34'
 
 LOCAL_DATA_PATH = Path("/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding")
-# LOCAL_DATA_PATH = Path("/mnt/s1/ephys-atlas-decoding")
+# FOLDER_GDRIVE = Path("/mnt/s1/ephys-atlas-decoding")
 
 
 benchmark_pids = ['1a276285-8b0e-4cc9-9f0a-a3a002978724',
