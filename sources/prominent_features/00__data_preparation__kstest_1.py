@@ -20,11 +20,11 @@ br = BrainRegions()
 
 local_path = Path("/Users/gaelle/Documents/Work/EphysAtlas/Data/")
 local_result = local_path.parent.joinpath('Fig3_Result')
-label = '2023_W41'
+label = '2023_W34'
 USE_DEBIAS = False
 
 # Select brain region level to do analysis over
-brain_id = 'beryl_id'
+brain_id = 'cosmos_id'
 
 # Select test to perform
 test_todo = 'ks-test'  # ks-test ; kl-test
