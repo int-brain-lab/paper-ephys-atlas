@@ -3,6 +3,7 @@ Get autism data from JP
 fmr1 mouse line
 '''
 from one.api import ONE
+import numpy as np
 
 one = ONE(mode='remote')
 project = 'angelaki_mouseASD'
@@ -22,3 +23,11 @@ ins_keep = [item for item in insertions if item['session_info']['subject'][0:3] 
 for ins in ins_keep:
     print(f"PID: {ins['id']} - "
           f"{ins['session_info']['subject']}/{ins['session_info']['start_time'][0:10]}/{ins['session_info']['number']}")
+
+##
+# Check whether mice are male or female
+subjs = np.unique([ins['session_info']['subject'] for ins in ins_keep])
+
+for subj in subjs:
+    subject = one.alyx.rest('subjects', 'list', nickname=subj)[0]
+    print(f"{subject['nickname']}: Line: {subject['line']}, Sex: {subject['sex']}")
