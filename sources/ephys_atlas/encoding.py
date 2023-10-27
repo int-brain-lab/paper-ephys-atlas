@@ -22,7 +22,8 @@ def voltage_features_set(features_list=None):
     if 'raw_ap' in features_list:  # full mode
         x_list += ['rms_ap']
     if 'raw_lf' in features_list:
-        x_list += ['rms_lf', 'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'psd_lfp_csd']
+        x_list += ['rms_lf', 'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'psd_lf',
+                   'psd_lfp_csd', 'psd_delta_csd', 'psd_alpha_csd', 'psd_beta_csd', 'psd_gamma_csd']
     if 'localisation' in features_list:
         x_list += ['alpha_mean', 'alpha_std', 'spike_count']
     if 'waveforms' in features_list:
