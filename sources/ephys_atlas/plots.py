@@ -6,6 +6,25 @@ import numpy as np
 import matplotlib.patches as patches
 from iblatlas.atlas import BrainRegions
 from ephys_atlas.data import compute_summary_stat
+from ephys_atlas.encoding import FEATURES_LIST
+from matplotlib import cm  # This is deprecated, but cannot import matplotlib.colormaps as cm
+
+
+def color_map_feature(feature_list=FEATURES_LIST, cmap='Pastel1_r', n_inc=12):
+    # color_map = cm.get_cmap(cmap, n_inc)
+    # np.linspace(0, 1, num=len(feature_list))
+    # color_alpha = color_map(np.linspace(0, 1, num=len(feature_list)))
+    # color_only = color_alpha[:, 0:3]  # Return only the color values
+    # # Convert to list of tuple [(0, 0.2, 0.1), (...)]
+    # list_col = color_only.tolist()
+    # list_out = list()
+    # for i_col in list_col:
+    #     list_out.append(tuple(i_col))
+    # TODO above is correct but umpractical ?
+    list_out = ['m', 'g', 'k', 'b']
+    assert len(list_out) == len(FEATURES_LIST)
+
+    return list_out
 
 
 def plot_kde(feature, df_voltage, brain_id='cosmos_id', regions_id=None,
