@@ -8,21 +8,21 @@ from iblutil.numerical import ismember
 import ephys_atlas.data
 
 _SEED = 7654
+FEATURES_LIST = ['raw_ap', 'raw_lf', 'localisation', 'waveforms']
 
 
-def voltage_features_set(features_list=None):
+def voltage_features_set(features_list=FEATURES_LIST):
     """
     THis function returns the list of features columns names depending on their provenance.
-    This is useful to select the columns for taraining
-    :param feature_set_list: optional, defaults to ['raw_ap', 'raw_lf', 'localisation', 'waveforms']
+    This is useful to select the columns for training
+    :param features_list: optional, defaults to ['raw_ap', 'raw_lf', 'localisation', 'waveforms']
     :return:
     """
-    features_list = features_list or ['raw_ap', 'raw_lf', 'localisation', 'waveforms']
     x_list = []
     if 'raw_ap' in features_list:  # full mode
         x_list += ['rms_ap']
     if 'raw_lf' in features_list:
-        x_list += ['rms_lf', 'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma', 'psd_lf',
+        x_list += ['rms_lf', 'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma',  # 'psd_lf',
                    'psd_lfp_csd', 'psd_delta_csd', 'psd_alpha_csd', 'psd_beta_csd', 'psd_gamma_csd']
     if 'localisation' in features_list:
         x_list += ['alpha_mean', 'alpha_std', 'spike_count']
