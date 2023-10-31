@@ -11,15 +11,15 @@ from ephys_atlas.plots import plot_kde, plot_similarity_matrix
 from ephys_atlas.data import prepare_mat_plot, load_tables, prepare_df_voltage
 
 br = BrainRegions()
-label = '2023_W41'
+label = '2023_W34'  # label = '2023_W41'
 brain_id = 'cosmos_id'
 
 local_data_path = Path('/Users/gaelle/Documents/Work/EphysAtlas/Data')
 local_result_path = Path('/Users/gaelle/Documents/Work/EphysAtlas/Fig3_Result')
 local_fig_path = local_result_path.joinpath(brain_id)
-#
-# results_log, regions, features = load_ks_result(
-#     local_result_path, test_todo='ks-test', brain_id=brain_id, label=label)
+
+results_log, regions, features = load_ks_result(
+    local_result_path, test_todo='ks-test', brain_id=brain_id, label=label)
 features = ['alpha_mean', 'alpha_std'] # to debug
 
 df_voltage, df_clusters, df_channels, df_probes = load_tables(

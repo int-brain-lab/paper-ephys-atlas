@@ -41,4 +41,4 @@ atlas_id = df_regions['atlas_id_beryl']
 label = 'N of insertions'
 
 ## %% arguments would be atlas_id, feature, label, br
-ephys_atlas.plots.region_bars(atlas_id=atlas_id, feature=feature, label=label, regions=br)
+fig, ax = ephys_atlas.plots.region_bars(atlas_id=atlas_id, feature=feature, label=label, regions=br)
