@@ -21,7 +21,7 @@ def color_map_feature(feature_list=FEATURES_LIST, cmap='Pastel1_r', n_inc=12):
     # for i_col in list_col:
     #     list_out.append(tuple(i_col))
     # TODO above is correct but umpractical ?
-    list_out = ['m', 'g', 'k', 'b']
+    list_out = ['m', 'g', 'm', 'b']
     assert len(list_out) == len(FEATURES_LIST)
 
     return list_out
