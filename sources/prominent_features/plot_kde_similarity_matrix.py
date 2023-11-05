@@ -4,11 +4,17 @@ Plot of KDEs and similarity matrix
 # from ephys_atlas.prominent_features import ... TODO
 from pathlib import Path
 import matplotlib.pyplot as plt
+import pandas as pd
 from iblatlas.atlas import BrainRegions
 import numpy as np
 
 from ephys_atlas.plots import plot_kde, plot_similarity_matrix
 from ephys_atlas.data import prepare_mat_plot, load_tables, prepare_df_voltage
+
+import seaborn as sns
+from ephys_atlas.encoding import voltage_features_set, FEATURES_LIST
+from ephys_atlas.plots import color_map_feature
+import ephys_atlas.encoding
 
 br = BrainRegions()
 label = '2023_W34'  # label = '2023_W41'
@@ -63,3 +69,50 @@ for id_feat, feature in enumerate(features):
     plot_kde(feature, df_voltage, ax=axs[0])
     plt.savefig(local_fig_path.joinpath(f'kde_sim__{feature}.png'))
     plt.close()
+
+##
+# Create one matrix containing all features, sum to get most important features overall
+
+color_set = color_map_feature()
+
+features_select = ephys_atlas.encoding.voltage_features_set()
+df_f = pd.DataFrame()
+df_f['features'] = features
+df_b = df_f[df_f['features'].isin(features_select)]
+features = df_b['features'].tolist()
+
+mat_all = np.zeros((np.size(regions), np.size(regions), np.size(features)))
+for id_feat, feature in enumerate(features):
+    mat_plot = prepare_mat_plot(arr_results, id_feat)
+    mat_plot[np.where(mat_plot < -500)] = -500
+    mat_all[:, :, id_feat] = mat_plot
+
+sum_mat = np.sum(mat_all, axis=0)
+sum_mat_final = np.sum(sum_mat, axis=0)
+
+
+# plt.bar(np.arange(len(sum_mat_final)), -sum_mat_final)
+# plt.show()
+# plt.xticks(np.arange(0, np.size(features)), features, rotation=90)
+# plt.xticklabels(features)
+# plt.xticks(rotation=90)
+# plt.tight_layout()
+
+x_mat = -sum_mat_final
+indx_x_sort = np.flip(np.argsort(x_mat))
+
+df_plt = pd.DataFrame()
+df_plt['index'] = np.array(features)[indx_x_sort]
+df_plt['information_gain'] = x_mat[indx_x_sort]
+df_plt['color'] = 0  # init new column
+
+for feature_i, color_i in zip(FEATURES_LIST, color_set):
+    feat_list = voltage_features_set(feature_i)
+    indx = df_plt['index'].isin(feat_list)
+    df_plt['color'][indx] = color_i
+
+
+fig, ax = plt.subplots()
+sns.barplot(df_plt, y='information_gain', x='index', palette=df_plt['color'])
+plt.xticks(rotation=90)
+fig.tight_layout()
