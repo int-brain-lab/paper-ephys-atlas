@@ -19,7 +19,7 @@ import ephys_atlas.encoding
 import ephys_atlas.plots
 from ephys_atlas.decoding import viterbi
 
-FOLDER_GDRIVE = Path("/datadisk/gdrive/2023/10_HMM_Decoding")
+FOLDER_GDRIVE = Path("/datadisk/team_drives/Task Force - Electrophysiology Atlas/Decoding/HMM_Decoding")
 
 features_list = ephys_atlas.encoding.voltage_features_set()
 
@@ -50,7 +50,6 @@ npz_transitions = np.load(FOLDER_GDRIVE.joinpath(f"region_transition_{label}.npz
 # (nr, nr)
 transition_down = npz_transitions['region_transitions']
 transition_up = npz_transitions['region_transitions'].T
-pids = df_depths.index.get_level_values(0).unique()
 
 df_depths['hmm_prediction'] = 0
 classes_priors = npz_transitions['region_counts'].squeeze() / np.sum(npz_transitions['region_counts'])
@@ -88,7 +87,9 @@ if label == 'cosmos':
 """
 We are going to use a HMM to denoise the coding
 """
-pid = 'dab512bd-a02d-4c1f-8dbc-9155a163efc0                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  '
+pids = df_depths.index.get_level_values(0).unique()
+pids = ['1e104bf4-7a24-4624-a5b2-c2c8289c0de7']
+pids = ['dc7e9403-19f7-409f-9240-05ee57cb7aea']
 method = 'two_ways'  # 'two_ways', 'one_way'
 for pid in pids:
     # pid = np.random.choice(pids)  # fixme
@@ -96,6 +97,19 @@ for pid in pids:
     nd, nr = (predictions.shape[0], classes.size)
     probas = df_depths.loc[pid, regions.id2acronym(classes)].values  # this is the (ndepths, nregions) matrix of probabilities
 
+    # we need to remove the root and void regions from the predictions
+
+    _, root_void = ismember(regions.acronym2id(['root', 'void']), classes)
+    irv, _ = ismember(predictions, root_void)
+    predictions = scipy.interpolate.interp1d(np.arange(predictions.size)[~irv], predictions[~irv], kind='nearest', fill_value='extrapolate')(np.arange(predictions.size)).astype(int)
+    probas[:, root_void] = 0
+    probas = probas / probas.sum(axis=1)[:, np.newaxis]
+    emission[:, root_void] = 0
+    emission = emission / emission.sum(axis=1)[:, np.newaxis]
+    transition_down[:, root_void] = 0
+    transition_down = transition_down / transition_down.sum(axis=1)[:, np.newaxis]
+    transition_up[:, root_void] = 0
+    transition_up = transition_up / transition_up.sum(axis=1)[:, np.newaxis]
     # probas / classes_priors
     # probas / classes_priors
 
@@ -170,8 +184,8 @@ for pid in pids:
     axs[6].set(title=f"Viterbi:{vacc:.2f}, HMM stochastic {hacc:.2f} accuracy")
     fig.suptitle(f"{pid}")
     fig.savefig(FOLDER_GDRIVE.joinpath("pics", f"viterbi_{pid}_{method}.png"), dpi=100)
-    plt.close(fig)
-
+    # plt.close(fig)
+# TODO plot raw data features
 
 
 acc_hmm = np.mean(df_depths.loc[pid, f'{label}_id'].values == df_depths.loc[pid, 'hmm_stochastic'].values)
