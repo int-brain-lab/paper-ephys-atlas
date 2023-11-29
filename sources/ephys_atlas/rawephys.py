@@ -1,5 +1,3 @@
-from pathlib import Path
-import traceback
 import yaml
 
 import numpy as np
@@ -8,7 +6,7 @@ import pandas as pd
 
 import neuropixel
 from neurodsp import voltage
-from neurodsp.utils import rms, fcn_cosine
+from neurodsp.utils import rms
 from brainbox.io.spikeglx import Streamer
 
 from iblutil.util import setup_logger
@@ -17,6 +15,7 @@ from neurodsp.waveforms import compute_spike_features
 from neurodsp.voltage import current_source_density
 from neurodsp.cadzow import cadzow_np1
 from neuropixel import trace_header
+import ephys_atlas.features
 
 _logger = setup_logger('ephys_atlas', level='INFO')
 
@@ -167,9 +166,7 @@ def compute_ap_features(pid, root_path=None):
         with open(file_destripe.with_suffix('.yml')) as fp:
             ap_info = yaml.safe_load(fp)
         data = np.load(file_destripe).astype(np.float32)
-        df_chunk = pd.DataFrame()
-        df_chunk['channel'] = np.arange(ap_info['nc'])
-        df_chunk['rms_ap'] = rms(data, axis=-1)
+        df_chunk = ephys_atlas.features.ap(data)
         df_chunks.append(df_chunk)
         rl += data.shape[1] / ap_info['fs']
     if len(df_chunks) == 0:
@@ -181,14 +178,6 @@ def compute_ap_features(pid, root_path=None):
     return ap_features, ap_info['fs']
 
 
-def get_power_in_band(fscale, period, band):
-    band = np.array(band)
-    # weight the frequencies
-    fweights = fcn_cosine([-np.diff(band), 0])(-abs(fscale - np.mean(band)))
-    p = 10 * np.log10(np.sum(period * fweights / np.sum(fweights), axis=-1))  # # dB relative to v/sqrt(Hz)
-    return p
-
-
 def compute_lf_features(pid, root_path=None, bands=None, current_source=False):
     """
     Reads in the destriped LF and computes the LF features
@@ -198,8 +187,6 @@ def compute_lf_features(pid, root_path=None, bands=None, current_source=False):
         -   rms_lf (V): RMS of the LF band
         -   psd_delta (dB rel V ** 2 / Hz): Power in the delta band (also theta, alpha, beta, gamma)
     """
-    BANDS = {'delta': [0, 4], 'theta': [4, 10], 'alpha': [8, 12], 'beta': [15, 30], 'gamma': [30, 90], 'lfp': [0, 90]}
-    bands = bands or BANDS
     pfolder = root_path.joinpath(pid)
     files_lfp = list(pfolder.rglob('lf.npy'))
     nfiles = len(files_lfp)
@@ -214,18 +201,13 @@ def compute_lf_features(pid, root_path=None, bands=None, current_source=False):
             h = trace_header(version=1)
             cadzow = cadzow_np1(data, rank=2, fs=250, niter=1)
             data = current_source_density(cadzow, h=h)
-        fscale, period = scipy.signal.periodogram(data, lf_info['fs'])
-        df_chunk = pd.DataFrame()
-        df_chunk['channel'] = np.arange(lf_info['nc'])
-        df_chunk['rms_lf'] = rms(data, axis=-1)
-        for b in BANDS:
-            df_chunk[f"psd_{b}"] = get_power_in_band(fscale, period, bands[b])
+        df_chunk = ephys_atlas.features.lf(data, lf_info['fs'], bands=ephys_atlas.features.BANDS)
         df_chunks.append(df_chunk)
 
     df_chunks = pd.concat(df_chunks)
     lf_features = df_chunks.groupby('channel').agg(
         rms_lf=pd.NamedAgg(column="rms_lf", aggfunc="median"),
-        **{f"psd_{b}": pd.NamedAgg(column=f"psd_{b}", aggfunc="median") for b in BANDS}
+        **{f"psd_{b}": pd.NamedAgg(column=f"psd_{b}", aggfunc="median") for b in ephys_atlas.features.BANDS}
     )
     return lf_features
 
