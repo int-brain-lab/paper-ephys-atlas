@@ -34,4 +34,4 @@ xy = pid_ch_df[['lateral_um', 'axial_um']].to_numpy()
 ##
 # Select your features and plot
 features = ['rms_lf', 'psd_delta', 'rms_ap']
-figure_features_chspace(pid_ch_df, features, xy)
+fig, axs = figure_features_chspace(pid_ch_df, features, xy)
