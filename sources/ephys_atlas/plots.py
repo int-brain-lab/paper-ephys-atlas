@@ -271,7 +271,7 @@ def figure_features_chspace(pid_df, features, xy):
     d_uni = d_uni.astype(np.float32)
     data = prepare_data_probe_plot(d_uni, xy)
     plot_probe(data.convert2dict(), ax=axs[len(features)], show_cbar=False)
-    axs[len(features)].set_title('region id')
+    axs[len(features)].set_title('atlas reg')
     # TODO color code based on brain region color
     # region_info = br.get(pid_ch_df['atlas_id'])
     # region_info.rgb
