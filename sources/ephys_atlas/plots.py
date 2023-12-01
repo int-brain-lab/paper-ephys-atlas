@@ -280,3 +280,4 @@ def figure_features_chspace(pid_df, features, xy):
     plot_brain_regions(pid_df['atlas_id'], channel_depths=pid_df['axial_um'].to_numpy(),
                        ax=axs[len(features) + 1])
     axs[len(features) + 1].set_title('brain region')
+    return fig, axs
