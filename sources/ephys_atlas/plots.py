@@ -8,7 +8,8 @@ from iblatlas.atlas import BrainRegions
 from ephys_atlas.data import compute_summary_stat
 from ephys_atlas.encoding import FEATURES_LIST
 from matplotlib import cm  # This is deprecated, but cannot import matplotlib.colormaps as cm
-from brainbox.plot_base import ProbePlot, arrange_channels2banks
+from brainbox.plot_base import ProbePlot, arrange_channels2banks, plot_probe
+from brainbox.ephys_plots import plot_brain_regions
 
 
 def color_map_feature(feature_list=FEATURES_LIST, cmap='Pastel1_r', n_inc=12):
@@ -237,3 +238,45 @@ def prepare_data_probe_plot(data_arr, xy, cmap=None, clim=None):
                               [0.1, 0.9])
     data.set_clim(clim)
     return data
+
+
+def figure_features_chspace(pid_df, features, xy):
+    '''
+
+    :param pid_df: Dataframe containing channels and voltage information for a given PID
+    Example on how to prepare it:
+    # Merge the voltage and channels dataframe
+    df_voltage = pd.merge(df_voltage, df_channels, left_index=True, right_index=True).dropna()
+    # Select a PID and create the single probe dataframe
+    pid = '0228bcfd-632e-49bd-acd4-c334cf9213e9'
+    pid_df = df_voltage[df_voltage.index.get_level_values(0).isin([pid])].copy()
+
+    :param features: list of feature names to display, e.g. ['rms_lf', 'psd_delta', 'rms_ap']
+    These have to bey columns keys of the pid_df
+    :param xy: Matrix of spatial channel position (in um), lateral_um (x) and axial_um (y) [N channel x2]
+    :return:
+    '''
+    fig, axs = plt.subplots(1, len(features) + 2, sharey=True)
+
+    for i_feat, feature in enumerate(features):
+        feat_arr = pid_df[[feature]].to_numpy()
+        # Plot feature
+        data = prepare_data_probe_plot(feat_arr, xy)
+        plot_probe(data.convert2dict(), ax=axs[i_feat], show_cbar=False)
+        del data
+        axs[i_feat].set_title(feature)
+
+    # Plot brain region in space in unique colors
+    d_uni = np.unique(pid_df['atlas_id'].to_numpy(), return_inverse=True)[1]
+    d_uni = d_uni.astype(np.float32)
+    data = prepare_data_probe_plot(d_uni, xy)
+    plot_probe(data.convert2dict(), ax=axs[len(features)], show_cbar=False)
+    axs[len(features)].set_title('region id')
+    # TODO color code based on brain region color
+    # region_info = br.get(pid_ch_df['atlas_id'])
+    # region_info.rgb
+
+    # Plot brain region along probe depth with color code
+    plot_brain_regions(pid_df['atlas_id'], channel_depths=pid_df['axial_um'].to_numpy(),
+                       ax=axs[len(features) + 1])
+    axs[len(features) + 1].set_title('brain region')
