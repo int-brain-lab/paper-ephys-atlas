@@ -8,6 +8,7 @@ from iblatlas.atlas import BrainRegions
 from ephys_atlas.data import compute_summary_stat
 from ephys_atlas.encoding import FEATURES_LIST
 from matplotlib import cm  # This is deprecated, but cannot import matplotlib.colormaps as cm
+from brainbox.plot_base import ProbePlot, arrange_channels2banks
 
 
 def color_map_feature(feature_list=FEATURES_LIST, cmap='Pastel1_r', n_inc=12):
@@ -211,3 +212,28 @@ def plot_similarity_matrix(mat_plot, regions, ax=None, br=None):
     ax.set_yticklabels(regions_ac)
     if ax is None:
         return fig, ax
+
+
+def prepare_data_probe_plot(data_arr, xy, cmap=None, clim=None):
+    '''
+    Prepare the data to use in probe_plot
+    Example usage:
+
+    from brainbox.plot_base import plot_probe
+    data = prepare_data_probe_plot(your_feature_data, xy)
+    plot_probe(data.convert2dict())
+
+    :param data_arr: Vector of data (feature) to plot for each channel [N channel x 1]
+    :param xy: Matrix of spatial channel position (in um), lateral_um (x) and axial_um (y) [N channel x2]
+    :param cmap: color map
+    :param clim: color bar limit ; by default it uses the quantiles of the distribution across channels
+    :return:
+    '''
+    data_bank, x_bank, y_bank = arrange_channels2banks(data_arr, xy)
+    data = ProbePlot(data_bank, x=x_bank, y=y_bank, cmap=cmap)
+
+    if clim is None:
+        clim = np.nanquantile(np.concatenate([np.squeeze(np.ravel(d)) for d in data_bank]).ravel(),
+                              [0.1, 0.9])
+    data.set_clim(clim)
+    return data
