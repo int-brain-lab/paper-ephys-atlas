@@ -10,7 +10,8 @@ from ephys_atlas.encoding import FEATURES_LIST
 from matplotlib import cm  # This is deprecated, but cannot import matplotlib.colormaps as cm
 from brainbox.plot_base import ProbePlot, arrange_channels2banks, plot_probe
 from brainbox.ephys_plots import plot_brain_regions
-
+from matplotlib.patches import Rectangle
+import matplotlib
 
 def color_map_feature(feature_list=FEATURES_LIST, cmap='Pastel1_r', n_inc=12):
     # color_map = cm.get_cmap(cmap, n_inc)
@@ -240,9 +241,30 @@ def prepare_data_probe_plot(data_arr, xy, cmap=None, clim=None):
     return data
 
 
-def figure_features_chspace(pid_df, features, xy):
+def plot_probe_rect(xy, color, ax, width=16, height=40):
     '''
+    This function uses rectangles painted around the yx coordinates
+    :param xy:
+    :param color:
+    :param ax:
+    :param width:
+    :param height:
+    :return:
+    '''
+    # Add rectangles
+    for i in range(0, len(color)):
+        a_x = xy[i, 0]
+        a_y = xy[i, 1]
+        a_color = color[i]
+        ax.add_patch(Rectangle(
+            xy=(a_x-width/2, a_y-height/2), width=width, height=height,
+            linewidth=1, color=a_color, fill=True))
+    ax.set_xlim([min(xy[:, 0])-width/2, max(xy[:, 0])+width/2])
+    ax.set_ylim([min(xy[:, 1]) - height / 2, max(xy[:, 1]) + height / 2])
+    plt.show()
 
+def figure_features_chspace_probeplot(pid_df, features, xy):
+    '''
     :param pid_df: Dataframe containing channels and voltage information for a given PID
     Example on how to prepare it:
     # Merge the voltage and channels dataframe
@@ -279,6 +301,65 @@ def figure_features_chspace(pid_df, features, xy):
     # Plot brain region along probe depth with color code
     plot_brain_regions(pid_df['atlas_id'], channel_depths=pid_df['axial_um'].to_numpy(),
                        ax=axs[len(features) + 1])
+    axs[len(features) + 1].set_title('color')
+
+    # Add pid as suptitle
+    pid = pid_df.index[0][0]
+    fig.suptitle(f'PID {pid}')
+
+    return fig, axs
+
+
+def get_color_br(pid_ch_df, br):
+    region_info = br.get(pid_ch_df['atlas_id'])
+    color = region_info.rgb/255
+    return color
+
+
+def get_color_feat(x, cmap_name='viridis'):
+    # Normalise between 0-1
+    cmap = matplotlib.colormaps[cmap_name]
+    x_norm = (x - np.min(x)) / (np.max(x) - np.min(x))
+    color = cmap(x_norm)
+    return color
+
+def figure_features_chspace(pid_df, features, xy, br=None):
+    '''
+
+    :param pid_df: Dataframe containing channels and voltage information for a given PID
+    Example on how to prepare it:
+    # Merge the voltage and channels dataframe
+    df_voltage = pd.merge(df_voltage, df_channels, left_index=True, right_index=True).dropna()
+    # Select a PID and create the single probe dataframe
+    pid = '0228bcfd-632e-49bd-acd4-c334cf9213e9'
+    pid_df = df_voltage[df_voltage.index.get_level_values(0).isin([pid])].copy()
+
+    :param features: list of feature names to display, e.g. ['rms_lf', 'psd_delta', 'rms_ap']
+    These have to bey columns keys of the pid_df
+    :param xy: Matrix of spatial channel position (in um), lateral_um (x) and axial_um (y) [N channel x2]
+    :return:
+    '''
+    if br is None:
+        br = BrainRegions()
+    fig, axs = plt.subplots(1, len(features) + 2, sharey=True)
+
+    for i_feat, feature in enumerate(features):
+        feat_arr = pid_df[[feature]].to_numpy()
+        # Plot feature
+        color = get_color_feat(feat_arr)
+        plot_probe_rect(xy, color, ax=axs[i_feat])
+        axs[i_feat].set_title(feature)
+
+    # Plot brain region in space in unique colors
+    d_uni = np.unique(pid_df['atlas_id'].to_numpy(), return_inverse=True)[1]
+    d_uni = d_uni.astype(np.float32)
+    data = prepare_data_probe_plot(d_uni, xy)
+    plot_probe(data.convert2dict(), ax=axs[len(features)], show_cbar=False)
+    axs[len(features)].set_title('brain region')
+
+    # Plot brain region along probe depth with color code
+    color = get_color_br(pid_df, br)
+    plot_probe_rect(xy, color, ax=axs[len(features) + 1])
     axs[len(features) + 1].set_title('color')
 
     # Add pid as suptitle
