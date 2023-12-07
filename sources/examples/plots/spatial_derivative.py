@@ -27,21 +27,26 @@ df_voltage['beryl_id'] = br.remap(df_voltage['atlas_id'], source_map='Allen', ta
 ##
 # Prepare the dataframe for a single probe
 pid = '0228bcfd-632e-49bd-acd4-c334cf9213e9'
+##
 pid_df = df_voltage[df_voltage.index.get_level_values(0).isin([pid])].copy()
 
 # Create numpy array of xy um (only 2D for plotting)
 xy = pid_df[['lateral_um', 'axial_um']].to_numpy()
 
 ##
+# Compute spatial derivative metric for given set of features
 features = ['rms_lf', 'psd_delta', 'rms_ap']
 feat_plt = features.copy()
 for feature in features:
     feat_der = meta_spatial_derivative(pid_df, feature)
     new_name = f'{feature}_der'
-    pid_df[new_name] = feat_der
+    pid_df[new_name] = -feat_der
     feat_plt.append(new_name)
 
 ##
 # Select your features and plot
 fig, axs = figure_features_chspace(pid_df, feat_plt, xy)
 
+## Note that because we drop nan from the df, channels can vary heavily in distance
+import seaborn
+seaborn.scatterplot(data=pid_df, x='lateral_um', y='axial_um')
