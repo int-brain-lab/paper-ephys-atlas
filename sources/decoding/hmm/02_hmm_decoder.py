@@ -88,11 +88,9 @@ if label == 'cosmos':
 We are going to use a HMM to denoise the coding
 """
 pids = df_depths.index.get_level_values(0).unique()
-pids = ['1e104bf4-7a24-4624-a5b2-c2c8289c0de7']
-pids = ['dc7e9403-19f7-409f-9240-05ee57cb7aea']
 method = 'two_ways'  # 'two_ways', 'one_way'
 for pid in pids:
-    # pid = np.random.choice(pids)  # fixme
+    # pid = np.random.choice(pids)
     _, predictions = ismember(df_depths.loc[pid, f'{label}_prediction'].values, classes)
     nd, nr = (predictions.shape[0], classes.size)
     probas = df_depths.loc[pid, regions.id2acronym(classes)].values  # this is the (ndepths, nregions) matrix of probabilities
@@ -183,7 +181,7 @@ for pid in pids:
     axs[6].imshow(rgbs, aspect='auto', origin='lower')
     axs[6].set(title=f"Viterbi:{vacc:.2f}, HMM stochastic {hacc:.2f} accuracy")
     fig.suptitle(f"{pid}")
-    fig.savefig(FOLDER_GDRIVE.joinpath("pics", f"viterbi_{pid}_{method}.png"), dpi=100)
+    fig.savefig(FOLDER_GDRIVE.joinpath("pics", f"viterbi_{pid}_{method}.svg"), dpi=100)
     # plt.close(fig)
 # TODO plot raw data features
 
