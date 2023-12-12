@@ -331,7 +331,7 @@ def compute_raw_features(pid, root_path=None):
 
     channels_features = spikes_features.groupby('channel').agg(
         alpha_mean=pd.NamedAgg(column="alpha", aggfunc="mean"),
-        alpha_std=pd.NamedAgg(column="alpha", aggfunc="std"),
+        alpha_std=pd.NamedAgg(column="alpha", aggfunc=lambda x: np.std(x, ddof=0)),
         spike_count=pd.NamedAgg(column="alpha", aggfunc="count"),
         peak_time_secs=pd.NamedAgg(column="peak_time_idx", aggfunc=fcn_mean_time),
         peak_val=pd.NamedAgg(column="peak_val", aggfunc="mean"),
