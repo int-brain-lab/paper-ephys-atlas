@@ -16,7 +16,7 @@ regions = BrainRegions()
 local_path = Path("/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding")
 # local_path = Path("/Users/gaelle/Documents/Work/EphysAtlas/Data/")
 # local_path = Path("/Users/olivier/Documents/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding")
-label = '2023_W34'
+label = '2023_W41'
 # df_voltage, df_clusters, df_channels, df_probes = ephys_atlas.data.download_tables(local_path, label=label, one=one, verify=True)
 df_voltage, df_clusters, df_channels, df_probes = ephys_atlas.data.load_voltage_features(local_path.joinpath(label))
 
@@ -132,7 +132,7 @@ def train_cebra(x):
         max_iterations=10000,
         distance='cosine',
         conditional='time_delta',
-        device='cuda_if_available',
+        device='cuda',
         verbose=True,
         time_offsets=32
     )
@@ -149,9 +149,10 @@ def train_cebra(x):
 
 y = df_voltage.loc[:, mapping]
 model_baseline, embedding_baseline = train_cebra(df_voltage.loc[:, x_list])
-model_sc, embedding_sc = train_cebra(x_debias)
+# model_sc, embedding_sc = train_cebra(x_debias)
+from iblutil.numerical import ismember
 
-mapping = 'beryl_id'  #  'cosmos_id', 'atlas_id']:
+mapping = 'atlas_id'  #  'cosmos_id', 'atlas_id']:
 rgb = regions.rgb[ismember(y, regions.id)[1]].astype(np.float32) / 255
 
 import matplotlib.pyplot as plt
@@ -159,59 +160,28 @@ plt.style.use('dark_background')
 fig, ax = plt.subplots(1, 2, figsize=(16, 6))
 ax[0].scatter(embedding_baseline[:, 0], embedding_baseline[:, 1], s=2, c=rgb, alpha=.05)
 ax[0].set_axis_off()
-ax[1].scatter(embedding_sc[:, 0], embedding_sc[:, 1], s=2, c=rgb, alpha=.05)
-ax[1].set_axis_off()
+
 
 ## %%
 
 import numpy as np
-import numpy.random as nr
 import datoviz
-
-# Data.
-N = 50_000
-pos = nr.randn(N, 3)
-ms = nr.uniform(low=2, high=40, size=N)
-color = datoviz.colormap(nr.rand(N), vmin=0, vmax=1)  # rgb 255
-
 y = df_voltage.loc[:, 'atlas_id']
 color = regions.rgba[ismember(y, regions.id)[1]]
 color[:, -1] = 40
 ms = np.ones_like(y) * 3
 # We create a scene with one row and two columns.
 c = datoviz.canvas(show_fps=True)
-s = c.scene(1, 2)
+s = c.scene(1, 1)
 
 # We add the two panels with different controllers.
 panel0 = s.panel(0, 0, controller='arcball')
-panel1 = s.panel(0, 1, controller='arcball')
-
 
 # We create a visual in each panel.
 visual = panel0.visual('point')
 visual.data('pos', embedding_baseline[:, :3])
 visual.data('color', color)
 visual.data('ms', ms)
-visual1 = panel1.visual('point')
-visual1.data('pos', embedding_sc[:, :3])
-visual1.data('color', color)
-visual1.data('ms', ms)
-
 datoviz.run()
 
-c.screenshot('/datadisk/Data/paper-ephys-atlas/toto.png')
-
-
-## %%
-# We create a scene with one row and two columns.
-c = datoviz.canvas(show_fps=True)
-s = c.scene(1, 1)
-
-# We add the two panels with different controllers.
-panel0 = s.panel(0, 0, controller='arcball')
-visual1 = panel0.visual('point')
-visual1.data('pos', embedding_sc[:, :3])
-visual1.data('color', color)
-visual1.data('ms', ms)
-
-datoviz.run()
+# c.screenshot('/datadisk/Data/paper-ephys-atlas/toto.png')
