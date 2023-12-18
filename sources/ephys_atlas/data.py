@@ -80,6 +80,22 @@ def _get_channel_distances_indices(xy, extract_radius_um=EXTRACT_RADIUS_UM):
     return channel_dist
 
 
+def atlas_pids_autism(one):
+    '''
+    Get autism data from JP
+    fmr1 mouse line
+    '''
+    project = 'angelaki_mouseASD'
+    # Get all insertions for this project
+    str_query = f'session__project__name__icontains,{project},' \
+                'session__qc__lt,50,' \
+                '~json__qc,CRITICAL'
+    insertions = one.alyx.rest('insertions', 'list', django=str_query)
+    # Restrict to only those with subject starting with FMR
+    ins_keep = [item for item in insertions if item['session_info']['subject'][0:3] == 'FMR']
+    return [item['id'] for item in ins_keep], ins_keep
+
+
 def atlas_pids(one, tracing=False):
     django_strg = [
         'session__project__name__icontains,ibl_neuropixel_brainwide_01',
