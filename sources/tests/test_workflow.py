@@ -24,7 +24,18 @@ class TestWorkflows(unittest.TestCase):
         def task_a(pid):
             pass
         task_a(pid=pid)
+        # check that the flag file is created
         assert self.path_task.joinpath(pid, '.task_a-1.0.0-complete').exists()
+
+    def test_various_paths(self):
+        # now we run in a different path, passed at run time
+        @workflow.task(version='1.0.0', path_task=self.path_task)
+        def task_a(pid):
+            pass
+        with tempfile.TemporaryDirectory() as td:
+            new_path_task = Path(td)
+            task_a(pid=pid, path_task=new_path_task)
+            assert new_path_task.joinpath(pid, '.task_a-1.0.0-complete').exists()
 
     def test_error_task(self):
         @workflow.task(version='1.0.0', path_task=self.path_task)
