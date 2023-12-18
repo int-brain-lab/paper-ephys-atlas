@@ -21,12 +21,18 @@ This is the minimum version number that will not trigger a re-run of the task.
 depends_on': ['destripe_ap', 'destripe_lf-1.2.0']
 
 Check-out the tests for more details on how to use the decorator in ./tests/test_workflow.py
+
+The current workflow is described in the TASKS dictionary below.
+
+To change the default path of execution, set the TASK_ROOT_PATH environment variable.
+>>> os.environ['TASK_ROOT_PATH'] = '/path/to/ephys-atlas'
 """
 
 from pathlib import Path
 import traceback
 import packaging.version
 from collections import OrderedDict
+import os
 
 import numpy as np
 import pandas as pd
@@ -38,7 +44,7 @@ import ephys_atlas.rawephys
 from ephys_atlas.data import atlas_pids, compute_channels_micromanipulator_coordinates
 
 
-ROOT_PATH = Path("/mnt/s0/ephys-atlas")
+ROOT_PATH = Path(os.getenv('TASK_ROOT_PATH', Path("/mnt/s0/ephys-atlas")))
 logger = setup_logger(name='paper-ephys-atlas', level='INFO')
 
 TASKS = OrderedDict({
@@ -157,14 +163,12 @@ def run_flow(pids=None, one=None):
         # localise(pid) TODO this is in a different environment / or run everything in torch ?
 
 
-def task(version=None, depends_on=None, path_task=None, force_run=False, **kwargs):
+def task(version=None, depends_on=None, path_task=None):
     """
     Decorator to mark a function as a task
     :param version:
     :param depends_on:
     :param path_task:
-    :param force_run: if True, the tasks runs no matter what
-    :param kwargs:
     :return:
     """
     depends_on = [depends_on] if isinstance(depends_on, str) else depends_on
@@ -173,10 +177,11 @@ def task(version=None, depends_on=None, path_task=None, force_run=False, **kwarg
     def inner(func):
         def wrapper(pid, *args, version=version, depends_on=depends_on, force_run=False, **kwargs):
             # if the task has already run with the same version number, skip and exit
-            flag_file = path_task.joinpath(pid).joinpath(f'.{func.__name__}-{version}-complete')
+            current_path = kwargs.pop('path_task') if 'path_task' in kwargs else path_task
+            flag_file = current_path.joinpath(pid).joinpath(f'.{func.__name__}-{version}-complete')
             # remove an eventual error file on a previous run (here we ru-run on errors)
-            error_file = path_task.joinpath(pid).joinpath(f'.{func.__name__}-{version}-error')
-            unmet_deps_file = path_task.joinpath(pid).joinpath(f'.{func.__name__}-{version}-unmet_dependencies')
+            error_file = current_path.joinpath(pid).joinpath(f'.{func.__name__}-{version}-error')
+            unmet_deps_file = current_path.joinpath(pid).joinpath(f'.{func.__name__}-{version}-unmet_dependencies')
 
             def should_i_run():
                 if force_run:
@@ -185,7 +190,7 @@ def task(version=None, depends_on=None, path_task=None, force_run=False, **kwarg
                     logger.info(f'skipping task {func.__name__} for pid {pid}')
                     return False
                 # now remove all error files or previous version files
-                for f in path_task.joinpath(pid).glob(f'.{func.__name__}-*'):
+                for f in current_path.joinpath(pid).glob(f'.{func.__name__}-*'):
                     f.unlink()
                 # check that dependencies are met, exit if not
                 if depends_on is not None:
@@ -194,7 +199,7 @@ def task(version=None, depends_on=None, path_task=None, force_run=False, **kwarg
                     for parent_task in depends_on:
                         # gets an empty string version if no minumum version is specified
                         parent_task, required_parent_version = (parent_task + '------').split('-', maxsplit=2)[:2]
-                        flag_parent = next(path_task.joinpath(pid).glob(f".{parent_task}*"), None)
+                        flag_parent = next(current_path.joinpath(pid).glob(f".{parent_task}*"), None)
                         # the parent task hasn't run
                         if flag_parent is None:
                             logger.info(
@@ -224,7 +229,7 @@ def task(version=None, depends_on=None, path_task=None, force_run=False, **kwarg
                 return
             # try and run the task with error catching
             logger.info(f'running task {func.__name__} for pid {pid}')
-            path_task.joinpath(pid).mkdir(exist_ok=True, parents=True)
+            current_path.joinpath(pid).mkdir(exist_ok=True, parents=True)
             try:
                 func(pid, *args, **kwargs)
             except Exception:
