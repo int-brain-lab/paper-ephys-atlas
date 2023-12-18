@@ -1,3 +1,7 @@
+"""
+This is the "Reduce" part of the ephys atlas pipeline
+"""
+
 from pathlib import Path
 from datetime import date
 import shutil
