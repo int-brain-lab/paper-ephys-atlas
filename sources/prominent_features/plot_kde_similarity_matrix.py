@@ -1,7 +1,7 @@
 '''
 Plot of KDEs and similarity matrix
 '''
-# from ephys_atlas.prominent_features import ... TODO
+# from ephys_atlas.prominent_features. import load_ks_result
 from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
