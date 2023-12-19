@@ -9,8 +9,12 @@ def feature_overall_entropy(counts, return_all=False):
     the entropy for this quantile will be 0.
     2) Then, the overall entropy for the feature is computed as the weighted sum over the quantile entropies.
     :param counts: Dataframe of count per quantile, per region ; for a given feature. [N quantile x N region]
-    :param return_quantiles: return the vector of quantile entropies
-    :return: entropy values for : entropy_feature (single value), vector 1xN quantiles (set return_quantiles to True)
+    :param return_all: return the underlying entropies if set to True
+    :return:
+    - info_gain (single value) : the information gain [DEFAULT]
+    - entropy_feature (single value): the entropy of the feature overall is the weighed sum of the quantile entropies
+    - entropy_quantiles (vector 1xN quantiles): entropy for each quantile across brain regions
+    - entropy_overall (single value): the entropy overall is the entropy over the sum of counts per brain region
     '''
     # Count the overall number of values (== number of channels)
     nc = np.nansum(counts.values)
@@ -21,7 +25,7 @@ def feature_overall_entropy(counts, return_all=False):
     # The entropy of the feature overall is the weighed sum of the quantile entropies
     # This is a single value
     entropy_feature = np.sum(entropy_quantiles * np.nansum(counts, axis=0) / nc)
-    # Compute entropy overall for this feature (single value)
+    # Compute entropy overall for this feature, by summing the counts over each brain region (single value)
     entropy_overall = scipy.stats.entropy(np.nansum(counts.values, axis=1) / nc, base=2)
     # Compute information gain (single value, for this feature)
     info_gain = entropy_overall - entropy_feature
