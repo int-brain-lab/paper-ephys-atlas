@@ -12,6 +12,7 @@ from brainbox.plot_base import ProbePlot, arrange_channels2banks, plot_probe
 from brainbox.ephys_plots import plot_brain_regions
 from matplotlib.patches import Rectangle
 import matplotlib
+import scipy
 
 def color_map_feature(feature_list=FEATURES_LIST, cmap='Pastel1_r', n_inc=12):
     # color_map = cm.get_cmap(cmap, n_inc)
@@ -320,6 +321,7 @@ def get_color_feat(x, cmap_name='viridis'):
     # Normalise between 0-1
     cmap = matplotlib.colormaps[cmap_name]
     x_norm = (x - np.min(x)) / (np.max(x) - np.min(x))
+    # x_norm = scipy.stats.zscore(x)
     color = cmap(x_norm)
     return color
 
