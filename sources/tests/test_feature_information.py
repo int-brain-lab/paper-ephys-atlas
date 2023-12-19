@@ -17,7 +17,7 @@ assert nc == 15
 
 
 ##
-def test_feature_overall_entropy(counts):
+def test_feature_overall_entropy(counts, nc):
     info_gain, entropy_feature, entropy_quantiles, entropy_overall = feature_overall_entropy(counts, return_all=True)
     np.testing.assert_array_almost_equal(entropy_quantiles, [0, 0,  1,  1.5849625,  1, 0],
                                          decimal=6)
