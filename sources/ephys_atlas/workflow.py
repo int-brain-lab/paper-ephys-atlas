@@ -62,7 +62,7 @@ TASKS = OrderedDict({
         'version': '1.3.0',
     },
     'compute_raw_features': {
-        'version': '1.4.0',
+        'version': '1.4.1',
         'depends_on': ['destripe_lf', 'localise'],
     }
 })
@@ -90,13 +90,13 @@ def graph(output_file=None):
         dot.render(output_file, view=True)
 
 
-def report(one=None, pids=None, task_path=ROOT_PATH):
+def report(one=None, pids=None, path_task=ROOT_PATH):
     """
     Looks at the folder and flag files according to the task specifications
     Builds a dataframe where each row is a pid, and each column is a task
     :param one:
     :param pids:
-    :param task_path:
+    :param path_task:
     :return:
     """
     if pids is None:
@@ -106,7 +106,7 @@ def report(one=None, pids=None, task_path=ROOT_PATH):
 
     for pid in tasks.index:
         for t in TASKS:
-            task_file = next(task_path.joinpath(pid).glob(f'.{t}*'), None)
+            task_file = next(path_task.joinpath(pid).glob(f'.{t}*'), None)
             if task_file:
                 tasks.loc[pid, t] = task_file.name
     return tasks
@@ -246,7 +246,7 @@ def task(version=None, depends_on=None, path_task=None):
 
 
 @task(**TASKS['destripe_ap'])
-def destripe_ap(pid, one, task_path=ROOT_PATH):
+def destripe_ap(pid, one, data_path=ROOT_PATH):
     """
     :param pid:
     :param one:
@@ -255,12 +255,12 @@ def destripe_ap(pid, one, task_path=ROOT_PATH):
         TXXXX/ap.yml
         TXXXX/ap_raw.npy
     """
-    destination = task_path.joinpath(pid)
+    destination = data_path.joinpath(pid)
     ephys_atlas.rawephys.destripe(pid, one=one, destination=destination, typ='ap', clobber=False)
 
 
 @task(**TASKS['destripe_lf'])
-def destripe_lf(pid, one, task_path=ROOT_PATH):
+def destripe_lf(pid, one, data_path=ROOT_PATH):
     """
     :param pid:
     :param one:
@@ -269,16 +269,16 @@ def destripe_lf(pid, one, task_path=ROOT_PATH):
         TXXXX/lf.yml
         TXXXX/lf_raw.npy
     """
-    destination = task_path.joinpath(pid)
+    destination = data_path.joinpath(pid)
     ephys_atlas.rawephys.destripe(pid, one=one, destination=destination, typ='lf', clobber=False)
 
 
 @task(**TASKS['compute_sorted_features'])
-def compute_sorted_features(pid, one, task_path=ROOT_PATH):
+def compute_sorted_features(pid, one, data_path=ROOT_PATH):
     """
     :param pid:
     :param one:
-    :param task_path:
+    :param data_path:
     :return:
         clusters.pqt
         spikes.pqt
@@ -296,40 +296,40 @@ def compute_sorted_features(pid, one, task_path=ROOT_PATH):
         channels = dict(axial_um=channels['localCoordinates'][:, 1], lateral_um=channels['localCoordinates'][:, 0])
 
     clusters = ssl.merge_clusters(spikes, clusters, channels)
-    task_path.joinpath(pid).mkdir(exist_ok=True, parents=True)
+    data_path.joinpath(pid).mkdir(exist_ok=True, parents=True)
     # the concat syntax sets a higher level index on the dataframe as pid
-    pd.concat({pid: pd.DataFrame(clusters)}, names=['pid']).to_parquet(task_path.joinpath(pid, 'clusters.pqt'))
-    pd.concat({pid: pd.DataFrame(spikes)}, names=['pid']).to_parquet(task_path.joinpath(pid, 'spikes_sorted.pqt'))
+    pd.concat({pid: pd.DataFrame(clusters)}, names=['pid']).to_parquet(data_path.joinpath(pid, 'clusters.pqt'))
+    pd.concat({pid: pd.DataFrame(spikes)}, names=['pid']).to_parquet(data_path.joinpath(pid, 'spikes_sorted.pqt'))
     df_channels = pd.concat({pid: pd.DataFrame(channels)}, names=['pid'])
     df_channels['histology'] = ssl.histology
     # get the spike sorter version field
     dset = one.alyx.rest('datasets', 'list', collection=ssl.collection, name='spikes.times.npy', session=ssl.eid)
     df_channels['version'] = dset[0]['version']
-    df_channels.to_parquet(task_path.joinpath(pid, 'channels.pqt'))
+    df_channels.to_parquet(data_path.joinpath(pid, 'channels.pqt'))
 
 
 @task(**TASKS['localise'])
-def localise(pid, clobber=False, task_path=ROOT_PATH):
+def localise(pid, clobber=False, data_path=ROOT_PATH):
     """
     :param pid:
-    :param task_path:
+    :param path_task:
     :return:
         TXXXX/spikes.pqt
         TXXXX/waveforms.npy
     """
-    destination = ROOT_PATH.joinpath(pid)
+    destination = data_path.joinpath(pid)
     ephys_atlas.rawephys.localisation(destination, clobber=clobber)
 
 
 @task(**TASKS['compute_raw_features'])
-def compute_raw_features(pid, task_path=None):
+def compute_raw_features(pid, data_path=None):
     """
     :param pid:
-    :param task_path:
+    :param path_task:
     :return:
         raw_ephys_features.pqt
     """
-    root_path = task_path or ROOT_PATH
+    root_path = data_path or ROOT_PATH
     ap_features, fs = ephys_atlas.rawephys.compute_ap_features(pid, root_path=root_path)
     lf_features = ephys_atlas.rawephys.compute_lf_features(pid, root_path=root_path, current_source=False)
     cs_features = ephys_atlas.rawephys.compute_lf_features(pid, root_path=root_path, current_source=True)
