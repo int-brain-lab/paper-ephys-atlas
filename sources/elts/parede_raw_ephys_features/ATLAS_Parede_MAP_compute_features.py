@@ -5,6 +5,7 @@ This module regroups the ¨MAP" steps of the ephys atlas pipeline that compute f
 -   compute_raw_features
 """
 
+##
 from pathlib import Path
 import time
 import torch
@@ -28,51 +29,53 @@ else:
     pids, alyx_pids = atlas_pids_autism(one)
 
 
+report = workflow.report(one=one, pids=pids, path_task=ROOT_PATH)
+report.flow.print_report()
 
 
 ## Runs the destriping
-report = workflow.report(one=one, pids=pids, task_path=ROOT_PATH)
+pids_run = report.flow.get_pids_ready('destripe_ap', include_errors=RERUN_ERRORS)
+for i, pid in enumerate(pids_run):
+    print(i, len(pids_run))
+    workflow.destripe_ap(pid=pid, one=one, data_path=ROOT_PATH, task_path=ROOT_PATH)
+
+
+pids_run = report.flow.get_pids_ready('destripe_lf', include_errors=RERUN_ERRORS)
+for i, pid in enumerate(pids_run):
+    print(i, len(pids_run))
+    workflow.destripe_lf(pid=pid, one=one, data_path=ROOT_PATH, task_path=ROOT_PATH)
+
+report = workflow.report(one=one, pids=pids, path_task=ROOT_PATH)
 report.flow.print_report()
-
-
-pids = report.flow.get_pids_ready('destripe_ap', include_errors=RERUN_ERRORS)
-for i, pid in enumerate(pids):
-    print(i, len(pids))
-    workflow.destripe_ap(pid=pid, one=one, task_path=ROOT_PATH)
-
-
-pids = report.flow.get_pids_ready('destripe_lf', include_errors=RERUN_ERRORS)
-for i, pid in enumerate(pids):
-    print(i, len(pids))
-    workflow.destripe_lf(pid=pid, one=one, task_path=ROOT_PATH)
-
-
 ## Runs the spike detection and localisationm this needs to run stand alone in a single rail
-report = workflow.report(one=one, pids=pids, task_path=ROOT_PATH)
-report.flow.print_report()
 
 t = time.time()
-pids = report.flow.get_pids_ready('localise', include_errors=RERUN_ERRORS)
-for i, pid in enumerate(pids):
-    print(i, len(pids))
-    workflow.localise(pid, clobber=True, task_path=ROOT_PATH)
-    print("destripe ap and lf bands", time.time() - t, len(pids))
+pids_run = report.flow.get_pids_ready('localise', include_errors=RERUN_ERRORS)
+for i, pid in enumerate(pids_run):
+    print(i, len(pids_run))
+    workflow.localise(pid, clobber=True, data_path=ROOT_PATH, path_task=ROOT_PATH)
+print("localise", time.time() - t, len(pids_run))
+report = workflow.report(one=one, pids=pids, path_task=ROOT_PATH)
+report.flow.print_report()
 
 ## Runs the sorted features and raw features computations
-report = workflow.report(one=one, pids=pids, task_path=ROOT_PATH)
-report.flow.print_report()
 
-pids = report.flow.get_pids_ready('compute_sorted_features', include_errors=RERUN_ERRORS)
-for i, pid in enumerate(pids):
-    print(i, len(pids), pid)
-    workflow.compute_sorted_features(pid, one=one, task_path=ROOT_PATH)
+
+pids_run = report.flow.get_pids_ready('compute_sorted_features', include_errors=RERUN_ERRORS)
+for i, pid in enumerate(pids_run):
+    print(i, len(pids_run), pid)
+    workflow.compute_sorted_features(pid, one=one, data_path=ROOT_PATH, path_task=ROOT_PATH)
 
 t = time.time()
-pids = report.flow.get_pids_ready('compute_raw_features', include_errors=RERUN_ERRORS)
-joblib.Parallel(n_jobs=18)(joblib.delayed(workflow.compute_raw_features)(pid, task_path=ROOT_PATH) for pid in pids)
-print(time.time() - t, len(pids))
+pids_run = report.flow.get_pids_ready('compute_raw_features', include_errors=True)
+joblib.Parallel(n_jobs=18)(joblib.delayed(workflow.compute_raw_features)(pid, data_path=ROOT_PATH, path_task=ROOT_PATH) for pid in pids)
+print(time.time() - t, len(pids_run))
+
+
+report = workflow.report(one=one, pids=pids, path_task=ROOT_PATH)
+report.flow.print_report()
 
 
 ##
-report = workflow.report(one=one, pids=pids, task_path=ROOT_PATH)
+report = workflow.report(one=one, pids=pids, path_task=ROOT_PATH)
 report.flow.print_report()

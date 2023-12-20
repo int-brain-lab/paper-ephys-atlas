@@ -115,7 +115,7 @@ def localisation(destination=None, clobber=False):
     )
     # channel_index = make_channel_index(geom, kwargs['extract_radius'], distance_order=False)
 
-    all_files = list(destination.rglob('ap.npy'))
+    all_files = list(destination.rglob('ap_destripe.npy'))
     for i, ap_file in enumerate(all_files):
         chunk_dir = ap_file.parent
         file_waveforms = chunk_dir.joinpath('waveforms.npy')
@@ -157,8 +157,9 @@ def compute_ap_features(pid, root_path=None):
     """
     assert root_path
     pfolder = root_path.joinpath(pid)
-    files_destripe = list(pfolder.rglob('ap.npy'))
+    files_destripe = list(pfolder.rglob('ap_destripe.npy'))
     nfiles = len(files_destripe)
+    assert nfiles > 0, 'error: no AP destripe chunk found !'
     df_chunks = []
     rl = 0
     for i in np.arange(nfiles):
@@ -188,8 +189,9 @@ def compute_lf_features(pid, root_path=None, bands=None, current_source=False):
         -   psd_delta (dB rel V ** 2 / Hz): Power in the delta band (also theta, alpha, beta, gamma)
     """
     pfolder = root_path.joinpath(pid)
-    files_lfp = list(pfolder.rglob('lf.npy'))
+    files_lfp = list(pfolder.rglob('lf_destripe.npy'))
     nfiles = len(files_lfp)
+    assert nfiles > 0, f'error: no LFP destripe chunk found for pid {pid}!'
     df_chunks = []
     for i in np.arange(nfiles):
         file_lfp = files_lfp[i]
@@ -232,6 +234,7 @@ def compute_spikes_features(pid, root_path=None):
     pfolder = root_path.joinpath(pid)
     files_spikes = list(pfolder.rglob('spikes.pqt'))
     nfiles = len(files_spikes)
+    assert len(files_spikes) > 0, f"No localisation chunk found pid {pid}!"
     df_spikes = []
     for i in np.arange(nfiles):
         file_spikes = files_spikes[i]
