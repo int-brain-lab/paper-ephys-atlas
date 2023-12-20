@@ -15,20 +15,26 @@ from iblutil.util import setup_logger
 import ephys_atlas.data as data
 import ephys_atlas.workflow as workflow
 
+one = ONE(base_url="https://alyx.internationalbrainlab.org")
 _logger = setup_logger(level='INFO')
 AGGREGATE_PATH = Path("/mnt/s1/aggregates/atlas")
-ROOT_PATH = Path("/mnt/s0/ephys-atlas")
+
+# ROOT_PATH, label = (Path("/mnt/s0/ephys-atlas"), "")
+# pids, _ = data.atlas_pids(one)
+
+ROOT_PATH, label = (Path("/mnt/s0/ephys-atlas-autism"), "_autism")
+pids, _ = data.atlas_pids_autism(one)
+
+
 print(f'aws --profile ibl s3 sync "{AGGREGATE_PATH}" s3://ibl-brain-wide-map-private/aggregates/atlas')
 
 year_week = date.today().isocalendar()[:2]
-OUT_PATH = Path(AGGREGATE_PATH).joinpath(f'{year_week[0]}_W{year_week[1]:02}')
+OUT_PATH = Path(AGGREGATE_PATH).joinpath(f'{year_week[0]}_W{year_week[1]:02}{label}')
 OUT_PATH.mkdir(parents=True, exist_ok=True)
 
-one = ONE(base_url="https://alyx.internationalbrainlab.org")
-pids, _ = data.atlas_pids(one)
 
 _logger.info('Checking current task status:')
-flow = workflow.report(one=one, pids=pids)
+flow = workflow.report(one=one, pids=pids, path_task=ROOT_PATH)
 # selects the pids that have no error in the flow
 pids = flow.index[flow.applymap(lambda x: 'error' not in x and x != '').all(axis=1)]
 flow.flow.print_report()
@@ -60,8 +66,9 @@ df_probes.to_parquet(OUT_PATH.joinpath('probes.pqt'))
 
 
 # %%
-shutil.rmtree(AGGREGATE_PATH.joinpath('latest'), ignore_errors=True)
-shutil.copytree(OUT_PATH, AGGREGATE_PATH.joinpath('latest'))
-AGGREGATE_PATH.joinpath('latest', f"{OUT_PATH.stem}.info").touch()
+if label == "":  # this only applies to the main dataset
+    shutil.rmtree(AGGREGATE_PATH.joinpath('latest'), ignore_errors=True)
+    shutil.copytree(OUT_PATH, AGGREGATE_PATH.joinpath('latest'))
+    AGGREGATE_PATH.joinpath('latest', f"{OUT_PATH.stem}.info").touch()
 
 print(f'aws --profile ibl s3 sync "{AGGREGATE_PATH}" s3://ibl-brain-wide-map-private/aggregates/atlas')
