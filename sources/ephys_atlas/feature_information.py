@@ -51,6 +51,8 @@ def feature_region_entropy(counts, return_all=False):
     # Transpose (n_quantiles, n_regions)
     counts = counts.transpose()
     # Compute the entropy for each column i.e. region
+    # TODO dividing by the N channels of the region biases the information gain to be high for regions with low N chan
+    # TODO Use nc instead ?
     entropy_region = - np.nansum((f := counts.values / np.nansum(counts.values, axis=0)) * np.log2(f), axis=0)
     # Compute the entropy overall for this feature by summing the values in each quantile
     # (this is a single value)
