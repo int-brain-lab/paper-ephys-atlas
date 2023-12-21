@@ -48,9 +48,9 @@ def feature_region_entropy(counts, return_all=False, normalise=False):
     '''
     # Count the overall number of values (== number of channels) ; this is a single value
     nc = np.nansum(counts.values)
-    nc_reg = np.nansum(counts.values, axis=0)  # Number of channels per region (vector)
     # Transpose (n_quantiles, n_regions)
     counts = counts.transpose()
+    nc_reg = np.nansum(counts.values, axis=0)  # Number of channels per region (vector)
     # Compute the entropy for each column i.e. region
     # TODO dividing by the N channels of the region biases the information gain to be high for regions with low N chan
     # TODO Use nc instead ?
