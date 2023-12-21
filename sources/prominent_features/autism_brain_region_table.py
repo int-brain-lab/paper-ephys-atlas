@@ -11,7 +11,7 @@ br = BrainRegions()
 label = '2023_W51_autism'
 local_data_path = Path('/Users/gaelle/Documents/Work/EphysAtlas/Data')
 force_download = False
-mapping = 'Allen'
+mapping = 'Beryl'
 
 local_data_path_clusters = local_data_path.joinpath(label).joinpath('clusters.pqt')
 if not local_data_path_clusters.exists() or force_download:
