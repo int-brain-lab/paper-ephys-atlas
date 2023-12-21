@@ -35,7 +35,7 @@ def feature_overall_entropy(counts, return_all=False):
         return info_gain
 
 
-def feature_region_entropy(counts, return_all=False):
+def feature_region_entropy(counts, return_all=False, normalise=False):
     '''
     This function computes the entropy of a feature, for a given brain region.
     It computes the entropy across the quantiles of a brain region.
@@ -46,19 +46,24 @@ def feature_region_entropy(counts, return_all=False):
     - entropy_overall (single value): the entropy overall is computed by summing across brain regions
     the values in each quantile, then computing the entropy across quantiles
     '''
-    # Count the overall number of values (== number of channels)
+    # Count the overall number of values (== number of channels) ; this is a single value
     nc = np.nansum(counts.values)
+    nc_reg = np.nansum(counts.values, axis=0)  # Number of channels per region (vector)
     # Transpose (n_quantiles, n_regions)
     counts = counts.transpose()
     # Compute the entropy for each column i.e. region
     # TODO dividing by the N channels of the region biases the information gain to be high for regions with low N chan
     # TODO Use nc instead ?
-    entropy_region = - np.nansum((f := counts.values / np.nansum(counts.values, axis=0)) * np.log2(f), axis=0)
+    entropy_region = - np.nansum((f := counts.values / nc_reg) * np.log2(f), axis=0)
     # Compute the entropy overall for this feature by summing the values in each quantile
     # (this is a single value)
     entropy_overall = scipy.stats.entropy(np.nansum(counts, axis=1) / nc, base=2)
     # Compute information gain per region (vector 1xN region)
-    info_gain_region = entropy_overall - entropy_region
+    # TODO TESTING Weighted by number of channels
+    if normalise:
+        info_gain_region = (entropy_overall * nc - entropy_region * nc_reg) / (nc + nc_reg)
+    else:
+        info_gain_region = entropy_overall - entropy_region
     if return_all:
         return info_gain_region, entropy_region, entropy_overall
     else:
