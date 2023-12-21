@@ -41,5 +41,5 @@ def test_feature_region_entropy(counts, nc):
 
 ##
 # Run the tests
-test_feature_overall_entropy(counts)
+test_feature_overall_entropy(counts, nc)
 test_feature_region_entropy(counts, nc)
