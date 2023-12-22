@@ -1,3 +1,9 @@
+"""
+This module is aimed at providing convenience functions for decoding and encoding models that map electrophysiological
+features to brain regions.
+This allows to define stable and reproducible electrophysiological feature sets when experimenting with different models,
+and also to split the training and test sets in a reproducible way, stratified by pids
+"""
 import abc
 import pandas as pd
 import numpy as np
@@ -11,19 +17,21 @@ _SEED = 7654
 FEATURES_LIST = ['raw_ap', 'raw_lf', 'localisation', 'waveforms']
 
 
+
 def voltage_features_set(features_list=FEATURES_LIST):
     """
     THis function returns the list of features columns names depending on their provenance.
     This is useful to select the columns for training
-    :param features_list: optional, defaults to ['raw_ap', 'raw_lf', 'localisation', 'waveforms']
+    :param features_list: optional, defaults to ['raw_ap', 'raw_lf', 'raw_lf_csd', 'localisation', 'waveforms']
     :return:
     """
     x_list = []
     if 'raw_ap' in features_list:  # full mode
         x_list += ['rms_ap']
     if 'raw_lf' in features_list:
-        x_list += ['rms_lf', 'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma',  # 'psd_lf',
-                   'psd_lfp_csd', 'psd_delta_csd', 'psd_alpha_csd', 'psd_beta_csd', 'psd_gamma_csd']
+        x_list += ['rms_lf', 'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma']
+    if 'raw_lf_csd' in features_list:
+        x_list += ['rms_lf_csd', 'psd_lfp_csd', 'psd_delta_csd', 'psd_alpha_csd', 'psd_beta_csd', 'psd_gamma_csd']
     if 'localisation' in features_list:
         x_list += ['alpha_mean', 'alpha_std', 'spike_count']
     if 'waveforms' in features_list:
@@ -35,16 +43,7 @@ def voltage_features_set(features_list=FEATURES_LIST):
     return x_list
 
 
-def train_test_split_indices(df_voltage, test_size=0.25, seed=_SEED, include_benchmarks=True):
-    """
-    Splits the features dataframe into a training and a test set, stratified by pid, with optionally
-    pinning some insertions as test insertions
-    :param df_voltage: voltage features dataframe
-    :param test_size: proportion of the set to be used as test set (0-1)
-    :param seed: random seed
-    :param include_benchmarks (True): include benchmark probes in the test set
-    :return: boolean vectors (nfeats,) train_idx, test_idx
-    """
+def _train_test_split(df_voltage, test_size=0.25, seed=_SEED, include_benchmarks=True):
     pids = df_voltage.iloc[:, 0].groupby('pid').count()
     if include_benchmarks:
         benchmark_idx, _ = ismember(df_voltage.index.get_level_values(0), ephys_atlas.data.BENCHMARK_PIDS)
@@ -57,6 +56,41 @@ def train_test_split_indices(df_voltage, test_size=0.25, seed=_SEED, include_ben
         fixed_test_pids = []
     # shuffle pids and take the first n pids that best match the desired proportion test_size
     pids = pids.sample(frac=1, random_state=seed)
+    return pids, fixed_test_pids
+
+
+def train_test_split_folds(df_voltage, N=4, seed=_SEED, include_benchmarks=True):
+    """
+    if True, will return N folds of training and test sets covering the whole dataset
+     in this case N is the closest integer to 1/test_size
+    :param df_voltage: voltage features dataframe
+    :param N: Number of folds
+    :param seed: random seed
+    :param include_benchmarks (True): include benchmark probes in the test set
+    :return:
+    """
+    pids, fixed_test_pids = _train_test_split(df_voltage, test_size=1 / N, seed=seed, include_benchmarks=include_benchmarks)
+    folds = np.floor(np.arange(pids.size) / pids.size * N).astype(int)
+    index_pids = df_voltage.index.get_level_values(0).values.astype('<U36')
+    test_idx_folds = []
+    for fold in np.arange(N):
+        test_idx, _ = ismember(index_pids, np.array(list(pids.index[folds == fold]) + fixed_test_pids))
+        test_idx_folds.append(test_idx)
+    return test_idx_folds
+
+
+def train_test_split_indices(df_voltage, test_size=0.25, seed=_SEED, include_benchmarks=True):
+    """
+    Splits the features dataframe into a training and a test set, stratified by pid, with optionally
+    pinning some insertions as test insertions, typically the 13 benchmark insertions scattered accross
+    the mouse brain that would always be part of the testing set.
+    :param df_voltage: voltage features dataframe
+    :param test_size: proportion of the set to be used as test set (0-1)
+    :param seed: random seed
+    :param include_benchmarks (True): include benchmark probes in the test set
+    :return: boolean vectors (nfeats,) train_idx, test_idx
+    """
+    pids, fixed_test_pids = _train_test_split(df_voltage, test_size=test_size, seed=seed, include_benchmarks=include_benchmarks)
     ilast = np.searchsorted(pids.cumsum() / pids.sum(), test_size)
     test_idx, _ = ismember(df_voltage.index.get_level_values(0), list(pids.index[:ilast]) + fixed_test_pids)
     train_idx = ~test_idx
