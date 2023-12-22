@@ -1,8 +1,48 @@
-import numpy as np
+import hashlib
 from typing import List, Tuple
+import yaml
+
+import numpy as np
+from xgboost import XGBClassifier
+
+from iblutil.util import Bunch
 
 
-def step(mu_prev: np.ndarray,
+def save_model(path_model, classifier, meta, subfolder=''):
+    """
+    Save model to disk in ubj format with associated meta-data and a hash
+    The model is a set of files in a folder named after the meta-data
+     'VINTAGE' and 'REGION_MAP' fields, with the hash as suffix e.g. 2023_W41_Cosmos_dfd731f0
+    :param classifier:
+    :param meta:
+    :param path_model:
+    :param subfolder: optional level to add to the model path, for example 'FOLD01' will write to
+        2023_W41_Cosmos_dfd731f0/FOLD01/
+    :return:
+    """
+    meta.MODEL_CLASS = f"{classifier.__class__.__module__}.{classifier.__class__.__name__}"
+    hash = hashlib.md5(yaml.dump(meta).encode('utf-8')).hexdigest()[:8]
+    path_model = path_model.joinpath(f"{meta['VINTAGE']}_{meta['REGION_MAP']}_{hash}", subfolder)
+    path_model.mkdir(exist_ok=True, parents=True)
+    with open(path_model.joinpath('meta.yaml'), 'w+') as fid:
+        fid.write(yaml.dump(dict(meta)))
+    classifier.save_model(path_model.joinpath('model.ubj'))
+    return path_model
+
+
+def load_model(path_model):
+    # load model
+    with open(path_model.joinpath('meta.yaml')) as f:
+        model = Bunch({
+            # TODO: it should be possible to use different model kinds
+            'classifier': XGBClassifier(model_file=path_model.joinpath('model.ubj')),
+            'meta': yaml.safe_load(f)
+        })
+    model.classifier.load_model(path_model.joinpath('model.ubj'))
+    return model
+
+
+def _step_viterbi(mu_prev: np.ndarray,
          emission_probs: np.ndarray,
          transition_probs: np.ndarray,
          observed_state: int) -> Tuple[np.ndarray, np.ndarray]:
@@ -72,7 +112,7 @@ def viterbi(emission_probs: np.ndarray,
     mu = start_probs * emission_probs[:, observed_states[0]]
     all_prev_states = []
     for observed_state in observed_states[1:]:
-        mu, prevs = step(mu, emission_probs, transition_probs, observed_state)
+        mu, prevs = _step_viterbi(mu, emission_probs, transition_probs, observed_state)
         all_prev_states.append(prevs)
 
     # Traces backwards to get the maximum likelihood sequence.
@@ -85,28 +125,3 @@ def viterbi(emission_probs: np.ndarray,
 
     return state_sequence[::-1], sequence_prob
 
-
-def _test_viterbi():
-    num_hidden_states = 3
-    num_observed_states = 2
-    num_time_steps = 4
-    # Initializes the transition probability matrix (nlatent, nlatent).
-    transition_probs = np.array([
-        [0.1, 0.2, 0.7],
-        [0.1, 0.1, 0.8],
-        [0.5, 0.4, 0.1],
-    ])
-    # Initializes the emission probability matrix. (nlatent, nobs)
-    emission_probs = np.array([
-        [0.1, 0.9],
-        [0.3, 0.7],
-        [0.5, 0.5],
-    ])
-    # Initalizes the initial hidden probabilities (nlatent)
-    init_hidden_probs = np.array([0.1, 0.3, 0.6])
-    # Defines the sequence of observed states (nsteps)
-    observed_states = [1, 1, 0, 1]
-
-    s, p = viterbi(emission_probs, transition_probs, init_hidden_probs, observed_states)
-    assert s == [2, 0, 2, 0]
-    assert p == 0.0212625

@@ -185,8 +185,7 @@ for pid in Benchmark_pids:
 #     f, axs = plt.subplots(1, 7, figsize=(12, 6), gridspec_kw={'width_ratios': [1, 1, 8, 2, 1, 1, 8]})
 #     plot_brain_regions(df_pid['cosmos_id'], channel_depths=df_pid['axial_um'].values, brain_regions=regions, display=True, ax=axs[0])
 #     plot_brain_regions(ccosmos, channel_depths=cdepths, brain_regions=regions, display=True, ax=axs[1], linewidth=0)
-99999999999ioorrrrrrrrrrrrrrrrrrrrrrrrmkjg-0tf    plot_probas_df(probas_cosmos, legend=False, ax=axs[2])
-
+    plot_probas_df(probas_cosmos, legend=False, ax=axs[2])
     plot_brain_regions(df_pid['beryl_id'], channel_depths=df_pid['axial_um'].values, brain_regions=regions, display=True, ax=axs[4])
     plot_brain_regions(cberyl, channel_depths=cdepths, brain_regions=regions, display=True, ax=axs[5], linewidth=0)
     plot_probas_df(probas_beryl, legend=False, ax=axs[6])

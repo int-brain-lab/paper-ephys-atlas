@@ -126,7 +126,10 @@ def load_voltage_features(local_path, regions=None):
         local_path = Path(config['paths']['features']).joinpath('latest')
     df_voltage, df_clusters, df_channels, df_probes = load_tables(Path(local_path))
     df_voltage.replace([np.inf, -np.inf], np.nan, inplace=True)
-    df_voltage = pd.merge(df_voltage, df_channels, left_index=True, right_index=True).dropna()
+    df_voltage = pd.merge(df_voltage, df_channels, left_index=True, right_index=True)
+    _logger.info(f"Loaded {df_voltage.shape[0]} channels")
+    df_voltage = df_voltage.dropna()
+    _logger.info(f"Remains {df_voltage.shape[0]} channels after NaNs filtering")
     df_voltage['cosmos_id'] = regions.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Cosmos')
     df_voltage['beryl_id'] = regions.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Beryl')
     return df_voltage, df_clusters, df_channels, df_probes
@@ -146,11 +149,12 @@ def load_tables(local_path, verify=True):
     return df_voltage, df_clusters, df_channels, df_probes
 
 
-def download_tables(local_path, label='latest', one=None, verify=True):
+def download_tables(local_path, label='latest', one=None, verify=True, overwrite=False):
     # The AWS private credentials are stored in Alyx, so that only one authentication is required
     local_path = Path(local_path).joinpath(label)
     s3, bucket_name = aws.get_s3_from_alyx(alyx=one.alyx)
-    local_files = aws.s3_download_folder(f"aggregates/atlas/{label}", local_path, s3=s3, bucket_name=bucket_name)
+    local_files = aws.s3_download_folder(f"aggregates/atlas/{label}", local_path, s3=s3,
+                                         bucket_name=bucket_name, overwrite=overwrite)
     assert len(local_files), f"aggregates/atlas/{label} not found on AWS"
     return load_tables(local_path=local_path, verify=verify)
 
