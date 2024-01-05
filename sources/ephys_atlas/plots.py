@@ -31,13 +31,13 @@ def color_map_feature(feature_list=FEATURES_LIST, cmap='Pastel1_r', n_inc=12):
     return list_out
 
 
-def plot_kde(feature, df_voltage, brain_id='cosmos_id', regions_id=None,
+def plot_kde(feature, df_voltage, brain_id='Cosmos_id', regions_id=None,
              br=None, ax=None, summary=None):
     '''
     Plot KDEs for a given feature
     :param feature: str containing the feature name, e.g. 'peak_to_trough_ratio_log'
     :param df_voltage: dataframe of feature values ; must contain the column brain_id
-    :param brain_id: parcelation chosen, e.g. 'cosmos_id' or 'beryl_id'
+    :param brain_id: parcelation chosen, e.g. 'Cosmos_id' or 'Beryl_id'
     :param regions_id: array of region ids to be  plotted (as per brain_id parcelation), e.g. [21, 234]
     :param br: brain region object
     :param ax: axis for plotting
@@ -204,9 +204,9 @@ def plot_similarity_matrix(mat_plot, regions, ax=None, br=None):
     if br is None:
         br = BrainRegions()
     # Plot
-    plt.imshow(mat_plot)
-    plt.colorbar()
-    plt.show()
+    ax.imshow(mat_plot)
+    ax.colorbar()
+    ax.show()
     # Set tick labels as brain region acronyms
     regions_ac = br.id2acronym(regions)
     ax.set_xticks(np.arange(regions.size))
