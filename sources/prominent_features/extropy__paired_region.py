@@ -2,12 +2,13 @@ import numpy as np
 from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn
+import seaborn as sns
 from iblatlas.atlas import BrainRegions
 from ephys_atlas.data import load_tables, download_tables
-from ephys_atlas.encoding import voltage_features_set
 from ephys_atlas.plots import plot_kde, plot_similarity_matrix
 from ephys_atlas.feature_information import feature_overall_entropy
+from ephys_atlas.encoding import voltage_features_set, FEATURES_LIST
+from ephys_atlas.plots import color_map_feature
 from one.api import ONE
 
 onen = ONE()
@@ -73,6 +74,7 @@ for feature in features:
 
     dict_feat[feature] = df_entropy
 
+# Create multi-index dataframe
 df_multi = pd.concat(dict_feat.values(), axis=1, keys=dict_feat.keys())
 # Replace Nans with zeros
 df_multi.fillna(0, inplace=True)
@@ -81,24 +83,67 @@ df_multi.fillna(0, inplace=True)
 for feature in features:
     # Init figure
     fig, axs = plt.subplots(1, 3)
-    fig.set_size_inches([11.88, 3.7])
+    fig.set_size_inches([13.51,  3.14])
 
     # KDE
     plot_kde(feature, df_voltage, ax=axs[0], brain_id=mapping + '_id')
 
     # Matrix
     plot_similarity_matrix(mat_plot=df_multi[feature].to_numpy(),
-                           regions=df_multi[feature].index, ax=axs[1])
+                           regions=df_multi[feature].index,
+                           fig=fig, ax=axs[1])
 
 
-    # # SUM of information
-    # df_info = df_multi[feature].sum().to_frame(name="Sum info")
-    #
-    # df_info[mapping + '_id'] = df_info.index.get_level_values(0)
-    # df_info[mapping + '_acronym'] = br.id2acronym(df_info[mapping + '_id'])
-    #
-    # seaborn.barplot(data=df_info, x=mapping + '_acronym', y="Sum info", color='k', ax=axs[2])
+    # SUM of information
+    df_info = df_multi[feature].sum().to_frame(name="Sum info")
+
+    df_info[mapping + '_id'] = df_info.index.get_level_values(0)
+    df_info[mapping + '_acronym'] = br.id2acronym(df_info[mapping + '_id'])
+
+    sns.barplot(data=df_info, x=mapping + '_acronym', y="Sum info", color='b', ax=axs[2])
+    axs[2].set_xticklabels(axs[2].get_xticklabels(), rotation=90)
+    axs[2].set_title(f'Overall sum: {df_info["Sum info"].sum()}')
     break
     # Save
     plt.savefig(local_fig_path.joinpath(f'entropy_sim__{label}_{mapping}__{feature}.png'))
     plt.close()
+
+##
+# Plot histogram of information gain per feature, color coded by feature type
+
+
+# Create multi-index dataframe
+df_multi = pd.concat(dict_feat.values(), axis=0, keys=dict_feat.keys())
+information_gain = df_multi.groupby(level=[0]).sum()
+##
+fig, axs = plt.subplots(1, 2)
+fig.set_size_inches([9.61, 4.81])
+
+# Set tick labels as brain region acronyms
+ax = axs[0]
+sns.heatmap(information_gain, ax=ax)
+regions = information_gain.columns
+regions_ac = br.id2acronym(regions)
+ax.set_xticks(np.arange(regions.size))
+ax.set_xticklabels(regions_ac, rotation=90)
+
+##
+info_feature = information_gain.sum(axis=1).to_frame(name="information_gain").sort_values(
+    'information_gain', ascending=False).reset_index()
+
+# Add new column "color"
+color_set = color_map_feature()
+info_feature['color'] = 0  # init new column
+for feature_i, color_i in zip(FEATURES_LIST, color_set):
+    feat_list = voltage_features_set(feature_i)
+    indx = info_feature['index'].isin(feat_list)
+    info_feature['color'][indx] = color_i
+
+# Plot
+ax = axs[1]
+sns.barplot(info_feature, y='information_gain', x='index', palette=info_feature['color'])
+plt.xticks(rotation=90)
+fig.tight_layout()
+
+plt.savefig(local_fig_path.joinpath(f'entropy_sim__{label}_{mapping}__OVERALL.png'))
+plt.close()
