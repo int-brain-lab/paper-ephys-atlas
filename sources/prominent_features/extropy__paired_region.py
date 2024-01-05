@@ -14,7 +14,7 @@ from one.api import ONE
 onen = ONE()
 br = BrainRegions()
 
-label = '2023_W34'  # label = '2023_W51_autism'
+label = '2023_W51'  # label = '2023_W51_autism'
 mapping = 'Cosmos'
 local_data_path = Path('/Users/gaelle/Documents/Work/EphysAtlas/Data')
 local_fig_path = Path('/Users/gaelle/Documents/Work/EphysAtlas/Anaysis_Entropy2024')
@@ -60,12 +60,8 @@ for feature in features:
     df_entropy = pd.DataFrame(index=counts.index, columns=counts.index)
     # Divide the counts into 2 regions
     for ireg1, reg1 in enumerate(counts.index):
-        for ireg2, reg2 in enumerate(counts.index[ireg1+1:]):
-            # increment the region index, so we do the comparison only once per pair
-            ireg2_cmp = ireg1+ireg2+1
-            # print(f'{ireg1}, {ireg2_cmp}')
-
-            counts_reg = counts.iloc[[ireg1, ireg2_cmp], :]
+        for reg2 in counts.index[ireg1+1:]:
+            counts_reg = counts.loc[[reg1, reg2], :]
             information_gain = feature_overall_entropy(counts_reg)
 
             # Save the result in both place in the DF
@@ -73,8 +69,11 @@ for feature in features:
             df_entropy.at[reg2, reg1] = information_gain
 
     dict_feat[feature] = df_entropy
-
-# Create multi-index dataframe
+##
+"""
+# Plot the information gain  / matrix per feature
+"""
+# Create multi-index dataframe (AXIS = 1)
 df_multi = pd.concat(dict_feat.values(), axis=1, keys=dict_feat.keys())
 # Replace Nans with zeros
 df_multi.fillna(0, inplace=True)
@@ -103,17 +102,20 @@ for feature in features:
     sns.barplot(data=df_info, x=mapping + '_acronym', y="Sum info", color='b', ax=axs[2])
     axs[2].set_xticklabels(axs[2].get_xticklabels(), rotation=90)
     axs[2].set_title(f'Overall sum: {df_info["Sum info"].sum()}')
-    break
+
     # Save
     plt.savefig(local_fig_path.joinpath(f'entropy_sim__{label}_{mapping}__{feature}.png'))
     plt.close()
 
 ##
+"""
 # Plot histogram of information gain per feature, color coded by feature type
-
-
-# Create multi-index dataframe
+"""
+# Create multi-index dataframe (AXIS = 0)
 df_multi = pd.concat(dict_feat.values(), axis=0, keys=dict_feat.keys())
+# Replace Nans with zeros
+df_multi.fillna(0, inplace=True)
+
 information_gain = df_multi.groupby(level=[0]).sum()
 ##
 fig, axs = plt.subplots(1, 2)
@@ -147,3 +149,22 @@ fig.tight_layout()
 
 plt.savefig(local_fig_path.joinpath(f'entropy_sim__{label}_{mapping}__OVERALL.png'))
 plt.close()
+
+##
+"""
+# Plot correlation coefficient between matrix of pair of features
+"""
+# Create a dataframe of Nfeature x Nfeature that will contain the correlation coefficient
+df_corr = pd.DataFrame(index=features, columns=features)
+
+for ifet1, fet1 in enumerate(features):
+    mat1 = df_multi[fet1].to_numpy()
+    for fet2 in features[ifet1 + 1:]:
+        mat2 = df_multi[fet2].to_numpy()
+
+        # Compute correlation coefficient only on top diagonal elements
+        corr_coeff
+
+        # Save the result in both place in the DF
+        df_corr.at[fet1, fet2] = corr_coeff
+        df_corr.at[fet2, fet1] = corr_coeff
