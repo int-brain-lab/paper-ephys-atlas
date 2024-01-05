@@ -8,7 +8,7 @@ from ephys_atlas.encoding import voltage_features_set
 from ephys_atlas.feature_information import feature_region_entropy
 from one.api import ONE
 
-onen = ONE()
+one = ONE()
 br = BrainRegions()
 
 label = '2023_W51_autism'
@@ -59,7 +59,7 @@ for i_f, feature in enumerate(features):
     if i_f == 0:
         information_gain_region = pd.DataFrame(index=counts.index.values)
         information_gain_region[mapping + '_acronym'] = br.id2acronym(information_gain_region.index.values, mapping=mapping)
-    information_gain_region[feature] = feature_region_entropy(counts)
+    information_gain_region[feature] = feature_region_entropy(counts, normalise=True)
 
 information_gain_region = information_gain_region.merge(df_regions[['n_channels']], left_index=True, right_index=True)
 # Place n_channel as second column
