@@ -189,8 +189,10 @@ def plot_feature_colorbar(features_sort, val_sort, ax=None):
     if ax is None:
         return fig, ax
 
+##
 
-def plot_similarity_matrix(mat_plot, regions, ax=None, br=None):
+
+def plot_similarity_matrix(mat_plot, regions, fig=None, ax=None, br=None, cmap='viridis'):
     '''
     Plot the similarity matrix as imshow
     :param mat_plot: matrix to plot
@@ -199,14 +201,18 @@ def plot_similarity_matrix(mat_plot, regions, ax=None, br=None):
     :param br:
     :return:
     '''
-    if ax is None:
+    if ax is None or fig is None:
         fig, ax = plt.subplots(1, 1)
     if br is None:
         br = BrainRegions()
     # Plot
-    ax.imshow(mat_plot)
-    ax.colorbar()
-    ax.show()
+
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes('right', size='5%', pad=0.05)
+    im = ax.imshow(mat_plot, cmap=cmap)
+    fig.colorbar(im, cax=cax, orientation='vertical')
+
     # Set tick labels as brain region acronyms
     regions_ac = br.id2acronym(regions)
     ax.set_xticks(np.arange(regions.size))
@@ -215,6 +221,7 @@ def plot_similarity_matrix(mat_plot, regions, ax=None, br=None):
     ax.set_yticklabels(regions_ac)
     if ax is None:
         return fig, ax
+##
 
 
 def prepare_data_probe_plot(data_arr, xy, cmap=None, clim=None):

@@ -111,13 +111,18 @@ def atlas_pids(one, tracing=False):
     return [item['id'] for item in insertions], insertions
 
 
-def load_voltage_features(local_path, regions=None):
+def load_voltage_features(local_path, regions=None, mapping='Cosmos'):
     """
     Load the voltage features, drop  NaNs and merge the channel information at the Allen, Beryl and Cosmos levels
     :param local_path: full path to folder containing the features table "/data/ephys-atlas/2023_W34"
     :param regions:
+    :param mapping: Level of hierarchy, Cosmos, Beryl or Allen
     :return:
     """
+    list_mapping = ["Cosmos", "Beryl", "Allen"]
+    if mapping not in list_mapping:
+        raise ValueError(f'mapping should be in {list_mapping}')
+
     regions = BrainRegions() if regions is None else regions
     if local_path is None:
         ## data loading section
@@ -130,8 +135,10 @@ def load_voltage_features(local_path, regions=None):
     _logger.info(f"Loaded {df_voltage.shape[0]} channels")
     df_voltage = df_voltage.dropna()
     _logger.info(f"Remains {df_voltage.shape[0]} channels after NaNs filtering")
-    df_voltage['cosmos_id'] = regions.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Cosmos')
-    df_voltage['beryl_id'] = regions.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Beryl')
+    df_voltage = df_voltage.rename(columns={"atlas_id": "Allen_id", "acronym": "Allen_acronym"})
+    if mapping != "Allen":
+        df_voltage[mapping + '_id'] = regions.remap(df_voltage['Allen_id'], source_map='Allen', target_map=mapping)
+        df_voltage[mapping + '_acronym'] = regions.id2acronym(df_voltage[mapping + '_id'])
     return df_voltage, df_clusters, df_channels, df_probes
 
 
