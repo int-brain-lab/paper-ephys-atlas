@@ -9,6 +9,7 @@ from ephys_atlas.plots import plot_kde, plot_similarity_matrix
 from ephys_atlas.feature_information import feature_overall_entropy
 from ephys_atlas.encoding import voltage_features_set, FEATURES_LIST
 from ephys_atlas.plots import color_map_feature
+import scipy
 from one.api import ONE
 
 onen = ONE()
@@ -154,17 +155,63 @@ plt.close()
 """
 # Plot correlation coefficient between matrix of pair of features
 """
+# Create multi-index dataframe (AXIS = 1)
+df_multi = pd.concat(dict_feat.values(), axis=1, keys=dict_feat.keys())
+# Replace Nans with zeros
+df_multi.fillna(0, inplace=True)
+##
 # Create a dataframe of Nfeature x Nfeature that will contain the correlation coefficient
 df_corr = pd.DataFrame(index=features, columns=features)
-
+df_corr_pass = pd.DataFrame(index=features, columns=features)
+pval = 0.0000001
 for ifet1, fet1 in enumerate(features):
     mat1 = df_multi[fet1].to_numpy()
     for fet2 in features[ifet1 + 1:]:
         mat2 = df_multi[fet2].to_numpy()
-
+        r, c = np.triu_indices(mat1.shape[0], 1)
+        vec1 = mat1[r, c]
+        vec2 = mat2[r, c]
         # Compute correlation coefficient only on top diagonal elements
-        corr_coeff
+        corr_coeff = scipy.stats.pearsonr(vec1, vec2)
 
         # Save the result in both place in the DF
         df_corr.at[fet1, fet2] = corr_coeff
         df_corr.at[fet2, fet1] = corr_coeff
+
+        df_corr_pass.at[fet1, fet2] = corr_coeff.pvalue < pval
+        df_corr_pass.at[fet2, fet1] = corr_coeff.pvalue < pval
+##
+# Fill nan val with 0
+df_corr_pass.fillna(0, inplace=True)
+df_corr_pass[df_corr_pass.columns] = df_corr_pass[df_corr_pass.columns].astype(int)
+# Plot
+fig, axs = plt.subplots(1, 2)
+fig.set_size_inches([9.61, 4.81])
+
+# Set tick labels as brain region acronyms
+ax = axs[0]
+sns.heatmap(df_corr_pass, ax=ax)
+fig.tight_layout()
+
+##
+# Clustering -- does not work because of kernel
+'''
+data = df_corr_pass.copy().to_numpy()
+
+from sklearn.cluster import SpectralCoclustering
+n_clu = 2
+model = SpectralCoclustering(n_clusters=n_clu, random_state=0)
+model.fit(data)
+
+fit_data = data[np.argsort(model.row_labels_)]
+fit_data = fit_data[:, np.argsort(model.column_labels_)]
+
+plt.matshow(fit_data, cmap=plt.cm.Blues)
+plt.title(f"Clustered with {n_clu} clusters")
+
+plt.show()
+
+plt.imshow(fit_data)
+plt.colorbar()
+plt.show()
+'''
