@@ -31,9 +31,9 @@ LOCAL_DATA_PATH = Path("/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding")
 df_voltage, _, _, _ = ephys_atlas.data.load_voltage_features(LOCAL_DATA_PATH.joinpath('features', meta.VINTAGE))
 
 FEATURE_SET = ['raw_ap', 'raw_lf', 'raw_lf_csd', 'localisation', 'waveforms']
-TRAIN_LABEL = f'{meta.REGION_MAP.lower()}_id'  # ['beryl_id', 'cosmos_id', 'atlas_id']
+TRAIN_LABEL = f'{meta.REGION_MAP}_id'  # ['beryl_id', 'cosmos_id', 'atlas_id']
 x_list = meta.FEATURES = sorted(ephys_atlas.encoding.voltage_features_set(FEATURE_SET))
-
+# x_list = meta.FEATURES = ['rms_lf', 'trough_time_secs', 'rms_ap']
 
 # smooth features
 # import tqdm
@@ -61,7 +61,7 @@ for ifold, test_idx in enumerate(test_idx_folds):
     classes = np.unique(df_voltage.loc[train_idx, TRAIN_LABEL])
 
     match TRAIN_LABEL:
-        case 'cosmos_id': # Gradient boost
+        case 'Cosmos_id': # Gradient boost
             # this only works
             _, iy_train = ismember(y_train, classes)
             _, iy_test = ismember(y_test, classes)
@@ -78,7 +78,7 @@ for ifold, test_idx in enumerate(test_idx_folds):
             #     df_voltage.loc[test_idx, TRAIN_LABEL].values,
             #     regions.remap(df_voltage['atlas_id_target'], source_map='Allen', target_map='Cosmos')[test_idx]
             # )
-        case 'beryl_id':
+        case 'Beryl_id':
             # Random forest
             kwargs = {'n_estimators': 30, 'max_depth': 40, 'max_leaf_nodes': 10000,
                       'random_state': meta.RANDOM_SEED, 'n_jobs': -1, 'criterion': 'entropy'}
@@ -127,4 +127,12 @@ df_predictions = pd.concat(df_predictions)
 columns = df_predictions.columns.difference(df_voltage.columns)
 df_voltage = df_voltage.merge(df_predictions.loc[:, columns], left_index=True, right_index=True, how='left')
 
-df_voltage.to_parquet(path_model.parent.joinpath('voltage_predictions.pqt'))
+path_model = path_model.parent
+df_voltage.to_parquet(path_model.joinpath('voltage_predictions.pqt'))
+
+## send the model run to AWS
+path_models = Path("/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding/models")
+
+print(f'aws --profile ibl s3 sync "{path_models}" s3://ibl-brain-wide-map-private/aggregates/atlas/models')
+
+
