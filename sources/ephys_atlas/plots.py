@@ -360,11 +360,12 @@ def figure_features_chspace(pid_df, features, xy, br=None):
         axs[i_feat].set_title(feature)
 
     # Plot brain region in space in unique colors
-    d_uni = np.unique(pid_df['atlas_id'].to_numpy(), return_inverse=True)[1]
-    d_uni = d_uni.astype(np.float32)
-    data = prepare_data_probe_plot(d_uni, xy)
-    plot_probe(data.convert2dict(), ax=axs[len(features)], show_cbar=False)
-    axs[len(features)].set_title('brain region')
+    # TODO Change to use rectangle function as plot_probe does not work anymore
+    # d_uni = np.unique(pid_df['atlas_id'].to_numpy(), return_inverse=True)[1]
+    # d_uni = d_uni.astype(np.float32)
+    # data = prepare_data_probe_plot(d_uni, xy)
+    # plot_probe(data.convert2dict(), ax=axs[len(features)], show_cbar=False)
+    # axs[len(features)].set_title('brain region')
 
     # Plot brain region along probe depth with color code
     color = get_color_br(pid_df, br)
