@@ -318,8 +318,8 @@ def figure_features_chspace_probeplot(pid_df, features, xy):
     return fig, axs
 
 
-def get_color_br(pid_ch_df, br):
-    region_info = br.get(pid_ch_df['atlas_id'])
+def get_color_br(pid_ch_df, br, mapping='Allen'):
+    region_info = br.get(pid_ch_df[mapping+'_id'])
     color = region_info.rgb/255
     return color
 
@@ -332,7 +332,7 @@ def get_color_feat(x, cmap_name='viridis'):
     color = cmap(x_norm)
     return color
 
-def figure_features_chspace(pid_df, features, xy, br=None):
+def figure_features_chspace(pid_df, features, xy, br=None, mapping='Cosmos'):
     '''
 
     :param pid_df: Dataframe containing channels and voltage information for a given PID
@@ -368,7 +368,7 @@ def figure_features_chspace(pid_df, features, xy, br=None):
     # axs[len(features)].set_title('brain region')
 
     # Plot brain region along probe depth with color code
-    color = get_color_br(pid_df, br)
+    color = get_color_br(pid_df, br, mapping=mapping)
     plot_probe_rect(xy, color, ax=axs[len(features) + 1])
     axs[len(features) + 1].set_title('color')
 
