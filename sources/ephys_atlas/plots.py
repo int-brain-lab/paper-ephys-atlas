@@ -332,7 +332,7 @@ def get_color_feat(x, cmap_name='viridis'):
     color = cmap(x_norm)
     return color
 
-def figure_features_chspace(pid_df, features, xy, br=None, mapping='Cosmos'):
+def figure_features_chspace(pid_df, features, xy, pid, fig=None, axs=None, br=None, mapping='Cosmos'):
     '''
 
     :param pid_df: Dataframe containing channels and voltage information for a given PID
@@ -350,14 +350,15 @@ def figure_features_chspace(pid_df, features, xy, br=None, mapping='Cosmos'):
     '''
     if br is None:
         br = BrainRegions()
-    fig, axs = plt.subplots(1, len(features) + 2, sharey=True)
+    if fig is None or axs is None:
+        fig, axs = plt.subplots(1, len(features) + 1, sharey=True)  # +2
 
     for i_feat, feature in enumerate(features):
         feat_arr = pid_df[[feature]].to_numpy()
         # Plot feature
         color = get_color_feat(feat_arr)
         plot_probe_rect(xy, color, ax=axs[i_feat])
-        axs[i_feat].set_title(feature)
+        axs[i_feat].set_title(feature, rotation=90)
 
     # Plot brain region in space in unique colors
     # TODO Change to use rectangle function as plot_probe does not work anymore
@@ -369,11 +370,11 @@ def figure_features_chspace(pid_df, features, xy, br=None, mapping='Cosmos'):
 
     # Plot brain region along probe depth with color code
     color = get_color_br(pid_df, br, mapping=mapping)
-    plot_probe_rect(xy, color, ax=axs[len(features) + 1])
-    axs[len(features) + 1].set_title('color')
+    plot_probe_rect(xy, color, ax=axs[len(features)])  # + 1
+    axs[len(features)].set_title(mapping,  rotation=90)
 
     # Add pid as suptitle
-    pid = pid_df.index[0][0]
+    # pid = pid_df.index[0][0]
     fig.suptitle(f'PID {pid}')
 
     return fig, axs
