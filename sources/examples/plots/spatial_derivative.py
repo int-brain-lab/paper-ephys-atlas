@@ -40,12 +40,12 @@ feat_plt = features.copy()
 for feature in features:
     feat_der = meta_spatial_derivative(pid_df, feature)
     new_name = f'{feature}_der'
-    pid_df[new_name] = -feat_der
+    pid_df[new_name] = feat_der
     feat_plt.append(new_name)
 
 ##
 # Select your features and plot
-fig, axs = figure_features_chspace(pid_df, feat_plt, xy)
+fig, axs = figure_features_chspace(pid_df, feat_plt, xy, pid=pid)
 
 ## Note that because we drop nan from the df, channels can vary heavily in distance
 import seaborn
