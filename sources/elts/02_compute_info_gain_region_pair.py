@@ -1,4 +1,3 @@
-from ephys_atlas.workflow import info_gain
 import ephys_atlas.workflow as workflow
 import time
 import joblib
