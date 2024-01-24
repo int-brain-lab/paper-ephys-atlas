@@ -69,12 +69,7 @@ TASKS = OrderedDict({
     'compute_raw_features': {
         'version': '1.4.1',
         'depends_on': ['destripe_lf', 'localise'],
-    },
-    'info_gain': {
-        'version': '1.0.0',
-        'depends_on': ['compute_raw_features']
     }
-
 })
 assert all(['-' not in TASKS for t in TASKS]), 'Task names cannot contain -'
 
@@ -382,11 +377,3 @@ def compute_raw_features(pid, data_path=None):
     channels_features = pd.concat({pid: channels_features}, names=['pid'])
     channels_features.to_parquet(root_path.joinpath(pid, 'raw_ephys_features.pqt'))
     return channels_features
-
-
-@task(**TASKS['info_gain'])
-def info_gain(df_voltage, feature, mapping, save_folder):
-    # Compute
-    df_info = ephys_atlas.entropy.compute_info_gain(df_voltage, feature, mapping)
-    # Save dataframe
-    df_info.to_parquet(save_folder.joinpath('info_gain.pqt'))
