@@ -3,12 +3,13 @@ import numpy as np
 from ephys_atlas.feature_information import feature_overall_entropy
 
 
-def compute_info_gain(df_voltage, feature, mapping):
+def compute_info_gain(df_voltage, feature, mapping, save_folder=None):
     '''
     Compute the information gain for each pair of region, for one given feature
     :param df_voltage: the dataframe of features
     :param feature: string, e.g. 'rms_ap'
     :param mapping: string, e.g. 'Cosmos'
+    :param save_folder: path to save folder
     :return: dataframe of (Nregion * Nregion) rows x 4 columns (reg1, reg2, info_gain, feature)
     '''
     quantiles = df_voltage[feature].quantile(np.linspace(0, 1, 600)[1:])
@@ -35,5 +36,8 @@ def compute_info_gain(df_voltage, feature, mapping):
     df_entropy = df_entropy.unstack().reset_index()
     df_entropy.rename(columns={0: 'info_gain'}, inplace=True)
     df_entropy['feature'] = feature
+
+    if save_folder is not None:  # Save dataframe
+        df_entropy.to_parquet(save_folder.joinpath(f'{feature}__{mapping}__info_gain.pqt'))
 
     return df_entropy
