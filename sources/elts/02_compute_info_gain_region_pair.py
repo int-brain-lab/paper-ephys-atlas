@@ -41,8 +41,7 @@ features = voltage_features_set()
 
 ##
 t = time.time()
-joblib.Parallel(n_jobs=5)(joblib.delayed(workflow.info_gain)(
-    workflow.info_gain(df_voltage, feature, mapping, save_folder)) for feature in features)
+joblib.Parallel(n_jobs=5)(joblib.delayed(workflow.info_gain)(df_voltage, feature, mapping, save_folder) for feature in features)
 print(time.time() - t, len(features), mapping)
 
 
