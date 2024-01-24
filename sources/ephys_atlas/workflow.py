@@ -362,3 +362,10 @@ def compute_raw_features(pid, data_path=None):
     channels_features = pd.concat({pid: channels_features}, names=['pid'])
     channels_features.to_parquet(root_path.joinpath(pid, 'raw_ephys_features.pqt'))
     return channels_features
+
+
+@task(**TASKS['info_gain'])
+def info_gain(df_voltage, feature, mapping):
+    # TODO does the download of the voltage DF happen here?
+    df_info = ephys_atlas.entropy.compute_info_gain(df_voltage, feature, mapping)
+    return df_info
