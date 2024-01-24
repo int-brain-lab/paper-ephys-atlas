@@ -22,11 +22,11 @@ br = BrainRegions()
 
 label = '2023_W51'
 mapping = 'Beryl'
-# local_data_path = Path('/mnt/s0/aggregates/')  # TODO ASK OW
-# save_folder = Path(f'/mnt/s0/ephys-atlas-decoding/entropy/{label}/')  # TODO ASK OW
+local_data_path = Path('/mnt/s0/aggregates/')  # TODO ASK OW
+save_folder = Path(f'/mnt/s0/ephys-atlas-decoding/entropy/{label}/')  # TODO ASK OW
 
-local_data_path = Path('/Users/gaelle/Documents/Work/EphysAtlas/Data')
-save_folder = Path(f'/Users/gaelle/Documents/Work/EphysAtlas/Entropy_DF_WF/{label}/')
+# local_data_path = Path('/Users/gaelle/Documents/Work/EphysAtlas/Data')
+# save_folder = Path(f'/Users/gaelle/Documents/Work/EphysAtlas/Entropy_DF_WF/{label}/')
 if not save_folder.parent.exists():
     save_folder.parent.mkdir()
 if not save_folder.exists():
