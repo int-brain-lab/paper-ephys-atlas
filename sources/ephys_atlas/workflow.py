@@ -39,6 +39,7 @@ import pandas as pd
 
 from iblutil.util import setup_logger
 from brainbox.io.one import SpikeSortingLoader
+import phylib.stats
 
 import ephys_atlas.rawephys
 from ephys_atlas.data import atlas_pids, compute_channels_micromanipulator_coordinates
@@ -46,7 +47,11 @@ from ephys_atlas.data import atlas_pids, compute_channels_micromanipulator_coord
 
 ROOT_PATH = Path(os.getenv('TASK_ROOT_PATH', Path("/mnt/s0/ephys-atlas")))
 logger = setup_logger(name='paper-ephys-atlas', level='INFO')
-
+"""
+Tasks versioning notes:
+-   compute_sorted_features
+    - 1.4.0 add the correlogram.npy output
+"""
 TASKS = OrderedDict({
     'destripe_ap': {
         'version': '1.3.0',
@@ -59,7 +64,7 @@ TASKS = OrderedDict({
         'depends_on': ['destripe_ap'],
     },
     'compute_sorted_features': {
-        'version': '1.3.0',
+        'version': '1.4.2',
     },
     'compute_raw_features': {
         'version': '1.4.1',
@@ -289,20 +294,30 @@ def compute_sorted_features(pid, one, data_path=ROOT_PATH):
         spikes.pqt
         channels.pqt
     """
+    AP_SAMPLING_RATE = 30_000
+    CORR_BIN_SECS = 0.001  #secs
+    CORR_WINDOW_SECS = 1  # secs
     ssl = SpikeSortingLoader(one=one, pid=pid)
     spikes, clusters, channels = ssl.load_spike_sorting(dataset_types=['spikes.samples'])
     if spikes == clusters == channels == {}:
         raise ValueError('No spike sorting found for this session')
     # here the channels object comes in two flavours: raw channels ('localCoordinates', 'rawInd')
     # and processed channels ('x', 'y', 'z', 'acronym', 'atlas_id', 'axial_um', 'lateral_um')
-
     from ephys_atlas import data
     if 'localCoordinates' in channels:
         channels = dict(axial_um=channels['localCoordinates'][:, 1], lateral_um=channels['localCoordinates'][:, 0])
-
+    # compute the correlograms
+    nsc = int(np.ceil((CORR_WINDOW_SECS / CORR_BIN_SECS + 1) / 2))
+    correlograms = np.zeros((nsc, clusters['uuids'].size), dtype=np.int32)
+    for c, s in pd.DataFrame(spikes).groupby('clusters'):
+        correlograms[:, c] = phylib.stats.correlograms(
+            s['times'], s['clusters'], c, sample_rate=AP_SAMPLING_RATE,
+            bin_size=CORR_BIN_SECS, window_size=CORR_WINDOW_SECS, symmetrize=False
+        )
     clusters = ssl.merge_clusters(spikes, clusters, channels)
     data_path.joinpath(pid).mkdir(exist_ok=True, parents=True)
     # the concat syntax sets a higher level index on the dataframe as pid
+    np.save(data_path.joinpath(pid, 'correlograms.npy'), correlograms)
     pd.concat({pid: pd.DataFrame(clusters)}, names=['pid']).to_parquet(data_path.joinpath(pid, 'clusters.pqt'))
     pd.concat({pid: pd.DataFrame(spikes)}, names=['pid']).to_parquet(data_path.joinpath(pid, 'spikes_sorted.pqt'))
     df_channels = pd.concat({pid: pd.DataFrame(channels)}, names=['pid'])
