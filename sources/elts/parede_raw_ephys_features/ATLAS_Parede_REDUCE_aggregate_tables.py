@@ -19,11 +19,11 @@ one = ONE(base_url="https://alyx.internationalbrainlab.org")
 _logger = setup_logger(level='INFO')
 AGGREGATE_PATH = Path("/mnt/s1/aggregates/atlas")
 
-# ROOT_PATH, label = (Path("/mnt/s0/ephys-atlas"), "")
-# pids, _ = data.atlas_pids(one)
+ROOT_PATH, label = (Path("/mnt/s0/ephys-atlas"), "")
+pids, _ = data.atlas_pids(one)
 
-ROOT_PATH, label = (Path("/mnt/s0/ephys-atlas-autism"), "_autism")
-pids, _ = data.atlas_pids_autism(one)
+# ROOT_PATH, label = (Path("/mnt/s0/ephys-atlas-autism"), "_autism")
+# pids, _ = data.atlas_pids_autism(one)
 
 
 print(f'aws --profile ibl s3 sync "{AGGREGATE_PATH}" s3://ibl-brain-wide-map-private/aggregates/atlas')
