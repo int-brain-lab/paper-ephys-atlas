@@ -3,7 +3,8 @@ import numpy as np
 from ephys_atlas.feature_information import feature_overall_entropy
 
 
-def compute_info_gain(df_voltage, feature, mapping, save_folder=None):
+def compute_info_gain(df_voltage, feature, mapping,
+                      save_folder=None, save_name='info_gain'):
     '''
     Compute the information gain for each pair of region, for one given feature
     :param df_voltage: the dataframe of features

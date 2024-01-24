@@ -1,7 +1,12 @@
-import ephys_atlas.workflow as workflow
+'''
+- Compute the entropy by pair of region
+- Save (flat) dataframe for each feature,
+  containing the 2x region ID and the info gain value in bits
+- Aggregate the feature dataframes into 1 for all features
+'''
 import time
 import joblib
-
+import dask.dataframe as dd
 from pathlib import Path
 from iblatlas.atlas import BrainRegions
 from ephys_atlas.data import download_tables, load_voltage_features
@@ -15,12 +20,15 @@ from ephys_atlas.entropy import compute_info_gain
 one = ONE()
 br = BrainRegions()
 
-label = '2023_W51'  # label = '2023_W51_autism'
-mapping = 'Cosmos'
+label = '2023_W51'
+mapping = 'Beryl'
 # local_data_path = Path('/mnt/s0/aggregates/')  # TODO ASK OW
-# save_folder = Path('/mnt/s0/ephys-atlas-decoding/entropy/')  # TODO ASK OW
+# save_folder = Path(f'/mnt/s0/ephys-atlas-decoding/entropy/{label}/')  # TODO ASK OW
+
 local_data_path = Path('/Users/gaelle/Documents/Work/EphysAtlas/Data')
-save_folder = Path('/Users/gaelle/Documents/Work/EphysAtlas/Entropy_DF_WF')
+save_folder = Path(f'/Users/gaelle/Documents/Work/EphysAtlas/Entropy_DF_WF/{label}/')
+if not save_folder.parent.exists():
+    save_folder.parent.mkdir()
 if not save_folder.exists():
     save_folder.mkdir()
 
@@ -33,7 +41,8 @@ if not local_data_path_clusters.exists() or force_download:
     _, _, _, _ = download_tables(
         label=label, local_path=local_data_path, one=one)
 # Re-load to make sure all columns have the proper nomenclature
-df_voltage, df_clusters, df_channels, df_probes = load_voltage_features(local_data_path.joinpath(label))
+df_voltage, df_clusters, df_channels, df_probes = \
+    load_voltage_features(local_data_path.joinpath(label), mapping=mapping)
 
 # Remove void / root
 df_voltage.drop(df_voltage[df_voltage[mapping+'_acronym'].isin(['void', 'root'])].index, inplace=True)
@@ -41,6 +50,14 @@ df_voltage.drop(df_voltage[df_voltage[mapping+'_acronym'].isin(['void', 'root'])
 features = voltage_features_set()
 
 ##
+# Compute all dataframes in batches
 t = time.time()
 joblib.Parallel(n_jobs=5)(joblib.delayed(compute_info_gain)(df_voltage, feature, mapping, save_folder) for feature in features)
 print(time.time() - t, len(features), mapping)
+
+##
+# Aggregate into 1 dataframe
+df_info = dd.read_parquet(list(save_folder.rglob(f'*{mapping}__info_gain.pqt')))
+df_info = df_info.compute()
+# Save
+df_info.to_parquet(save_folder.joinpath(f'{label}__{mapping}__overall_info_gain.pqt'))
