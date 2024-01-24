@@ -65,7 +65,7 @@ TASKS = OrderedDict({
         'version': '1.4.1',
         'depends_on': ['destripe_lf', 'localise'],
     },
-    'info_gain':{
+    'info_gain': {
         'version': '1.0.0',
         'depends_on': ['compute_raw_features']
     }
