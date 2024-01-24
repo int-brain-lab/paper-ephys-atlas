@@ -12,7 +12,7 @@ from ephys_atlas.plots import color_map_feature
 import scipy
 from one.api import ONE
 
-onen = ONE()
+one = ONE()
 br = BrainRegions()
 
 label = '2023_W51'  # label = '2023_W51_autism'
@@ -59,6 +59,7 @@ for feature in features:
 
     # Create a dataframe of Nregion x Nregion that will contain the entropy computed for a pair of region
     df_entropy = pd.DataFrame(index=counts.index, columns=counts.index)
+    # df_entropy = pd.DataFrame(index=counts.index, columns=['reg1', 'reg2'])
     # Divide the counts into 2 regions
     for ireg1, reg1 in enumerate(counts.index):
         for reg2 in counts.index[ireg1+1:]:
@@ -68,6 +69,7 @@ for feature in features:
             # Save the result in both place in the DF
             df_entropy.at[reg1, reg2] = information_gain
             df_entropy.at[reg2, reg1] = information_gain
+            # df_entropy['feature'] = feature
 
     dict_feat[feature] = df_entropy
 ##
