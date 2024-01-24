@@ -365,7 +365,8 @@ def compute_raw_features(pid, data_path=None):
 
 
 @task(**TASKS['info_gain'])
-def info_gain(df_voltage, feature, mapping):
-    # TODO does the download of the voltage DF happen here?
+def info_gain(df_voltage, feature, mapping, save_folder):
+    # Compute
     df_info = ephys_atlas.entropy.compute_info_gain(df_voltage, feature, mapping)
-    return df_info
+    # Save dataframe
+    df_info.to_parquet(save_folder.joinpath('info_gain.pqt'))
