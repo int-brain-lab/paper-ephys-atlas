@@ -132,6 +132,7 @@ def load_voltage_features(local_path, regions=None, mapping='Cosmos'):
     df_voltage, df_clusters, df_channels, df_probes = load_tables(Path(local_path))
     df_voltage.replace([np.inf, -np.inf], np.nan, inplace=True)
     df_voltage = pd.merge(df_voltage, df_channels, left_index=True, right_index=True)
+    df_voltage['pids'] = df_voltage.index.get_level_values(0)
     _logger.info(f"Loaded {df_voltage.shape[0]} channels")
     df_voltage = df_voltage.dropna()
     _logger.info(f"Remains {df_voltage.shape[0]} channels after NaNs filtering")
