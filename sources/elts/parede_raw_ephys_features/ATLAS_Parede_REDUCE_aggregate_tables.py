@@ -50,6 +50,16 @@ _logger.info('Concatenate clusters tables')
 files_clusters_pqt = [p for p in ROOT_PATH.rglob('clusters.pqt') if p.parts[-2] in pids]
 clusters = pd.concat([pd.read_parquet(f) for f in files_clusters_pqt])
 clusters.index.rename('cluster_id', level=1, inplace=True)
+files_correlations = [f.with_name('correlograms.npy') for f in files_clusters_pqt]
+assert all([f.exists() for f in files_correlations])
+import numpy as np
+file_all_correlograms = OUT_PATH.joinpath('clusters_correlograms.npy')
+with open(file_all_correlograms, 'wb+')as fid:
+    for fc in files_correlations:
+        arr = np.load(fc).T.copy()
+        arr.tofile(fid)
+# test that we can memmap the file with the appropriate number of clusters
+np.memmap(file_all_correlograms, dtype='int32', shape=(clusters.shape[0], arr.shape[1]))
 
 _logger.info('Aggregating ephys features tables')
 files_raw_features = [p for p in ROOT_PATH.rglob('raw_ephys_features.pqt') if p.parts[-2] in pids]
