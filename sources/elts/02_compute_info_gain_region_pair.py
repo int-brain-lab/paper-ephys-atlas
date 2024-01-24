@@ -1,8 +1,44 @@
 from ephys_atlas.workflow import info_gain
+import ephys_atlas.workflow as workflow
+import time
+import joblib
 
+from pathlib import Path
+from iblatlas.atlas import BrainRegions
+from ephys_atlas.data import download_tables, load_voltage_features
+from ephys_atlas.encoding import voltage_features_set
+from one.api import ONE
+
+##
+# Download voltage and precise mapping
+
+one = ONE()
+br = BrainRegions()
+
+label = '2023_W51'  # label = '2023_W51_autism'
+mapping = 'Cosmos'
+local_data_path = Path('/mnt/s0/aggregates/')  # TODO ASK OW
+save_folder = Path('/mnt/s0/aggregates/')  # TODO ASK OW
+
+force_download = False
+
+local_data_path_clusters = local_data_path.joinpath(label).joinpath('clusters.pqt')
+if not local_data_path_clusters.exists() or force_download:
+    print('Downloading table')
+    one = ONE(base_url="https://alyx.internationalbrainlab.org", mode='local')
+    _, _, _, _ = download_tables(
+        label=label, local_path=local_data_path, one=one)
+# Re-load to make sure all columns have the proper nomenclature
+df_voltage, df_clusters, df_channels, df_probes = load_voltage_features(local_data_path.joinpath(label))
+
+# Remove void / root
+df_voltage.drop(df_voltage[df_voltage[mapping+'_acronym'].isin(['void', 'root'])].index, inplace=True)
+# Get whole set of features
+features = voltage_features_set()
+
+##
 t = time.time()
-pids_run = report.flow.get_pids_ready('compute_raw_features', include_errors=True)
-joblib.Parallel(n_jobs=18)(joblib.delayed(workflow.compute_raw_features)(pid, data_path=ROOT_PATH, path_task=ROOT_PATH) for pid in pids)
-print(time.time() - t, len(pids_run))
+joblib.Parallel(n_jobs=5)(joblib.delayed(workflow.info_gain)(info_gain(df_voltage, feature, mapping, save_folder=save_folder)) for feature in features)
+print(time.time() - t, len(features), mapping)
 
-info_gain(df_voltage, feature, mapping)
+
