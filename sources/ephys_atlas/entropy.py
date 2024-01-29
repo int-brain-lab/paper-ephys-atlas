@@ -45,8 +45,7 @@ def compute_info_gain(df_voltage, feature, mapping,
     return df_entropy
 
 
-def compute_ks_test(df_voltage, feature, mapping,
-                      save_folder=None):
+def compute_ks_test(df_voltage, feature, mapping, save_folder=None):
     '''
     Compute the Kolmogorov-Smirnoff stats (p-value + distance) for each pair of region, for one given feature
     :param df_voltage: the dataframe of features
