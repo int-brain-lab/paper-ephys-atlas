@@ -157,12 +157,35 @@ def load_tables(local_path, verify=True):
     return df_voltage, df_clusters, df_channels, df_probes
 
 
-def download_tables(local_path, label='latest', one=None, verify=True, overwrite=False):
+def read_correlogram(file_correlogram, nclusters):
+    nbins = int(Path(file_correlogram).stat().st_size / nclusters / 4)
+    mmap_correlogram = np.memmap(
+        file_correlogram,
+        dtype='int32',
+        shape=(nclusters, nbins)
+    )
+    return mmap_correlogram
+
+
+def download_tables(local_path, label='latest', one=None, verify=True, overwrite=False, extended=False):
+    """
+    :param local_path: pathlib.Path() where the data will be stored locally
+    :param label: revision string "2024_W04"
+    :param one:
+    :param verify: checks the indices and consistency of the dataframes and raise an error if not consistent
+    :param overwrite: force redownloading if file exists
+    :param extended: if True, will download also extended datasets, such as cross-correlograms that take up
+    more space than just the tables (coople hundreds Mb for the table, several GB with extended data)
+    :return:
+    """
     # The AWS private credentials are stored in Alyx, so that only one authentication is required
     local_path = Path(local_path).joinpath(label)
     s3, bucket_name = aws.get_s3_from_alyx(alyx=one.alyx)
     local_files = aws.s3_download_folder(f"aggregates/atlas/{label}", local_path, s3=s3,
                                          bucket_name=bucket_name, overwrite=overwrite)
+    if extended:
+        local_files = aws.s3_download_folder(f"aggregates/atlas/{label}_extended", local_path, s3=s3,
+                                             bucket_name=bucket_name, overwrite=overwrite)
     assert len(local_files), f"aggregates/atlas/{label} not found on AWS"
     return load_tables(local_path=local_path, verify=verify)
 
