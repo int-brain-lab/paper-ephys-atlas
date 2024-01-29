@@ -14,7 +14,6 @@ from ephys_atlas.encoding import voltage_features_set
 from one.api import ONE
 from ephys_atlas.entropy import compute_info_gain
 
-##
 # Download voltage and precise mapping
 
 one = ONE()
