@@ -51,6 +51,8 @@ logger = setup_logger(name='paper-ephys-atlas', level='INFO')
 Tasks versioning notes:
 -   compute_sorted_features
     - 1.4.0 add the correlogram.npy output
+    - 1.5.0 remove correlogram.npy output and replaces by
+    correlograms_time_scale.npy and correlograms_refractory_period.npy
 """
 TASKS = OrderedDict({
     'destripe_ap': {
@@ -64,7 +66,7 @@ TASKS = OrderedDict({
         'depends_on': ['destripe_ap'],
     },
     'compute_sorted_features': {
-        'version': '1.4.2',
+        'version': '1.5.0',
     },
     'compute_raw_features': {
         'version': '1.4.1',
@@ -131,7 +133,7 @@ class Flow():
         """ Prints a command line report of current status of tasks"""
         flow = self._obj
         npids = flow.shape[0]
-        print("complete=  error:*   unmet deps:/   old version:0  new-")
+        print("complete=  error:*   unmet deps:/   old version:+  new-")
         for task_name, task in TASKS.items():
             nnew = sum(flow[task_name] == '')
             nold = sum(flow[task_name].apply(lambda x: x.endswith('complete') & ((x+'-').split('-')[1] != task['version'])))
@@ -290,8 +292,6 @@ def compute_sorted_features(pid, one, data_path=ROOT_PATH):
         channels.pqt
     """
     AP_SAMPLING_RATE = 30_000
-    CORR_BIN_SECS = 0.001  #secs
-    CORR_WINDOW_SECS = 1  # secs
     ssl = SpikeSortingLoader(one=one, pid=pid)
     spikes, clusters, channels = ssl.load_spike_sorting(dataset_types=['spikes.samples'])
     if spikes == clusters == channels == {}:
@@ -302,17 +302,26 @@ def compute_sorted_features(pid, one, data_path=ROOT_PATH):
     if 'localCoordinates' in channels:
         channels = dict(axial_um=channels['localCoordinates'][:, 1], lateral_um=channels['localCoordinates'][:, 0])
     # compute the correlograms
-    nsc = int(np.ceil((CORR_WINDOW_SECS / CORR_BIN_SECS + 1) / 2))
-    correlograms = np.zeros((nsc, clusters['uuids'].size), dtype=np.int32)
+    corr_bin_ts_secs, corr_win_ts_secs = (0.001, 1)  # time-scale long autocorrelogram
+    corr_bin_rf_secs, corr_win_rf_secs = (1 / AP_SAMPLING_RATE, .02)  # refractory period short range
+    ns_ts = int(np.ceil((corr_win_ts_secs / corr_bin_ts_secs + 1) / 2))
+    correlograms_ts = np.zeros((ns_ts, clusters['uuids'].size), dtype=np.int32)
+    ns_rf = int(np.ceil((corr_win_rf_secs / corr_bin_rf_secs + 1) / 2))
+    correlograms_rf = np.zeros((ns_rf, clusters['uuids'].size), dtype=np.int32)
     for c, s in pd.DataFrame(spikes).groupby('clusters'):
-        correlograms[:, c] = phylib.stats.correlograms(
+        correlograms_ts[:, c] = phylib.stats.correlograms(
             s['times'], s['clusters'], c, sample_rate=AP_SAMPLING_RATE,
-            bin_size=CORR_BIN_SECS, window_size=CORR_WINDOW_SECS, symmetrize=False
+            bin_size=corr_bin_ts_secs, window_size=corr_win_ts_secs, symmetrize=False
+        )
+        correlograms_rf[:, c] = phylib.stats.correlograms(
+            s['times'], s['clusters'], c, sample_rate=AP_SAMPLING_RATE,
+            bin_size=corr_bin_rf_secs, window_size=corr_win_rf_secs, symmetrize=False
         )
     clusters = ssl.merge_clusters(spikes, clusters, channels)
     data_path.joinpath(pid).mkdir(exist_ok=True, parents=True)
     # the concat syntax sets a higher level index on the dataframe as pid
-    np.save(data_path.joinpath(pid, 'correlograms.npy'), correlograms)
+    np.save(data_path.joinpath(pid, 'correlograms_time_scale.npy'), correlograms_ts)
+    np.save(data_path.joinpath(pid, 'correlograms_refractory_period.npy'), correlograms_rf)
     pd.concat({pid: pd.DataFrame(clusters)}, names=['pid']).to_parquet(data_path.joinpath(pid, 'clusters.pqt'))
     pd.concat({pid: pd.DataFrame(spikes)}, names=['pid']).to_parquet(data_path.joinpath(pid, 'spikes_sorted.pqt'))
     df_channels = pd.concat({pid: pd.DataFrame(channels)}, names=['pid'])
