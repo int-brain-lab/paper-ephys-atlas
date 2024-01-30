@@ -1,10 +1,17 @@
+"""
+Example to download histology registered electrophysiology features tables
+ and cluster tables for ephys features analytics.
+
+see https://docs.google.com/document/d/1_B-h9YHKmM5ggd5pA_qhWr8MQdgnX2PuZyidDdvauZk/edit for a full
+description of the data structure.
+"""
+
 from pathlib import Path
-import numpy as np
 
 from one.api import ONE
 import ephys_atlas.data
 
-LABEL = '2024_W04'
+LABEL = '2024_W04'  # 2023_W51_autism for example would return the autism dataset features
 LOCAL_DATA_PATH = Path('/home/ibladmin/scratch/')
 one = ONE(base_url="https://alyx.internationalbrainlab.org", mode='local')
 

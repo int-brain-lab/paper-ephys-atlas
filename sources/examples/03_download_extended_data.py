@@ -1,3 +1,12 @@
+"""
+Example to download extended data:
+    - clusters correlograms
+
+see https://docs.google.com/document/d/1_B-h9YHKmM5ggd5pA_qhWr8MQdgnX2PuZyidDdvauZk/edit for a full
+description of the data structure.
+"""
+
+
 from pathlib import Path
 
 from one.api import ONE
