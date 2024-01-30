@@ -380,7 +380,7 @@ def figure_features_chspace(pid_df, features, xy, pid, fig=None, axs=None, br=No
     return fig, axs
 
 
-def plt_unit_acg(i_cell, corr_rf, df_clusters, bin_size_secs, ax=None, fig=None, x_time_ms=True):
+def plt_unit_acg(i_cell, corr_rf, df_clusters, bin_size_secs, xstep=35, ax=None, fig=None, x_time_ms=True):
     '''
     Plot unit's auto-correlogram
     :param i_cell: index of cell in the auto-corr matrix
@@ -401,8 +401,7 @@ def plt_unit_acg(i_cell, corr_rf, df_clusters, bin_size_secs, ax=None, fig=None,
     if ax is None or fig is None:
         fig, ax = plt.subplots()
     ax.bar(x, list(y))
-    xstep = 35
-
+    # TODO could change the xstep arg so one inputs exact ms value ticks to be set
     ax.set_xticks(x[0:-1:xstep])
     if x_time_ms:  # Plot in millisecond, otherwise in bin
         ax.set_xticklabels(np.around(x[0:-1:xstep].dot(bin_size_secs)*1e3, decimals=2))
