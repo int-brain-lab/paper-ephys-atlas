@@ -1,10 +1,25 @@
+"""
+Example to download the snippets of pre-processed raw electrophysiology data for ephys features
+prototyping and extractions.
+
+see https://docs.google.com/document/d/1_B-h9YHKmM5ggd5pA_qhWr8MQdgnX2PuZyidDdvauZk/edit for a full
+description of the data structure.
+
+More about the benchmark datasets
+https://docs.google.com/document/d/1nlY8mDnnIOfrlu0mc0YFSKaCrA_AoRZS8NtOHJg7vPQ/edit
+http://reveal.internationalbrainlab.org.s3-website-us-east-1.amazonaws.com/benchmarks.html
+
+
+sync command:
+>>> aws s3 sync  /mnt/s0/ephys-atlas-sample s3://ibl-brain-wide-map-private/resources/ephys-atlas-sample
+"""
+
+
 from pathlib import Path
 
 from one.api import ONE
 from one.remote import aws
 import ephys_atlas.data
-# http://benchmarks.internationalbrainlab.org.s3-website-us-east-1.amazonaws.com/#/0/4
-# aws s3 sync  /mnt/s0/ephys-atlas-sample s3://ibl-brain-wide-map-private/resources/ephys-atlas-sample
 
 config = ephys_atlas.data.get_config()
 LOCAL_DATA_PATH = Path(config['paths']['raw-samples'])
