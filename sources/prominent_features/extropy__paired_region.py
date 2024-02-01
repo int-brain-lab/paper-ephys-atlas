@@ -127,10 +127,10 @@ fig.set_size_inches([9.61, 4.81])
 # Set tick labels as brain region acronyms
 ax = axs[0]
 sns.heatmap(information_gain, ax=ax)
-regions = information_gain.columns
+regions = information_gain.index
 regions_ac = br.id2acronym(regions)
-ax.set_xticks(np.arange(regions.size))
-ax.set_xticklabels(regions_ac, rotation=90)
+ax.set_yticks(np.arange(regions.size))
+ax.set_yticklabels(regions_ac)
 
 ##
 info_feature = information_gain.sum(axis=1).to_frame(name="information_gain").sort_values(
