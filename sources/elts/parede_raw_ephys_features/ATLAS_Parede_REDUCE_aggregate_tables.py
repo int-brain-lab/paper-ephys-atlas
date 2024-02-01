@@ -6,6 +6,7 @@ from pathlib import Path
 from datetime import date
 import shutil
 
+import numpy as np
 import pandas as pd
 import dask.dataframe as dd
 
@@ -28,10 +29,15 @@ pids, _ = data.atlas_pids(one)
 
 print(f'aws --profile ibl s3 sync "{AGGREGATE_PATH}" s3://ibl-brain-wide-map-private/aggregates/atlas')
 
+# the output path contains the tables, while the extended path contains large files that
+# not all users may want to download
 year_week = date.today().isocalendar()[:2]
 OUT_PATH = Path(AGGREGATE_PATH).joinpath(f'{year_week[0]}_W{year_week[1]:02}{label}')
+EXTENDED_PATH = Path(AGGREGATE_PATH).joinpath(f'{year_week[0]}_W{year_week[1]:02}{label}_extended')
+# OUT_PATH = Path(AGGREGATE_PATH).joinpath(f'{year_week[0]}_W{4:02}{label}')
+# EXTENDED_PATH = Path(AGGREGATE_PATH).joinpath(f'{year_week[0]}_W{4:02}{label}_extended')
 OUT_PATH.mkdir(parents=True, exist_ok=True)
-
+EXTENDED_PATH.mkdir(parents=True, exist_ok=True)
 
 _logger.info('Checking current task status:')
 flow = workflow.report(one=one, pids=pids, path_task=ROOT_PATH)
@@ -50,16 +56,22 @@ _logger.info('Concatenate clusters tables')
 files_clusters_pqt = [p for p in ROOT_PATH.rglob('clusters.pqt') if p.parts[-2] in pids]
 clusters = pd.concat([pd.read_parquet(f) for f in files_clusters_pqt])
 clusters.index.rename('cluster_id', level=1, inplace=True)
-files_correlations = [f.with_name('correlograms.npy') for f in files_clusters_pqt]
-assert all([f.exists() for f in files_correlations])
-import numpy as np
-file_all_correlograms = OUT_PATH.joinpath('clusters_correlograms.npy')
-with open(file_all_correlograms, 'wb+')as fid:
-    for fc in files_correlations:
-        arr = np.load(fc).T.copy()
-        arr.tofile(fid)
-# test that we can memmap the file with the appropriate number of clusters
-np.memmap(file_all_correlograms, dtype='int32', shape=(clusters.shape[0], arr.shape[1]))
+def write_correlograms(file_name_correlograms):
+    files_correlations = [f.with_name(file_name_correlograms) for f in files_clusters_pqt]
+    assert all([f.exists() for f in files_correlations])
+    file_all_correlograms = EXTENDED_PATH.joinpath(f'clusters_{file_name_correlograms}').with_suffix('.bin')
+    with open(file_all_correlograms, 'wb+') as fid:
+        for fc in files_correlations:
+            arr = np.load(fc).T.copy()
+            arr.tofile(fid)
+    # test that we can memmap the file with the appropriate number of clusters
+    np.memmap(file_all_correlograms, dtype='int32', shape=(clusters.shape[0], arr.shape[1]))
+    return clusters.shape[0], arr.shape[1]
+
+sz = write_correlograms(file_name_correlograms='correlograms_time_scale.npy')
+_logger.info(f'correlograms time scales size {sz}')
+_logger.info('correlograms refractory period')
+write_correlograms(file_name_correlograms='correlograms_refractory_period.npy')
 
 _logger.info('Aggregating ephys features tables')
 files_raw_features = [p for p in ROOT_PATH.rglob('raw_ephys_features.pqt') if p.parts[-2] in pids]

@@ -378,3 +378,37 @@ def figure_features_chspace(pid_df, features, xy, pid, fig=None, axs=None, br=No
     fig.suptitle(f'PID {pid}')
 
     return fig, axs
+
+
+def plt_unit_acg(i_cell, corr_rf, df_clusters, bin_size_secs, xstep=35, ax=None, fig=None, x_time_ms=True):
+    '''
+    Plot unit's auto-correlogram
+    :param i_cell: index of cell in the auto-corr matrix
+    :param corr_rf: matrix of auto-correlogram, N unit x N time bin
+    :param df_clusters: dataframe of clusters information (1 row per cluster)
+    :param bin_size_secs: size of time bin in seconds
+    :param ax: figure axis
+    :param fig: figure handle
+    :param x_time_ms: boolean, True means the x-axis of the plot will be in (milliseconds), False in (bin number)
+    :return:
+    '''
+    # Get cell info from DF
+    info_cell = df_clusters[['uuids', 'spike_count', 'firing_rate', 'label', 'acronym']].iloc[i_cell]
+    # Get auto-corr
+    y = corr_rf[i_cell, :]
+    x = np.arange(len(y))
+    # Plot
+    if ax is None or fig is None:
+        fig, ax = plt.subplots()
+    ax.bar(x, list(y))
+    # TODO could change the xstep arg so one inputs exact ms value ticks to be set
+    ax.set_xticks(x[0:-1:xstep])
+    if x_time_ms:  # Plot in millisecond, otherwise in bin
+        ax.set_xticklabels(np.around(x[0:-1:xstep].dot(bin_size_secs)*1e3, decimals=2))
+    ax.set_title(f'uuids {info_cell.uuids[0:8]}, '
+                 f'acronym {info_cell.acronym}, i_cell {i_cell} \n'
+                 f'spike_count {info_cell.spike_count}, '
+                 f'firing_rate {np.around(info_cell.firing_rate, decimals=2)} Hz, '
+                 f'label {np.around(info_cell.label, decimals=1)}'
+                 )
+    return fig, ax
