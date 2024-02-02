@@ -1,7 +1,10 @@
 # %%
 import matplotlib.pyplot as plt 
 import pandas as pd
-from iblatlas.genomics import agea
+from iblatlas.genomics import agea 
+
+from iblatlas.regions import BrainRegions
+brain_regions = BrainRegions()
 
 df_genes, gene_expression_volumes, atlas_agea = agea.load()
 
@@ -52,8 +55,28 @@ data = gexps
 clusterer = hdbscan.HDBSCAN(min_cluster_size=5)
 clusterer.fit(data)
 
+# # Plot the results
+# from iblutil.numerical import ismember 
+# _, rids = ismember(aids, brain_regions.id)
+# colors_ids_rgb = brain_regions.rgb[rids, :]
+# plt.scatter(data[:, 0], data[:, 1], c=clusterer.labels_, cmap=colors_ids_rgb)
+# plt.title("HDBSCAN Clustering")
+# plt.show() 
+
 # Plot the results
-plt.scatter(data[:, 0], data[:, 1], c=clusterer.labels_, cmap='rainbow')
+from iblutil.numerical import ismember 
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
+
+colors_ids_rgb = brain_regions.rgb[rids, :]
+
+# Create a custom colormap using LinearSegmentedColormap
+custom_cmap = LinearSegmentedColormap.from_list('custom_cmap', colors_ids_rgb / 255.0, N=len(colors_ids_rgb))
+
+# Plot the scatter plot with the custom colormap
+plt.figure(figsize=(12, 8))  # Adjust the values (width, height) as needed
+plt.scatter(data[:, 0], data[:, 1], c=clusterer.labels_, cmap=custom_cmap, alpha = 0.25, s = 10)
 plt.title("HDBSCAN Clustering")
 plt.show()
 
@@ -92,7 +115,7 @@ fig = plt.figure(figsize = (8,8))
 ax = fig.add_subplot(1,1,1) 
 ax.set_xlabel('pc1', fontsize = 15)
 ax.set_ylabel('pc2', fontsize = 15)
-ax.set_title('2 component PCA', fontsize = 20)
+ax.set_title('100 component PCA', fontsize = 20)
 
 targets = aids
 # colors = ['r', 'g', 'b']
@@ -116,7 +139,7 @@ X = df
 pca = PCA(n_components=100)
 components = pca.fit_transform(X)
 
-fig = px.scatter(components, x=0, y=1, color=aids) #use RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRGB code from A
+fig = px.scatter(components, x=0, y=1, color=aids) #use RGB code from A
 fig.show()
 #===========================================================================
 
