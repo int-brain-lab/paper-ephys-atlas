@@ -9,7 +9,7 @@ one = ONE()
 br = BrainRegions()
 
 label = '2023_W51'
-mapping = 'Beryl'
+mapping = 'Allen'
 
 local_data_path_ks = Path(f'/Users/gaelle/Documents/Work/EphysAtlas/Entropy_KS/{label}/')
 local_data_path_en = Path(f'/Users/gaelle/Documents/Work/EphysAtlas/Entropy_DF_WF/{label}/')
@@ -116,3 +116,8 @@ print(df_ks.sort_values(by=['value'], ascending=False))
 
 df_en = information_gain_en.loc[br_id].to_frame('value')
 print(df_en.sort_values(by=['value'], ascending=False))
+
+##
+# Print distinctive features between 2 regions
+df_2reg = df_multi_ks.loc[br.acronym2id('PO'), br.acronym2id('Eth')]
+df_2reg.sort_values(ascending=False)
