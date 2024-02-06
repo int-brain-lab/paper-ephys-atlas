@@ -3,29 +3,32 @@ Plot df voltage
 '''
 ##
 from pathlib import Path
+
+import matplotlib.pyplot as plt
 import pandas as pd
 from iblatlas.atlas import BrainRegions
-from ephys_atlas.data import load_tables
+from ephys_atlas.data import load_voltage_features
 from ephys_atlas.plots import figure_features_chspace
+from ephys_atlas.encoding import voltage_features_set
 
 br = BrainRegions()
-label = '2023_W41'
-brain_id = 'cosmos_id'
+label = '2023_W51'
+mapping = 'Allen'
 
 local_data_path = Path('/Users/gaelle/Documents/Work/EphysAtlas/Data')
-local_result_path = Path('/Users/gaelle/Documents/Work/EphysAtlas/Fig3_Result')
-local_fig_path = local_result_path.joinpath(brain_id)
+save_folder = Path(f'/Users/gaelle/Documents/Work/EphysAtlas/Fig3_Result/{mapping}')
 
-df_voltage, df_clusters, df_channels, df_probes = load_tables(
-    local_data_path.joinpath(label), verify=True)
+if not save_folder.parent.exists():
+    save_folder.parent.mkdir()
+if not save_folder.exists():
+    save_folder.mkdir()
 
-df_voltage = pd.merge(df_voltage, df_channels, left_index=True, right_index=True).dropna()
-df_voltage['cosmos_id'] = br.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Cosmos')
-df_voltage['beryl_id'] = br.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Beryl')
+df_voltage, df_clusters, df_channels, df_probes = \
+    load_voltage_features(local_data_path.joinpath(label), mapping=mapping)
 # Do not remove void / root
 ##
 # Prepare the dataframe for a single probe
-pid = '0228bcfd-632e-49bd-acd4-c334cf9213e9'
+pid = '0ee04753-3039-4209-bed8-5c60e38fe5da'
 pid_ch_df = df_voltage[df_voltage.index.get_level_values(0).isin([pid])].copy()
 
 # Create numpy array of xy um (only 2D for plotting)
@@ -33,5 +36,12 @@ xy = pid_ch_df[['lateral_um', 'axial_um']].to_numpy()
 
 ##
 # Select your features and plot
-features = ['rms_lf', 'psd_delta', 'rms_ap']
-fig, axs = figure_features_chspace(pid_ch_df, features, xy)
+plot_all = True
+if plot_all:
+    features = voltage_features_set()
+else:  # Select your own features to plot
+    features = ['rms_lf', 'psd_delta', 'rms_ap']
+#
+fig, axs = figure_features_chspace(pid_ch_df, features, xy, pid=pid, mapping=mapping)
+# fig.tight_layout()
+plt.savefig(save_folder.joinpath(f'{pid}.pdf'))
