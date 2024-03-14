@@ -28,6 +28,10 @@ df_voltage, df_clusters, df_channels, df_probes = \
 # Do not remove void / root
 ##
 # Prepare the dataframe for a single probe
+# pid = '0ee04753-3039-4209-bed8-5c60e38fe5da'
+# pid = '0b8ea3ec-e75b-41a1-9442-64f5fbc11a5a'
+# pid ='5810514e-2a86-4a34-b7bd-1e4b0b601295' # TODO mark as critical
+# pid = 'f362c84f-8d9a-4d5b-8439-055ae936fdff'
 pid = '0ee04753-3039-4209-bed8-5c60e38fe5da'
 pid_ch_df = df_voltage[df_voltage.index.get_level_values(0).isin([pid])].copy()
 

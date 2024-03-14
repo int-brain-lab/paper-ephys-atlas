@@ -4,7 +4,7 @@ import yaml
 
 import numpy as np
 import pandas as pd
-from neurodsp.waveforms import peak_to_trough_ratio
+from ibldsp.waveforms import peak_to_trough_ratio
 import neuropixel
 from one.remote import aws
 from iblutil.numerical import ismember

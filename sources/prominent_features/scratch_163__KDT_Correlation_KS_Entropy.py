@@ -119,5 +119,40 @@ print(df_en.sort_values(by=['value'], ascending=False))
 
 ##
 # Print distinctive features between 2 regions
-df_2reg = df_multi_ks.loc[br.acronym2id('PO'), br.acronym2id('Eth')]
+df_2reg = df_multi_ks.loc[br.acronym2id('PO')[0], br.acronym2id('LP')[0]]
 df_2reg.sort_values(ascending=False)
+
+'''
+For PO and LP, top features are according to KS-distance:
+
+psd_theta               0.489766  -> pvalue = 0
+psd_alpha               0.489078  -> pvalue = 0
+rms_lf                  0.442379
+psd_beta                0.424650
+psd_gamma               0.384942
+psd_delta               0.371318
+rms_ap                  0.283109
+spike_count             0.144857
+trough_val              0.098181
+peak_val                0.097786
+tip_time_secs           0.091370
+polarity                0.090827
+repolarisation_slope    0.074162
+recovery_time_secs      0.072529
+trough_time_secs        0.072529
+recovery_slope          0.065508
+alpha_std               0.060223
+peak_time_secs          0.051394
+depolarisation_slope    0.042968
+tip_val                 0.042132
+alpha_mean              0.023185
+'''
+##
+# Print max feature
+inf_display = information_gain_ks.copy()
+
+inf_display['max_feat'] = inf_display.idxmax(axis=1)
+print(inf_display.groupby("max_feat").count().sort_values(by='alpha_mean'))
+
+# inf_display.loc[inf_display['max_feat'] == 'polarity']
+br.id2acronym(inf_display.loc[inf_display['max_feat'] == 'polarity'].index)
