@@ -12,7 +12,7 @@ mouse_line = 'B6.129P2-Fmr1<tm1Cgr>/J'
 # https://alyx.internationalbrainlab.org/admin/subjects/subject/?alive=n&q=FMR&responsible_user=all
 
 # Get all insertions for this project
-str_query = f'session__project__name__icontains,{project},' \
+str_query = f'session__projects__name__icontains,{project},' \
              'session__qc__lt,50,' \
              '~json__qc,CRITICAL'
 insertions = one.alyx.rest('insertions', 'list', django=str_query)

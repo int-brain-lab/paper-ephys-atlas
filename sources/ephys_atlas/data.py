@@ -87,7 +87,7 @@ def atlas_pids_autism(one):
     '''
     project = 'angelaki_mouseASD'
     # Get all insertions for this project
-    str_query = f'session__project__name__icontains,{project},' \
+    str_query = f'session__projects__name__icontains,{project},' \
                 'session__qc__lt,50,' \
                 '~json__qc,CRITICAL'
     insertions = one.alyx.rest('insertions', 'list', django=str_query)
@@ -98,7 +98,7 @@ def atlas_pids_autism(one):
 
 def atlas_pids(one, tracing=False):
     django_strg = [
-        'session__project__name__icontains,ibl_neuropixel_brainwide_01',
+        'session__projects__name__icontains,ibl_neuropixel_brainwide_01',
         'session__qc__lt,50',
         '~json__qc,CRITICAL',
         # 'session__extended_qc__behavior,1',
