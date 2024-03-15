@@ -5,7 +5,7 @@ import numpy as np
 from one.api import ONE
 one = ONE()
 
-django_strg = ['session__project__name__icontains,ibl_neuropixel_brainwide_01',
+django_strg = ['session__projects__name__icontains,ibl_neuropixel_brainwide_01',
                'session__qc__lt,50',
                '~json__qc,CRITICAL',
                'session__extended_qc__behavior,1,'
@@ -18,7 +18,7 @@ sess_overall_good = np.unique([item['session'] for item in insertions])
 
 # Check for specific datasets
 def get_sess_missingds(ds_spec, sess_overall_good):
-    sess_ds = one.alyx.rest('sessions', 'list', task_protocol='ephys', project='ibl_neuropixel_brainwide_01',
+    sess_ds = one.alyx.rest('sessions', 'list', task_protocol='ephys', projects='ibl_neuropixel_brainwide_01',
                             dataset_types=ds_spec)
     sess_ds_id = [item['url'][-36:] for item in sess_ds]
 
