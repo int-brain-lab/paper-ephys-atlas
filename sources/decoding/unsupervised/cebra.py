@@ -18,7 +18,7 @@ regions = BrainRegions()
 local_path = Path("/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding")
 # local_path = Path("/Users/gaelle/Documents/Work/EphysAtlas/Data/")
 local_path = Path("/Users/olivier/Documents/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding")
-label = '2023_W51'
+label = '2024_W04'
 # df_voltage, df_clusters, df_channels, df_probes = ephys_atlas.data.download_tables(local_path, label=label, one=one, verify=True)
 df_voltage, df_clusters, df_channels, df_probes = ephys_atlas.data.load_voltage_features(local_path.joinpath(label))
 
@@ -29,7 +29,7 @@ x_list += ['psd_lfp_csd']
 
 mapping = 'Cosmos_id'
 
-def train_cebra(x, device='cuda'):
+def train_cebra(x, device='cuda', y=None):
     torch.cuda.empty_cache()
     # print(cebra.models.get_options('*', limit = 40))
     model = cebra.CEBRA(
@@ -51,15 +51,18 @@ def train_cebra(x, device='cuda'):
         scaler = StandardScaler()
         scaler.fit(x)
         x = scaler.transform(x)
-    model.fit(x)
+    if y is None:
+        model.fit(x)
+    else:
+        model.fit(x, y)
     cebra.plot_loss(model)
     embedding = model.transform(x)
     return model, embedding
 
 y = df_voltage.loc[:, mapping]
 model_baseline, embedding_baseline = train_cebra(df_voltage.loc[:, x_list], device='cpu')
+model_baseline, embedding_baseline = train_cebra(df_voltage.loc[:, x_list], device='cpu', y=y)
 
-mapping = 'atlas_id'  #  'cosmos_id', 'atlas_id']:
 rgb = regions.rgb[ismember(y, regions.id)[1]].astype(np.float32) / 255
 
 plt.style.use('dark_background')
