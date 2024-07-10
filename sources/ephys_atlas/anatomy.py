@@ -50,6 +50,11 @@ class EncodingRegions(iblatlas.regions.BrainRegions):
 
 
 class EncodingAtlas(AllenAtlas):
+    """
+    The Encoding Atlas is a version of the Allen Atlas where the regions labels volume is reworked:
+    -   voids inside the skull are relabeled to a new region, this is done computing the convex hull of the non-void
+    labels and then splitting the void in two regions: one below the convex hull and one above
+    """
     def __init__(self):
         super().__init__()
         self.compute_surface()
