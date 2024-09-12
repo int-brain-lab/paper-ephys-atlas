@@ -1,3 +1,4 @@
+##
 import numpy as np
 from pathlib import Path
 import pandas as pd
@@ -11,12 +12,12 @@ from ephys_atlas.plots import color_map_feature
 from ephys_atlas.feature_information import feature_overall_entropy
 from one.api import ONE
 
-onen = ONE()
+one = ONE()
 br = BrainRegions()
 
-label = '2023_W51'
+label = '2024_W04'  # latest
 mapping = 'Allen'
-local_data_path = Path('/Users/gaelle/Documents/Work/EphysAtlas/Data')
+local_data_path = Path('/Users/gaellechapuis/Documents/Work/EphysAtlas/Data')
 force_download = False
 
 local_data_path_clusters = local_data_path.joinpath(label).joinpath('clusters.pqt')
@@ -56,15 +57,23 @@ information_gain = pd.DataFrame(information_gain, index=['information_gain']).T.
 # Plot histogram of information gain per feature, color coded by feature type
 
 # Add new column "color"
-color_set = color_map_feature()
-information_gain['color'] = 0  # init new column
-for feature_i, color_i in zip(FEATURES_LIST, color_set):
+
+color_set = color_map_feature(feature_list=FEATURES_LIST, default=False,
+                              return_dict=True)
+
+information_gain['feat_type'] = ''  # init new column
+for feature_i in color_set.keys():
     feat_list = voltage_features_set(feature_i)
     indx = information_gain['index'].isin(feat_list)
-    information_gain['color'][indx] = color_i
+    information_gain.loc[indx, 'feat_type'] = feature_i
 
 # Plot
 fig, ax = plt.subplots()
-sns.barplot(information_gain, y='information_gain', x='index', palette=information_gain['color'])
+sns.barplot(information_gain, y='information_gain', x='index',
+            hue='feat_type', palette=color_set)
 plt.xticks(rotation=90)
 fig.tight_layout()
+plt.show()
+
+##
+
