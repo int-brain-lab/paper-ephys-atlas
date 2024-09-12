@@ -17,7 +17,10 @@ import scipy
 def color_map_feature(feature_list=FEATURES_LIST, default=True, return_dict=False,
                       cmap='PRGn', n_inc=len(FEATURES_LIST)+1):
     if default:
-        list_out = ['m', 'g', 'm', 'b']
+        list_out = [(0.25098039215686274, 0.0, 0.29411764705882354),
+                    (0.680392156862745, 0.5431372549019607, 0.7411764705882352),
+                    (0.5019607843137257, 0.7705882352941177, 0.5039215686274511),
+                    (0.0, 0.26666666666666666, 0.10588235294117647)]
     else:
         color_map = get_cmap(cmap, n_inc)
         np.linspace(0, 1, num=len(feature_list))
