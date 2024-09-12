@@ -7,28 +7,36 @@ import matplotlib.patches as patches
 from iblatlas.atlas import BrainRegions
 from ephys_atlas.data import compute_summary_stat
 from ephys_atlas.encoding import FEATURES_LIST
-from matplotlib import cm  # This is deprecated, but cannot import matplotlib.colormaps as cm
+from matplotlib.pyplot import get_cmap  # This is deprecated, but cannot import matplotlib.colormaps as cm
 from brainbox.plot_base import ProbePlot, arrange_channels2banks, plot_probe
 from brainbox.ephys_plots import plot_brain_regions
 from matplotlib.patches import Rectangle
 import matplotlib
 import scipy
 
-def color_map_feature(feature_list=FEATURES_LIST, cmap='Pastel1_r', n_inc=12):
-    # color_map = cm.get_cmap(cmap, n_inc)
-    # np.linspace(0, 1, num=len(feature_list))
-    # color_alpha = color_map(np.linspace(0, 1, num=len(feature_list)))
-    # color_only = color_alpha[:, 0:3]  # Return only the color values
-    # # Convert to list of tuple [(0, 0.2, 0.1), (...)]
-    # list_col = color_only.tolist()
-    # list_out = list()
-    # for i_col in list_col:
-    #     list_out.append(tuple(i_col))
-    # TODO above is correct but umpractical ?
-    list_out = ['m', 'g', 'm', 'b']
+def color_map_feature(feature_list=FEATURES_LIST, default=True, return_dict=False,
+                      cmap='PRGn', n_inc=len(FEATURES_LIST)+1):
+    if default:
+        list_out = ['m', 'g', 'm', 'b']
+    else:
+        color_map = get_cmap(cmap, n_inc)
+        np.linspace(0, 1, num=len(feature_list))
+        color_alpha = color_map(np.linspace(0, 1, num=len(feature_list)))
+        color_only = color_alpha[:, 0:3]  # Return only the color values
+        # Convert to list of tuple [(0, 0.2, 0.1), (...)]
+        list_col = color_only.tolist()
+        list_out = list()
+        for i_col in list_col:
+            list_out.append(tuple(i_col))
+
     assert len(list_out) == len(FEATURES_LIST)
 
-    return list_out
+    if return_dict:
+        # Create dict
+        dict_out = dict(zip(FEATURES_LIST, list_out))
+        return dict_out
+    else:
+        return list_out
 
 
 def plot_kde(feature, df_voltage, brain_id='Cosmos_id', regions_id=None,
