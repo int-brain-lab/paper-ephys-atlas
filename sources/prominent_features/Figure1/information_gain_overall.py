@@ -18,6 +18,7 @@ br = BrainRegions()
 label = '2024_W04'  # latest
 mapping = 'Allen'
 local_data_path = Path('/Users/gaellechapuis/Documents/Work/EphysAtlas/Data')
+folder_file_save = Path('/Users/gaellechapuis/Desktop/Reports/EphysAtlas/Fig1')
 force_download = False
 
 local_data_path_clusters = local_data_path.joinpath(label).joinpath('clusters.pqt')
@@ -73,7 +74,9 @@ sns.barplot(information_gain, y='information_gain', x='index',
             hue='feat_type', palette=color_set)
 plt.xticks(rotation=90)
 fig.tight_layout()
-plt.show()
+# plt.show()
 
-##
-
+# Save figure
+plt.savefig(folder_file_save.joinpath(f"info_gain_overall_{label}_{mapping}.pdf"),
+            format="pdf", bbox_inches="tight")
+plt.close()
