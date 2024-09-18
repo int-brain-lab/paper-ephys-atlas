@@ -46,6 +46,7 @@ for pid in pids:
     # plt.show()
 
     # Save figure
+    plt.savefig(folder_file_save.joinpath(f"ap_des__{pid}.svg"))
     plt.savefig(folder_file_save.joinpath(f"ap_des__{pid}.pdf"),
                 format="pdf", bbox_inches="tight")
     plt.close()

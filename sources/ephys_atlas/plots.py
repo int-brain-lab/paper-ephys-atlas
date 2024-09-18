@@ -280,7 +280,7 @@ def plot_probe_rect(xy, color, ax, width=16, height=40):
             linewidth=1, color=a_color, fill=True))
     ax.set_xlim([min(xy[:, 0])-width/2, max(xy[:, 0])+width/2])
     ax.set_ylim([min(xy[:, 1]) - height / 2, max(xy[:, 1]) + height / 2])
-    plt.show()
+    # plt.show()
 
 def figure_features_chspace_probeplot(pid_df, features, xy):
     '''

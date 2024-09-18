@@ -10,9 +10,13 @@ import numpy as np
 from ibldsp.waveforms import double_wiggle
 from pathlib import Path
 import scipy.signal
+from ephys_atlas.encoding import FEATURES_LIST
+from ephys_atlas.plots import color_map_feature
 
 one = ONE()
 regions = BrainRegions()
+color_set = color_map_feature(feature_list=FEATURES_LIST, default=False,
+                              return_dict=True)
 
 folder_file_save = Path('/Users/gaellechapuis/Desktop/Reports/EphysAtlas/Fig1')
 
@@ -87,9 +91,11 @@ ch_id = 350
 
 # LF
 ch_display = destriped_lf_trunc[ch_id, :]
-plt.plot(ch_display)
+plt.plot(ch_display, color=color_set['raw_lf'])
 
 # Save figure
+plt.savefig(folder_file_save.joinpath(f"lf_1ch__{ch_id}_T0{t0}_start"
+                                      f"{ms_start_display}_dur{ms_dur_display}_{pid}.svg"))
 plt.savefig(folder_file_save.joinpath(f"lf_1ch__{ch_id}_T0{t0}_start"
                                       f"{ms_start_display}_dur{ms_dur_display}_{pid}.pdf"),
             format="pdf", bbox_inches="tight")
@@ -103,8 +109,10 @@ plt.show()
 
 #AP
 ch_display = destriped_ap_trunc[ch_id, :]
-plt.plot(ch_display)
+plt.plot(ch_display, color=color_set['raw_ap'])
 # Save figure
+plt.savefig(folder_file_save.joinpath(f"ap_1ch__{ch_id}_T0{t0}_start"
+                                      f"{ms_start_display}_dur{ms_dur_display}_{pid}.svg"))
 plt.savefig(folder_file_save.joinpath(f"ap_1ch__{ch_id}_T0{t0}_start"
                                       f"{ms_start_display}_dur{ms_dur_display}_{pid}.pdf"),
             format="pdf", bbox_inches="tight")
@@ -114,7 +122,19 @@ plt.show()
 wfs = ssl.load_spike_sorting_object('waveforms')
 wfs['templates'].shape
 
-fig, axs = plt.subplots(1, 2)
-double_wiggle(wfs['templates'][43] * 1e6 / 80, fs=sr_ap.fs, ax=axs[0])
-double_wiggle(wfs['templates'][55] * 1e6 / 80, fs=sr_ap.fs, ax=axs[1])
+# IDs of wavs
+wavs = [423, 59, 43]
+fig, axs = plt.subplots(1, len(wavs))
+
+for inc in range(0, len(wavs)):
+    wavi = wavs[inc]
+    acronym = channels.acronym[clusters.channels[wavi]]
+
+    double_wiggle(wfs['templates'][wavi] * 1e6 / 80, fs=sr_ap.fs, ax=axs[inc])
+    axs[inc].set_title(f'{acronym}')
+
+# Save figure
+plt.savefig(folder_file_save.joinpath(f"wavs{wavs}_{pid}.svg"))
+plt.savefig(folder_file_save.joinpath(f"wavs{wavs}_{pid}.pdf"),
+            format="pdf", bbox_inches="tight")
 plt.show()

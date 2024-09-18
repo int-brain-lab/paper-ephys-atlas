@@ -514,14 +514,15 @@ def prepare_mat_plot(array_in, id_feat, diag_val=0):
     return mat_plot
 
 
-def prepare_df_voltage(df_voltage, df_channels, br=None):
+def prepare_df_voltage(df_voltage, df_channels, br=None, remove_vr=True):
     if br is None:
         br = BrainRegions()
     df_voltage = pd.merge(df_voltage, df_channels, left_index=True, right_index=True).dropna()
-    df_voltage['cosmos_id'] = br.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Cosmos')
-    df_voltage['beryl_id'] = br.remap(df_voltage['atlas_id'], source_map='Allen', target_map='Beryl')
-
-    df_voltage = df_voltage.loc[~df_voltage['cosmos_id'].isin(br.acronym2id(['void', 'root']))]
+    df_voltage = df_voltage.rename(columns={"atlas_id": "Allen_id", "acronym": "Allen_acronym"})
+    df_voltage['Cosmos_id'] = br.remap(df_voltage['Allen_id'], source_map='Allen', target_map='Cosmos')
+    df_voltage['Beryl_id'] = br.remap(df_voltage['Allen_id'], source_map='Allen', target_map='Beryl')
+    if remove_vr:  # Remove void and root
+        df_voltage = df_voltage.loc[~df_voltage['Cosmos_id'].isin(br.acronym2id(['void', 'root']))]
     for feat in ['rms_ap', 'rms_lf']:
         df_voltage[feat] = 20 * np.log10(df_voltage[feat])
     df_voltage['spike_count_log'] = np.log10(df_voltage['spike_count'] + 1)
