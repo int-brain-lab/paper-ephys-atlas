@@ -77,6 +77,7 @@ fig.tight_layout()
 # plt.show()
 
 # Save figure
+plt.savefig(folder_file_save.joinpath(f"info_gain_overall_{label}_{mapping}.svg"))
 plt.savefig(folder_file_save.joinpath(f"info_gain_overall_{label}_{mapping}.pdf"),
             format="pdf", bbox_inches="tight")
 plt.close()
