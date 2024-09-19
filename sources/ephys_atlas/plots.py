@@ -423,3 +423,18 @@ def plt_unit_acg(i_cell, corr_rf, df_clusters, bin_size_secs, xstep=35, ax=None,
                  f'label {np.around(info_cell.label, decimals=1)}'
                  )
     return fig, ax
+
+
+def plt_psd_1ch(data, fs, ax=None, color='red', alpha=0.5, ylims=np.array([-150, -110])):
+    '''
+    Compute the PSD using Welch, on a single channel data.
+    '''
+    f, psd = scipy.signal.welch(data, fs=fs)
+    if ax is None:
+        fig, ax = plt.subplots()
+    ax.plot(f, 10 * np.log10(psd), color=color, alpha=alpha)
+    ax.set_xlabel('Frequency (Hz)')
+    ax.set_ylabel('PSD (dB rel V/Hz)')
+    ax.set_ylim(ylims[0], ylims[1])
+    ax.set_xlim(0, fs / 2)
+    plt.show()
