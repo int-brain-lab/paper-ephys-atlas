@@ -101,7 +101,7 @@ plt.savefig(folder_file_save.joinpath(f"lf_1ch__{ch_id}_T0{t0}_start"
             format="pdf", bbox_inches="tight")
 
 plt.show()
-
+ylim_lf = plt.ylim() # ylim LF are higher than AP
 # # Filter LF bandpass
 # sos_lf = scipy.signal.butter(3, [2, 10], fs=sr_lf.fs, btype='band', output='sos')
 # ch_display_filt  = scipy.signal.sosfiltfilt(sos_lf, ch_display)
@@ -110,6 +110,7 @@ plt.show()
 #AP
 ch_display = destriped_ap_trunc[ch_id, :]
 plt.plot(ch_display, color=color_set['raw_ap'])
+plt.ylim(ylim_lf)
 # Save figure
 plt.savefig(folder_file_save.joinpath(f"ap_1ch__{ch_id}_T0{t0}_start"
                                       f"{ms_start_display}_dur{ms_dur_display}_{pid}.svg"))
@@ -117,6 +118,33 @@ plt.savefig(folder_file_save.joinpath(f"ap_1ch__{ch_id}_T0{t0}_start"
                                       f"{ms_start_display}_dur{ms_dur_display}_{pid}.pdf"),
             format="pdf", bbox_inches="tight")
 plt.show()
+
+##
+# PSD
+from ephys_atlas.features import lf
+
+lf_psd = lf(destriped_lf_trunc, fs=sr_lf.fs)
+
+fig, axs = plt.subplots(1,2)
+
+def show_psd(data, fs, ax=None):
+    psd = np.zeros((data.shape[0], 129))
+    for tr in np.arange(data.shape[0]):
+        f, psd[tr, :] = scipy.signal.welch(data[tr, :], fs=fs)
+
+        fscale, period = scipy.signal.periodogram(data, fs)
+
+    if ax is None:
+        fig, ax = plt.subplots()
+    ax.plot(f, 10 * np.log10(psd.T), color='gray', alpha=0.1)
+    ax.plot(f, 10 * np.log10(np.mean(psd, axis=0).T), color='red')
+    ax.set_xlabel('Frequency (Hz)')
+    ax.set_ylabel('PSD (dB rel V/Hz)')
+    ax.set_ylim(-150, -110)
+    ax.set_xlim(0, fs / 2)
+    plt.show()
+
+show_psd(destriped_lf_trunc, fs=sr_lf.fs, ax=axs[0])
 
 ##
 wfs = ssl.load_spike_sorting_object('waveforms')
