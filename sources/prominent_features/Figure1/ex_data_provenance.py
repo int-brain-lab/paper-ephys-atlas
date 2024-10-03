@@ -1,4 +1,5 @@
 ##
+from nptdms.tdmsinfo import display
 from one.api import ONE
 from brainbox.io.one import SpikeSortingLoader
 from brainbox.ephys_plots import plot_brain_regions
@@ -27,6 +28,41 @@ pids = ['d7ec0892-0a6c-4f4f-9d8f-72083692af5c',
         'eebcaf65-7fa4-4118-869d-a084e84530e2']
 
 pid = pids[2]
+
+##
+# LFP function to compute PSD
+
+def show_psd(data, fs, ax=None):
+    psd = np.zeros((data.shape[0], 129))
+    for tr in np.arange(data.shape[0]):
+        f, psd[tr, :] = scipy.signal.welch(data[tr, :], fs=fs)  #TODO 1024 as window param
+
+    # f, psd = scipy.signal.periodogram(data, fs)
+
+    if ax is None:
+        fig, ax = plt.subplots()
+    ax.plot(f, 10 * np.log10(psd.T), color='gray', alpha=0.1)
+    ax.plot(f, 10 * np.log10(np.mean(psd, axis=0).T), color='red')
+    ax.set_xlabel('Frequency (Hz)')
+    ax.set_ylabel('PSD (dB rel V/Hz)')
+    ax.set_ylim(-150, -110)
+    ax.set_xlim(0, fs / 2)
+
+def show_psd_1trace(data, fs, ax=None):
+    f, psd = scipy.signal.welch(data, fs=fs)  #TODO 1024 as window param
+
+    # f, psd = scipy.signal.periodogram(data, fs)
+
+    if ax is None:
+        fig, ax = plt.subplots()
+    ax.plot(f, 10 * np.log10(psd), color='black', alpha=0.5)
+    # ax.plot(f, 10 * np.log10(np.mean(psd, axis=0).T), color='red')
+    ax.set_xlabel('Frequency (Hz)')
+    ax.set_ylabel('PSD (dB rel V/Hz)')
+    ax.set_ylim(-150, -110)
+    ax.set_xlim(0, fs / 2)
+
+
 ##
 # Instantiate spike sorting loader
 ssl = SpikeSortingLoader(pid=pid, one=one)
@@ -86,65 +122,35 @@ plot_brain_regions(channels["atlas_id"], channel_depths=channels["axial_um"], ax
 plt.show()
 
 ##
+# Set y-lim
+ylim = (-0.0002, 0.0003)
 # Select channel to display in 1D
-ch_id = 350
+ch_ids = [30, 350]
 
-# LF
-ch_display = destriped_lf_trunc[ch_id, :]
-plt.plot(ch_display, color=color_set['raw_lf'])
+for ch_id in ch_ids:
 
-# Save figure
-plt.savefig(folder_file_save.joinpath(f"lf_1ch__{ch_id}_T0{t0}_start"
-                                      f"{ms_start_display}_dur{ms_dur_display}_{pid}.svg"))
-plt.savefig(folder_file_save.joinpath(f"lf_1ch__{ch_id}_T0{t0}_start"
-                                      f"{ms_start_display}_dur{ms_dur_display}_{pid}.pdf"),
-            format="pdf", bbox_inches="tight")
+    fig, axs = plt.subplots(1,3)
+    # show_psd(destriped_lf_trunc, fs=sr_lf.fs, ax=axs[0])
+    show_psd_1trace(destriped_lf_trunc[ch_id, :], fs=sr_lf.fs, ax=axs[0])
 
-plt.show()
-ylim_lf = plt.ylim() # ylim LF are higher than AP
-# # Filter LF bandpass
-# sos_lf = scipy.signal.butter(3, [2, 10], fs=sr_lf.fs, btype='band', output='sos')
-# ch_display_filt  = scipy.signal.sosfiltfilt(sos_lf, ch_display)
-# plt.plot(ch_display_filt)
+    # LF
+    ax = axs[1]
+    ch_display = destriped_lf_trunc[ch_id, :]
+    ax.plot(ch_display, color=color_set['raw_lf'])
+    ax.set_ylim(ylim)
 
-#AP
-ch_display = destriped_ap_trunc[ch_id, :]
-plt.plot(ch_display, color=color_set['raw_ap'])
-plt.ylim(ylim_lf)
-# Save figure
-plt.savefig(folder_file_save.joinpath(f"ap_1ch__{ch_id}_T0{t0}_start"
-                                      f"{ms_start_display}_dur{ms_dur_display}_{pid}.svg"))
-plt.savefig(folder_file_save.joinpath(f"ap_1ch__{ch_id}_T0{t0}_start"
-                                      f"{ms_start_display}_dur{ms_dur_display}_{pid}.pdf"),
-            format="pdf", bbox_inches="tight")
-plt.show()
+    #AP
+    ax = axs[2]
+    ch_display = destriped_ap_trunc[ch_id, :]
+    ax.plot(ch_display, color=color_set['raw_ap'])
+    ax.set_ylim(ylim)
 
-##
-# PSD
-from ephys_atlas.features import lf
+    fig.set_size_inches([16.4, 4.8])
+    fig.tight_layout()
 
-lf_psd = lf(destriped_lf_trunc, fs=sr_lf.fs)
-
-fig, axs = plt.subplots(1,2)
-
-def show_psd(data, fs, ax=None):
-    psd = np.zeros((data.shape[0], 129))
-    for tr in np.arange(data.shape[0]):
-        f, psd[tr, :] = scipy.signal.welch(data[tr, :], fs=fs)
-
-        fscale, period = scipy.signal.periodogram(data, fs)
-
-    if ax is None:
-        fig, ax = plt.subplots()
-    ax.plot(f, 10 * np.log10(psd.T), color='gray', alpha=0.1)
-    ax.plot(f, 10 * np.log10(np.mean(psd, axis=0).T), color='red')
-    ax.set_xlabel('Frequency (Hz)')
-    ax.set_ylabel('PSD (dB rel V/Hz)')
-    ax.set_ylim(-150, -110)
-    ax.set_xlim(0, fs / 2)
-    plt.show()
-
-show_psd(destriped_lf_trunc, fs=sr_lf.fs, ax=axs[0])
+    # Save figure
+    plt.savefig(folder_file_save.joinpath(f"AP_LFP_PSD__ch{ch_id}_T0{t0}_start"
+                                          f"{ms_start_display}_dur{ms_dur_display}_{pid}.svg"))
 
 ##
 wfs = ssl.load_spike_sorting_object('waveforms')

@@ -427,7 +427,7 @@ def plt_unit_acg(i_cell, corr_rf, df_clusters, bin_size_secs, xstep=35, ax=None,
 
 def plt_psd_1ch(data, fs, ax=None, color='red', alpha=0.5, ylims=np.array([-150, -110])):
     '''
-    Compute the PSD using Welch, on a single channel data.
+    Compute the PSD using Welch, on a single channel data, then plot it.
     '''
     f, psd = scipy.signal.welch(data, fs=fs)
     if ax is None:
