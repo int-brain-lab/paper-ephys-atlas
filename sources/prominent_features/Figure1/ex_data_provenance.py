@@ -5,6 +5,7 @@ from brainbox.io.one import SpikeSortingLoader
 from brainbox.ephys_plots import plot_brain_regions
 from ibllib.plots.misc import Density
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 from ibldsp.voltage import destripe, destripe_lfp
 from iblatlas.atlas import BrainRegions
 import numpy as np
@@ -13,6 +14,7 @@ from pathlib import Path
 import scipy.signal
 from ephys_atlas.encoding import FEATURES_LIST
 from ephys_atlas.plots import color_map_feature
+from ephys_atlas.features import BANDS
 
 one = ONE()
 regions = BrainRegions()
@@ -29,38 +31,49 @@ pids = ['d7ec0892-0a6c-4f4f-9d8f-72083692af5c',
 
 pid = pids[2]
 
+# Define color palette for bands
+COLOR_BANDS = {'delta': '#DEEFB7', 'theta': '#98DFAF', 'alpha': '#5FB49C', 'beta': '#CDFCE4', 'gamma': '#88D5CC'}
+
 ##
-# LFP function to compute PSD
+# LFP function to compute and plot PSD
+def show_psd_1trace(data, fs, ax=None, f_lim=None, bands=BANDS, ylim=(-140, -90), display='log'):
+    ''' Computes and shows PSD for 1 trace '''
+    # Compute PSD
+    f, psd = scipy.signal.welch(data, fs=fs, nperseg=512)
 
-def show_psd(data, fs, ax=None):
-    psd = np.zeros((data.shape[0], 129))
-    for tr in np.arange(data.shape[0]):
-        f, psd[tr, :] = scipy.signal.welch(data[tr, :], fs=fs)  #TODO 1024 as window param
+    # Restrict freq range for plotting, e.g. to 0-250Hz
+    if f_lim is not None:
+        indx_f = np.where(f < f_lim)[0]
+        f = f[indx_f]
+        psd = psd[indx_f]
 
-    # f, psd = scipy.signal.periodogram(data, fs)
-
+    # Plot
     if ax is None:
         fig, ax = plt.subplots()
-    ax.plot(f, 10 * np.log10(psd.T), color='gray', alpha=0.1)
-    ax.plot(f, 10 * np.log10(np.mean(psd, axis=0).T), color='red')
+
+    if display == 'log':
+        ax.set_xscale('log')
+        ax.semilogx(f, 10 * np.log10(psd), color='black')
+
+    elif display == 'linear':
+        ax.plot(f, 10 * np.log10(psd), color='black', alpha=0.5)
+        if f_lim is None:
+            ax.set_xlim(0, fs / 2)
+        else:
+            ax.set_xlim(0, f_lim)
+
+    if bands is not None:
+        # Plot rectangle over PSD
+        for key, value in bands.items():
+            if key not in ['lfp']:  # Take all bands for plotting but LFP
+                xy = (bands[key][0], ylim[0])
+                width = bands[key][1] - bands[key][0]
+                height = ylim[1] - ylim[0]
+                ax.add_patch(Rectangle(xy, width, height, color=COLOR_BANDS[key]))
+
     ax.set_xlabel('Frequency (Hz)')
     ax.set_ylabel('PSD (dB rel V/Hz)')
-    ax.set_ylim(-150, -110)
-    ax.set_xlim(0, fs / 2)
-
-def show_psd_1trace(data, fs, ax=None):
-    f, psd = scipy.signal.welch(data, fs=fs)  #TODO 1024 as window param
-
-    # f, psd = scipy.signal.periodogram(data, fs)
-
-    if ax is None:
-        fig, ax = plt.subplots()
-    ax.plot(f, 10 * np.log10(psd), color='black', alpha=0.5)
-    # ax.plot(f, 10 * np.log10(np.mean(psd, axis=0).T), color='red')
-    ax.set_xlabel('Frequency (Hz)')
-    ax.set_ylabel('PSD (dB rel V/Hz)')
-    ax.set_ylim(-150, -110)
-    ax.set_xlim(0, fs / 2)
+    ax.set_ylim(ylim)
 
 
 ##
@@ -89,9 +102,7 @@ inc_start_lf = int(ms_start_display / 1000 * sr_lf.fs)
 inc_dur_lf = int(ms_dur_display / 1000 * sr_lf.fs)
 raw_lf = sr_lf[s0:s0 + dur, :-sr_ap.nsync].T
 
-destriped_lf = destripe_lfp(raw_lf, sr_lf.fs)  # TODO check destripe is correct processing for LF
-# sos_lf = scipy.signal.butter(3,   2 / sr_lf.fs /2, btype='highpass', output='sos')  #   2 Hz high pass LF band
-# destriped_lf  = scipy.signal.sosfiltfilt(sos_lf, raw_lf)
+destriped_lf = destripe_lfp(raw_lf, sr_lf.fs)
 destriped_lf_trunc = destriped_lf[:, inc_start_lf:inc_start_lf + inc_dur_lf]
 
 # Get waveforms
@@ -128,10 +139,13 @@ ylim = (-0.0002, 0.0003)
 ch_ids = [30, 350]
 
 for ch_id in ch_ids:
+    ch_acronym = channels['acronym'][ch_id]
 
     fig, axs = plt.subplots(1,3)
-    # show_psd(destriped_lf_trunc, fs=sr_lf.fs, ax=axs[0])
-    show_psd_1trace(destriped_lf_trunc[ch_id, :], fs=sr_lf.fs, ax=axs[0])
+    # PSD
+    # For this we take the whole streamed signal (1s data)  #TODO remove borders for filter effect?
+    show_psd_1trace(destriped_lf[ch_id, :], fs=sr_lf.fs, ax=axs[0], f_lim=250)
+    axs[0].set_title(ch_acronym)
 
     # LF
     ax = axs[1]
