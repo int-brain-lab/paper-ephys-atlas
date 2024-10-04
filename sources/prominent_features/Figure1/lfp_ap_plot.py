@@ -1,5 +1,4 @@
 ##
-from nptdms.tdmsinfo import display
 from one.api import ONE
 from brainbox.io.one import SpikeSortingLoader
 from brainbox.ephys_plots import plot_brain_regions
@@ -15,6 +14,7 @@ import scipy.signal
 from ephys_atlas.encoding import FEATURES_LIST
 from ephys_atlas.plots import color_map_feature
 from ephys_atlas.features import BANDS
+from ibldsp import waveforms
 
 one = ONE()
 regions = BrainRegions()
@@ -105,12 +105,6 @@ raw_lf = sr_lf[s0:s0 + dur, :-sr_ap.nsync].T
 destriped_lf = destripe_lfp(raw_lf, sr_lf.fs)
 destriped_lf_trunc = destriped_lf[:, inc_start_lf:inc_start_lf + inc_dur_lf]
 
-# Get waveforms
-wfs = ssl.load_spike_sorting_object('waveforms')
-
-# Get channels
-# channels = ssl.load_channels()
-
 # Get spikes, especially the samples to align it with the raw data
 spikes, clusters, channels = ssl.load_spike_sorting(dataset_types=["spikes.samples"])
 
@@ -166,24 +160,3 @@ for ch_id in ch_ids:
     plt.savefig(folder_file_save.joinpath(f"AP_LFP_PSD__ch{ch_id}_T0{t0}_start"
                                           f"{ms_start_display}_dur{ms_dur_display}_{pid}.svg"))
 
-##
-wfs = ssl.load_spike_sorting_object('waveforms')
-wfs['templates'].shape
-
-# IDs of wavs
-wavs = [423, 59, 43]
-fig, axs = plt.subplots(1, len(wavs))
-
-for inc in range(0, len(wavs)):
-    wavi = wavs[inc]
-    acronym = channels.acronym[clusters.channels[wavi]]
-
-    double_wiggle(wfs['templates'][wavi] * 1e6 / 80, fs=sr_ap.fs, ax=axs[inc])
-    axs[inc].set_title(f'{acronym}')
-
-fig.set_size_inches([16.4, 4.8])
-# Save figure
-plt.savefig(folder_file_save.joinpath(f"wavs{wavs}_{pid}.svg"))
-plt.savefig(folder_file_save.joinpath(f"wavs{wavs}_{pid}.pdf"),
-            format="pdf", bbox_inches="tight")
-plt.show()
