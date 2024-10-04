@@ -181,6 +181,7 @@ for inc in range(0, len(wavs)):
     double_wiggle(wfs['templates'][wavi] * 1e6 / 80, fs=sr_ap.fs, ax=axs[inc])
     axs[inc].set_title(f'{acronym}')
 
+fig.set_size_inches([16.4, 4.8])
 # Save figure
 plt.savefig(folder_file_save.joinpath(f"wavs{wavs}_{pid}.svg"))
 plt.savefig(folder_file_save.joinpath(f"wavs{wavs}_{pid}.pdf"),

@@ -31,19 +31,19 @@ df_regions = df_voltage.groupby('Beryl_id').agg(
 )
 df_regions['Beryl_id'] = df_regions.index.values
 
-
+scale = 'log'  # or 'linear'
 # Plot
 ephys_atlas.plots.region_bars(atlas_id=df_regions.index.values,
-                              feature=df_regions[f'n_pids'].values, regions=br)
+                              feature=df_regions[f'n_pids'].values, regions=br, scale=scale)
 
 # Save figure
-plt.savefig(folder_file_save.joinpath(f"Beryl_Npids.svg"))
+plt.savefig(folder_file_save.joinpath(f"Beryl_Npids_{scale}.svg"))
 plt.show()
 
 # Plot
 ephys_atlas.plots.region_bars(atlas_id=df_regions.index.values,
-                              feature=df_regions[f'n_channels'].values, regions=br)
+                              feature=df_regions[f'n_channels'].values, regions=br, scale=scale)
 
 # Save figure
-plt.savefig(folder_file_save.joinpath(f"Beryl_Nchannels.svg"))
+plt.savefig(folder_file_save.joinpath(f"Beryl_Nchannels_{scale}.svg"))
 plt.show()
