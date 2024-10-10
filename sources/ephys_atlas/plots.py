@@ -7,28 +7,39 @@ import matplotlib.patches as patches
 from iblatlas.atlas import BrainRegions
 from ephys_atlas.data import compute_summary_stat
 from ephys_atlas.encoding import FEATURES_LIST
-from matplotlib import cm  # This is deprecated, but cannot import matplotlib.colormaps as cm
+from matplotlib.pyplot import get_cmap  # This is deprecated, but cannot import matplotlib.colormaps as cm
 from brainbox.plot_base import ProbePlot, arrange_channels2banks, plot_probe
 from brainbox.ephys_plots import plot_brain_regions
 from matplotlib.patches import Rectangle
 import matplotlib
 import scipy
 
-def color_map_feature(feature_list=FEATURES_LIST, cmap='Pastel1_r', n_inc=12):
-    # color_map = cm.get_cmap(cmap, n_inc)
-    # np.linspace(0, 1, num=len(feature_list))
-    # color_alpha = color_map(np.linspace(0, 1, num=len(feature_list)))
-    # color_only = color_alpha[:, 0:3]  # Return only the color values
-    # # Convert to list of tuple [(0, 0.2, 0.1), (...)]
-    # list_col = color_only.tolist()
-    # list_out = list()
-    # for i_col in list_col:
-    #     list_out.append(tuple(i_col))
-    # TODO above is correct but umpractical ?
-    list_out = ['m', 'g', 'm', 'b']
+def color_map_feature(feature_list=FEATURES_LIST, default=True, return_dict=False,
+                      cmap='PRGn', n_inc=len(FEATURES_LIST)+1):
+    if default:
+        list_out = [(0.25098039215686274, 0.0, 0.29411764705882354),
+                    (0.680392156862745, 0.5431372549019607, 0.7411764705882352),
+                    (0.5019607843137257, 0.7705882352941177, 0.5039215686274511),
+                    (0.0, 0.26666666666666666, 0.10588235294117647)]
+    else:
+        color_map = get_cmap(cmap, n_inc)
+        np.linspace(0, 1, num=len(feature_list))
+        color_alpha = color_map(np.linspace(0, 1, num=len(feature_list)))
+        color_only = color_alpha[:, 0:3]  # Return only the color values
+        # Convert to list of tuple [(0, 0.2, 0.1), (...)]
+        list_col = color_only.tolist()
+        list_out = list()
+        for i_col in list_col:
+            list_out.append(tuple(i_col))
+
     assert len(list_out) == len(FEATURES_LIST)
 
-    return list_out
+    if return_dict:
+        # Create dict
+        dict_out = dict(zip(FEATURES_LIST, list_out))
+        return dict_out
+    else:
+        return list_out
 
 
 def plot_kde(feature, df_voltage, brain_id='Cosmos_id', regions_id=None,
@@ -269,7 +280,7 @@ def plot_probe_rect(xy, color, ax, width=16, height=40):
             linewidth=1, color=a_color, fill=True))
     ax.set_xlim([min(xy[:, 0])-width/2, max(xy[:, 0])+width/2])
     ax.set_ylim([min(xy[:, 1]) - height / 2, max(xy[:, 1]) + height / 2])
-    plt.show()
+    # plt.show()
 
 def figure_features_chspace_probeplot(pid_df, features, xy):
     '''
@@ -412,3 +423,18 @@ def plt_unit_acg(i_cell, corr_rf, df_clusters, bin_size_secs, xstep=35, ax=None,
                  f'label {np.around(info_cell.label, decimals=1)}'
                  )
     return fig, ax
+
+
+def plt_psd_1ch(data, fs, ax=None, color='red', alpha=0.5, ylims=np.array([-150, -110])):
+    '''
+    Compute the PSD using Welch, on a single channel data, then plot it.
+    '''
+    f, psd = scipy.signal.welch(data, fs=fs)
+    if ax is None:
+        fig, ax = plt.subplots()
+    ax.plot(f, 10 * np.log10(psd), color=color, alpha=alpha)
+    ax.set_xlabel('Frequency (Hz)')
+    ax.set_ylabel('PSD (dB rel V/Hz)')
+    ax.set_ylim(ylims[0], ylims[1])
+    ax.set_xlim(0, fs / 2)
+    plt.show()
