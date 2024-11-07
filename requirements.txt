@@ -1,4 +1,11 @@
+dartsort @ git+https://github.com/cwindolf/dartsort@iblsort
+dredge @ git+https://github.com/evarol/dredge@v0.2.2
+hdbscan
+linear_operator
 ibllib
 iblatlas >= 0.3.0
+ibl-neuropixel
+pydantic
 viewephys
 xgboost
+pyyaml

@@ -1,5 +1,6 @@
 import hashlib
 from typing import List, Tuple
+from pathlib import Path
 import yaml
 
 import numpy as np
@@ -31,15 +32,16 @@ def save_model(path_model, classifier, meta, subfolder=''):
 
 
 def load_model(path_model):
+    path_model = Path(path_model)
     # load model
     with open(path_model.joinpath('meta.yaml')) as f:
-        model = Bunch({
+        dict_model = Bunch({
             # TODO: it should be possible to use different model kinds
             'classifier': XGBClassifier(model_file=path_model.joinpath('model.ubj')),
             'meta': yaml.safe_load(f)
         })
-    model.classifier.load_model(path_model.joinpath('model.ubj'))
-    return model
+    dict_model.classifier.load_model(path_model.joinpath('model.ubj'))
+    return dict_model
 
 
 def _step_viterbi(mu_prev: np.ndarray,
