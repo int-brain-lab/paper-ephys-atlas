@@ -7,7 +7,7 @@ with open('requirements.txt') as f:
     require = [x.strip() for x in f.readlines() if not x.startswith('git+')]
 
 setuptools.setup(
-    name="paper-atlas",
+    name="paper-ephys-atlas",
     version="0.0.0",
     author="IBL",
     description="paper-ephys-atlas code",
@@ -26,5 +26,5 @@ setuptools.setup(
     package_dir={'': 'sources'},
     packages=setuptools.find_packages(where="sources"),
     #package_data={'easyqc': ['easyqc.ui', 'easyqc.svg']},
-    python_requires=">=3.7",
+    python_requires=">=3.10",
 )

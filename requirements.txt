@@ -1,4 +1,4 @@
-dartsort @ git+https://github.com/cwindolf/dartsort@iblsort
+dartsort @ git+https://github.com/cwindolf/dartsort@iblsorter
 dredge @ git+https://github.com/evarol/dredge@v0.2.2
 hdbscan
 linear_operator
@@ -8,4 +8,9 @@ ibl-neuropixel
 pydantic
 viewephys
 xgboost
+pandera
 pyyaml
+
+
+h5py
+spikeinterface

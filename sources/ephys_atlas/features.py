@@ -14,6 +14,10 @@ import ibldsp.cadzow
 import ibldsp.utils
 import ibldsp.voltage
 
+from pandera.typing import Index, DataFrame, Series
+
+from typing_extensions import Annotated
+floats = Annotated[pandera.Float, pandera.Float32]
 BANDS = {'delta': [0, 4], 'theta': [4, 10], 'alpha': [8, 12], 'beta': [15, 30], 'gamma': [30, 90], 'lfp': [0, 90]}
 
 
@@ -28,44 +32,46 @@ class BaseChannelFeatures(pandera.DataFrameModel):
 
 
 class ModelLfFeatures(BaseChannelFeatures):
-    rms_lf: float
-    psd_delta: float
-    psd_theta: float
-    psd_alpha: float
-    psd_beta: float
-    psd_gamma: float
-    psd_lfp: float
+    rms_lf: Series[float] = pandera.Field(coerce=True)
+    psd_delta: Series[float] = pandera.Field(coerce=True)
+    psd_theta: Series[float] = pandera.Field(coerce=True)
+    psd_alpha: Series[float] = pandera.Field(coerce=True)
+    psd_beta: Series[float] = pandera.Field(coerce=True)
+    psd_gamma: Series[float] = pandera.Field(coerce=True)
+    psd_lfp: Series[float] = pandera.Field(coerce=True)
+
 
 
 class ModelCsdFeatures(BaseChannelFeatures):
-    rms_lf_csd: float
-    psd_delta_csd: float
-    psd_theta_csd: float
-    psd_alpha_csd: float
-    psd_beta_csd: float
-    psd_gamma_csd: float
-    psd_lfp_csd: float
+    rms_lf_csd: Series[float] = pandera.Field(coerce=True)
+    psd_delta_csd: Series[float] = pandera.Field(coerce=True)
+    psd_theta_csd: Series[float] = pandera.Field(coerce=True)
+    psd_alpha_csd: Series[float] = pandera.Field(coerce=True)
+    psd_beta_csd: Series[float] = pandera.Field(coerce=True)
+    psd_gamma_csd: Series[float] = pandera.Field(coerce=True)
+    psd_lfp_csd: Series[float] = pandera.Field(coerce=True)
 
 
 class ModelApFeatures(BaseChannelFeatures):
-    rms_ap: float
+    rms_ap: Series[float] = pandera.Field(coerce=True)
+    cor_ratio: Series[float] = pandera.Field(coerce=True)
 
 
 class ModelSpikeFeatures(BaseChannelFeatures):
-    alpha_mean: float
-    alpha_std: float
-    depolarisation_slope: float
-    peak_time_secs: float
-    peak_val: float
-    polarity: float
-    recovery_slope: float
-    recovery_time_secs: float
-    repolarisation_slope: float
+    alpha_mean: Series[float] = pandera.Field(coerce=True)
+    alpha_std: Series[float] = pandera.Field(coerce=True)
+    depolarisation_slope: Series[float] = pandera.Field(coerce=True)
+    peak_time_secs: Series[float] = pandera.Field(coerce=True)
+    peak_val: Series[float] = pandera.Field(coerce=True)
+    polarity: Series[float] = pandera.Field(coerce=True)
+    recovery_slope: Series[float] = pandera.Field(coerce=True)
+    recovery_time_secs: Series[float] = pandera.Field(coerce=True)
+    repolarisation_slope: Series[float] = pandera.Field(coerce=True)
     spike_count: int
-    tip_time_secs: float
-    tip_val: float
-    trough_time_secs: float
-    trough_val: float
+    tip_time_secs: Series[float] = pandera.Field(coerce=True)
+    tip_val: Series[float] = pandera.Field(coerce=True)
+    trough_time_secs: Series[float] = pandera.Field(coerce=True)
+    trough_val: Series[float] = pandera.Field(coerce=True)
 
 
 class ModelChannelFeatures(ModelSpikeFeatures, ModelCsdFeatures, ModelApFeatures, ModelLfFeatures):
@@ -101,34 +107,38 @@ def lf(data, fs, bands=None):
     return df_lf
 
 
-def csd(data, fs, geometry, bands=None):
+def csd(data, fs, geometry, bands=None, decimate=10):
     """
     Computes the CSD features from a numpy array
     :param data: numpy array with the data (channels, samples)
     :param fs: sampling interval (Hz)
     :param geometry: dictionary with the geometry (x, y) of the channels
     :param bands: dictionary with the bands to compute (default: BANDS constant)
+    :params decimate: decimation factor for the CSD calculation (default: 10)
     :return: pandas dataframe with the columns ['channel', 'rms_lf_csd', 'psd_delta_csd', 'psd_theta_csd', 'psd_alpha_csd',
        'psd_beta_csd', 'psd_gamma_csd', 'psd_lfp_csd']
     """
-    cadzow = ibldsp.cadzow.cadzow_np1(data, rank=2, fs=fs, niter=1)
-    data = ibldsp.voltage.current_source_density(cadzow, h=geometry)
-    df_csd = lf(data, fs, bands=bands)
+    data_rs = scipy.signal.decimate(data, decimate, axis=1, ftype="fir")
+    data_rs = ibldsp.cadzow.cadzow_np1(data_rs, rank=2, fs=fs, niter=1, fmax=90)
+    data_rs = ibldsp.voltage.current_source_density(data_rs, h=geometry)
+    df_csd = lf(data_rs, fs, bands=bands)
     df_csd = df_csd.rename(columns={c: f'{c}_csd' for c in df_csd.columns if c not in ['channel']})
     ModelCsdFeatures.validate(df_csd)
     return df_csd
 
 
-def ap(data):
+def ap(data, geometry=None):
     """
     Computes the LF features from a numpy array
     :param data: numpy array with the AP band data (channels, samples)
     :return: pandas dataframe with the columns ['channel', 'rms_ap']
     """
+    assert geometry is not None, "Geometry is required for AP band computation"
     df_ap = pd.DataFrame()
     nc = data.shape[0]  # number of channels
     df_ap['channel'] = np.arange(nc)
     df_ap['rms_ap'] = ibldsp.utils.rms(data, axis=-1)
+    df_ap['cor_ratio'] = xcor_acor_ratio(data, geometry=geometry)
     ModelApFeatures.validate(df_ap)
     return df_ap
 
@@ -242,6 +252,48 @@ def spikes(data, fs: int, geometry: dict, return_waveforms=True, **params):
     ).reset_index()
     ModelSpikeFeatures.validate(df_spiking)
     if return_waveforms:
-        return df_spiking, d_waveforms.update({'df_spikes': df_spikes})
+        return df_spiking, d_waveforms | {'df_spikes': df_spikes}
     else:
         return df_spiking
+
+
+def xcor_acor_ratio(v: np.ndarray, geometry: dict, n_neighbor: int = 3) -> np.ndarray:
+    """
+    Cross corr over auto-correlation ratio
+    :param v: voltage array for AP band (nc, ns)
+    :param geometry: geometry dict with 'x' and 'y' arrays for the electrode positions (nc, )
+    :param n_diags: number of n
+    :return: np.ndarray of size (nc, )
+    """
+    # %% on calcule la matrice de covariance
+    n_mirror = 12
+    n_diags = 8
+    nc = v.shape[0]
+    i_mirror = np.r_[np.arange(n_mirror, 0, -1), np.arange(nc), np.arange(nc - 2, nc - n_mirror - 2, -1)]
+    ncm = i_mirror.size
+    i0, i1 = np.meshgrid(i_mirror, i_mirror)
+    dxy = geometry['x'][i0] - geometry['x'][i1] + (geometry['y'][i0] - geometry['y'][i1]) * 1j
+    cov = v[i_mirror] @ v[i_mirror].T
+
+    # Here for each channel we extract the covariances of neighbouring channels
+    diags = np.zeros((n_diags * 2 + 1, ncm))
+    diags_xy = np.zeros_like(diags, dtype=np.complex64)
+    for i, di in enumerate(np.arange(-n_diags, n_diags + 1)):
+        if di == 0:
+            diags[i, :] = np.diag(cov)
+            continue
+        if di < 0:
+            ic = np.s_[- di:]
+        elif di > 0:
+            ic = np.s_[:- di]
+        d =  np.diag(cov, di).copy()
+        d[np.diag(i0, di) == np.diag(i1, di)] = np.nan
+        diags[i, ic] = d
+        diags_xy[i, ic] = np.diag(dxy, di)
+
+    cor_ratio = np.nanmean(diags, axis=0) / diags[n_diags]
+    # # the metric is the ratio of cross-correlation of the neighouring channels over to the auto-correlation
+    # fig, ax = plt.subplots(2, 1, sharex=True)
+    # ax[0].matshow(diags / diags[n_diags], aspect='auto', extent=[cscale[0], cscale[-1], -n_diags, n_diags])
+    # ax[1].plot(cscale, cor_ratio)
+    return cor_ratio[n_mirror:-n_mirror]
