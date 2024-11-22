@@ -41,9 +41,8 @@ from iblutil.util import setup_logger
 from brainbox.io.one import SpikeSortingLoader
 import phylib.stats
 
-import ephys_atlas.rawephys
-from ephys_atlas.data import atlas_pids, compute_channels_micromanipulator_coordinates
-
+import elts.parede_raw_ephys_features.rawephys
+from ephys_atlas.data import atlas_pids
 
 ROOT_PATH = Path(os.getenv('TASK_ROOT_PATH', Path("/mnt/s0/ephys-atlas")))
 logger = setup_logger(name='paper-ephys-atlas', level='INFO')
@@ -263,7 +262,7 @@ def destripe_ap(pid, one, data_path=ROOT_PATH):
         TXXXX/ap_raw.npy
     """
     destination = data_path.joinpath(pid)
-    ephys_atlas.rawephys.destripe(pid, one=one, destination=destination, typ='ap', clobber=False)
+    elts.parede_raw_ephys_features.rawephys.destripe(pid, one=one, destination=destination, typ='ap', clobber=False)
 
 
 @task(**TASKS['destripe_lf'])
@@ -277,7 +276,7 @@ def destripe_lf(pid, one, data_path=ROOT_PATH):
         TXXXX/lf_raw.npy
     """
     destination = data_path.joinpath(pid)
-    ephys_atlas.rawephys.destripe(pid, one=one, destination=destination, typ='lf', clobber=False)
+    elts.parede_raw_ephys_features.rawephys.destripe(pid, one=one, destination=destination, typ='lf', clobber=False)
 
 
 @task(**TASKS['compute_sorted_features'])
@@ -298,7 +297,6 @@ def compute_sorted_features(pid, one, data_path=ROOT_PATH):
         raise ValueError('No spike sorting found for this session')
     # here the channels object comes in two flavours: raw channels ('localCoordinates', 'rawInd')
     # and processed channels ('x', 'y', 'z', 'acronym', 'atlas_id', 'axial_um', 'lateral_um')
-    from ephys_atlas import data
     if 'localCoordinates' in channels:
         channels = dict(axial_um=channels['localCoordinates'][:, 1], lateral_um=channels['localCoordinates'][:, 0])
     # compute the correlograms
@@ -342,7 +340,7 @@ def localise(pid, clobber=False, data_path=ROOT_PATH):
         TXXXX/waveforms.npy
     """
     destination = data_path.joinpath(pid)
-    ephys_atlas.rawephys.localisation(destination, clobber=clobber)
+    elts.parede_raw_ephys_features.rawephys.localisation(destination, clobber=clobber)
 
 
 @task(**TASKS['compute_raw_features'])
@@ -354,14 +352,14 @@ def compute_raw_features(pid, data_path=None):
         raw_ephys_features.pqt
     """
     root_path = data_path or ROOT_PATH
-    ap_features, fs = ephys_atlas.rawephys.compute_ap_features(pid, root_path=root_path)
-    lf_features = ephys_atlas.rawephys.compute_lf_features(pid, root_path=root_path, current_source=False)
-    cs_features = ephys_atlas.rawephys.compute_lf_features(pid, root_path=root_path, current_source=True)
-    spikes_features = ephys_atlas.rawephys.compute_spikes_features(pid, root_path=root_path)
+    ap_features, fs = elts.parede_raw_ephys_features.rawephys.compute_ap_features(pid, root_path=root_path)
+    lf_features = elts.parede_raw_ephys_features.rawephys.compute_lf_features(pid, root_path=root_path, current_source=False)
+    cs_features = elts.parede_raw_ephys_features.rawephys.compute_lf_features(pid, root_path=root_path, current_source=True)
+    spikes_features = elts.parede_raw_ephys_features.rawephys.compute_spikes_features(pid, root_path=root_path)
     # need to rename and cast this column to have a consistent merge with ap and lf features later
     spikes_features['channel'] = spikes_features['trace'].astype(np.int16)
 
-    fcn_mean_time = lambda x: np.mean((x - ephys_atlas.rawephys.TROUGH_OFFSET)) / fs
+    fcn_mean_time = lambda x: np.mean((x - elts.parede_raw_ephys_features.rawephys.TROUGH_OFFSET)) / fs
 
     channels_features = spikes_features.groupby('channel').agg(
         alpha_mean=pd.NamedAgg(column="alpha", aggfunc="mean"),

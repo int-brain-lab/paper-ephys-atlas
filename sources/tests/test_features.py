@@ -1,9 +1,56 @@
+from pathlib import Path
+import unittest
+
 import numpy as np
+
+import neuropixel
 import ephys_atlas.features
 
-file_numpy = "/Users/olivier/Documents/datadisk/Data/paper-ephys-atlas/ephys-atlas-sample/749cb2b7-e57e-4453-a794-f6230e4d0226/T02500/lf.npy"
-data_lf = np.load(file_numpy).astype(np.float32)
+# np.save("/home/olivier/scratch/lfp_destriped.npy", des_lf.astype(np.float16))
+# np.save("/home/olivier/scratch/ap_destriped.npy", des_ap.astype(np.float16))
+#
 
-fs = 250.00203042940993
+TEST_DATA_PATH = Path("/home/olivier/scratch")
 
-df_chunk = ephys_atlas.features.lf(data_lf, fs=fs)
+class TestLFPFeatures(unittest.TestCase):
+
+    def setUp(self):
+        self.data_lf = np.load(TEST_DATA_PATH / "lfp_destriped.npy").astype(np.float32)
+
+    def test_csd(self):
+        df = ephys_atlas.features.csd(self.data_lf, fs=2500, geometry=neuropixel.trace_header(version=1))
+        self.assertTrue(df.shape[0] == self.data_lf.shape[0])
+    def test_lf(self):
+        df = ephys_atlas.features.lf(self.data_lf, fs=2500)
+        self.assertTrue(df.shape[0] == self.data_lf.shape[0])
+
+
+
+
+class TestAPFeatures(unittest.TestCase):
+
+    def setUp(self):
+        self.data_ap = np.load(TEST_DATA_PATH / "ap_destriped.npy").astype(np.float32)
+
+
+    def test_ap(self):
+        df = ephys_atlas.features.ap(self.data_ap[:, 10_000:11_000], geometry=neuropixel.trace_header(version=1))
+        self.assertTrue(df.shape[0] == self.data_ap.shape[0])
+
+
+
+
+class TestWaveformFeatures(unittest.TestCase):
+
+    def setUp(self):
+        self.data_ap = np.load(TEST_DATA_PATH / "ap_destriped.npy").astype(np.float32)
+
+    def test_ap(self):
+        df, waveforms = ephys_atlas.features.spikes(
+            self.data_ap[:, 10_000:11_000],
+            fs=30_000,
+            geometry=neuropixel.trace_header(version=1),
+            return_waveforms=True,
+        )
+        self.assertTrue(df.shape[0] == waveforms['df_spikes']['channel'].nunique())
+        self.assertEqual(4, len(waveforms.keys()))
