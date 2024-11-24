@@ -30,7 +30,9 @@ def compute_feature_diff(n_ch, feat_arr):
 def gaussian_weights(x, mu=0, sig=200, d_min=10):
     # Create a truncated gaussian filter based on distance
     # x is the distance between channels
-    gauss_f = 1./(np.sqrt(2.*np.pi)*sig)*np.exp(-np.power((x - mu)/sig, 2.)/2)
+    gauss_f = (
+        1.0 / (np.sqrt(2.0 * np.pi) * sig) * np.exp(-np.power((x - mu) / sig, 2.0) / 2)
+    )
     gauss_f[np.where(x < d_min)] = 0
     return gauss_f
 
@@ -52,13 +54,13 @@ def compute_spatial_diff(n_ch, dist_arr, featdiff_arr):
 
 
 def meta_spatial_derivative(pid_df, feature):
-    '''
+    """
     Compute spatial derivative
     :param pid_df: Dataframe containing channels and voltage information for a given PID
     :param feature: single string of feature name, e.g. 'rms_lf'
     It has to be a column key of pid_df
     :return:
-    '''
+    """
     # Note: our probes are flat (2D) but it would be easy to add
     # pid_ch_df['z_um'] = 0
     # and xyz_arr = pid_df[['lateral_um', 'axial_um', 'z_um']].to_numpy()
@@ -71,7 +73,7 @@ def meta_spatial_derivative(pid_df, feature):
     feat_arr = pid_df[[feature]].to_numpy()
 
     # Create numpy array of xyz um
-    xyz_arr = pid_df[['lateral_um', 'axial_um']].to_numpy()
+    xyz_arr = pid_df[["lateral_um", "axial_um"]].to_numpy()
 
     # Compute the eu distance, the feature difference and the weighted sum across channels
     dist_arr = compute_ch_eudistance(n_ch, xyz_arr)

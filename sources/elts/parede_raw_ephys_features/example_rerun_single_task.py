@@ -28,18 +28,18 @@ report = workflow.report(one=one, pids=pids, path_task=ROOT_PATH)
 report.flow.print_report()
 
 # Runs the sorted features and raw features computations
-pids_run = report.flow.get_pids_ready('compute_sorted_features', include_errors=RERUN_ERRORS)
+pids_run = report.flow.get_pids_ready(
+    "compute_sorted_features", include_errors=RERUN_ERRORS
+)
 for i, pid in enumerate(pids_run):
     print(i, len(pids_run), pid)
-    workflow.compute_sorted_features(pid, one=one, data_path=ROOT_PATH, path_task=ROOT_PATH)
+    workflow.compute_sorted_features(
+        pid, one=one, data_path=ROOT_PATH, path_task=ROOT_PATH
+    )
 
 
 report = workflow.report(one=one, pids=pids, path_task=ROOT_PATH)
 report.flow.print_report()
-
-
-
-
 
 
 # from brainbox.io.one import SpikeSortingLoader

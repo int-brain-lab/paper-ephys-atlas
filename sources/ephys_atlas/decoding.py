@@ -9,7 +9,7 @@ from xgboost import XGBClassifier
 from iblutil.util import Bunch
 
 
-def save_model(path_model, classifier, meta, subfolder=''):
+def save_model(path_model, classifier, meta, subfolder=""):
     """
     Save model to disk in ubj format with associated meta-data and a hash
     The model is a set of files in a folder named after the meta-data
@@ -21,33 +21,43 @@ def save_model(path_model, classifier, meta, subfolder=''):
         2023_W41_Cosmos_dfd731f0/FOLD01/
     :return:
     """
-    meta.MODEL_CLASS = f"{classifier.__class__.__module__}.{classifier.__class__.__name__}"
-    hash = hashlib.md5(yaml.dump(meta).encode('utf-8')).hexdigest()[:8]
-    path_model = path_model.joinpath(f"{meta['VINTAGE']}_{meta['REGION_MAP']}_{hash}", subfolder)
+    meta.MODEL_CLASS = (
+        f"{classifier.__class__.__module__}.{classifier.__class__.__name__}"
+    )
+    hash = hashlib.md5(yaml.dump(meta).encode("utf-8")).hexdigest()[:8]
+    path_model = path_model.joinpath(
+        f"{meta['VINTAGE']}_{meta['REGION_MAP']}_{hash}", subfolder
+    )
     path_model.mkdir(exist_ok=True, parents=True)
-    with open(path_model.joinpath('meta.yaml'), 'w+') as fid:
+    with open(path_model.joinpath("meta.yaml"), "w+") as fid:
         fid.write(yaml.dump(dict(meta)))
-    classifier.save_model(path_model.joinpath('model.ubj'))
+    classifier.save_model(path_model.joinpath("model.ubj"))
     return path_model
 
 
 def load_model(path_model):
     path_model = Path(path_model)
     # load model
-    with open(path_model.joinpath('meta.yaml')) as f:
-        dict_model = Bunch({
-            # TODO: it should be possible to use different model kinds
-            'classifier': XGBClassifier(model_file=path_model.joinpath('model.ubj')),
-            'meta': yaml.safe_load(f)
-        })
-    dict_model.classifier.load_model(path_model.joinpath('model.ubj'))
+    with open(path_model.joinpath("meta.yaml")) as f:
+        dict_model = Bunch(
+            {
+                # TODO: it should be possible to use different model kinds
+                "classifier": XGBClassifier(
+                    model_file=path_model.joinpath("model.ubj")
+                ),
+                "meta": yaml.safe_load(f),
+            }
+        )
+    dict_model.classifier.load_model(path_model.joinpath("model.ubj"))
     return dict_model
 
 
-def _step_viterbi(mu_prev: np.ndarray,
-         emission_probs: np.ndarray,
-         transition_probs: np.ndarray,
-         observed_state: int) -> Tuple[np.ndarray, np.ndarray]:
+def _step_viterbi(
+    mu_prev: np.ndarray,
+    emission_probs: np.ndarray,
+    transition_probs: np.ndarray,
+    observed_state: int,
+) -> Tuple[np.ndarray, np.ndarray]:
     """Runs one step of the Viterbi algorithm.
 
     Args:
@@ -73,10 +83,12 @@ def _step_viterbi(mu_prev: np.ndarray,
     return mu_new, max_prev_states
 
 
-def viterbi(emission_probs: np.ndarray,
-            transition_probs: np.ndarray,
-            start_probs: np.ndarray,
-            observed_states: List[int]) -> Tuple[List[int], float]:
+def viterbi(
+    emission_probs: np.ndarray,
+    transition_probs: np.ndarray,
+    start_probs: np.ndarray,
+    observed_states: List[int],
+) -> Tuple[List[int], float]:
     """Runs the Viterbi algorithm to get the most likely state sequence.
 
     Args:
@@ -126,4 +138,3 @@ def viterbi(emission_probs: np.ndarray,
         state_sequence.append(state)
 
     return state_sequence[::-1], sequence_prob
-

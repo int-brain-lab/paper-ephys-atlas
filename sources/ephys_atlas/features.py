@@ -17,14 +17,22 @@ import ibldsp.voltage
 from pandera.typing import Index, DataFrame, Series
 
 from typing_extensions import Annotated
+
 floats = Annotated[pandera.Float, pandera.Float32]
-BANDS = {'delta': [0, 4], 'theta': [4, 10], 'alpha': [8, 12], 'beta': [15, 30], 'gamma': [30, 90], 'lfp': [0, 90]}
+BANDS = {
+    "delta": [0, 4],
+    "theta": [4, 10],
+    "alpha": [8, 12],
+    "beta": [15, 30],
+    "gamma": [30, 90],
+    "lfp": [0, 90],
+}
 
 
 class DartParameters(pydantic.BaseModel):
     localization_radius: pydantic.PositiveFloat = 150
-    chunk_length_samples: pydantic.PositiveInt = 2 ** 15
-    trough_offset: pydantic.PositiveInt = 42,
+    chunk_length_samples: pydantic.PositiveInt = 2**15
+    trough_offset: pydantic.PositiveInt = (42,)
 
 
 class BaseChannelFeatures(pandera.DataFrameModel):
@@ -39,7 +47,6 @@ class ModelLfFeatures(BaseChannelFeatures):
     psd_beta: Series[float] = pandera.Field(coerce=True)
     psd_gamma: Series[float] = pandera.Field(coerce=True)
     psd_lfp: Series[float] = pandera.Field(coerce=True)
-
 
 
 class ModelCsdFeatures(BaseChannelFeatures):
@@ -74,15 +81,21 @@ class ModelSpikeFeatures(BaseChannelFeatures):
     trough_val: Series[float] = pandera.Field(coerce=True)
 
 
-class ModelChannelFeatures(ModelSpikeFeatures, ModelCsdFeatures, ModelApFeatures, ModelLfFeatures):
+class ModelChannelFeatures(
+    ModelSpikeFeatures, ModelCsdFeatures, ModelApFeatures, ModelLfFeatures
+):
     pass
 
 
 def _get_power_in_band(fscale, period, band):
     band = np.array(band)
     # weight the frequencies
-    fweights = ibldsp.utils.fcn_cosine([-np.diff(band), 0])(-abs(fscale - np.mean(band)))
-    p = 10 * np.log10(np.sum(period * fweights / np.sum(fweights), axis=-1))  # dB relative to v/sqrt(Hz)
+    fweights = ibldsp.utils.fcn_cosine([-np.diff(band), 0])(
+        -abs(fscale - np.mean(band))
+    )
+    p = 10 * np.log10(
+        np.sum(period * fweights / np.sum(fweights), axis=-1)
+    )  # dB relative to v/sqrt(Hz)
     return p
 
 
@@ -99,8 +112,8 @@ def lf(data, fs, bands=None):
     nc = data.shape[0]  # number of channels
     fscale, period = scipy.signal.periodogram(data, fs)
     df_lf = pd.DataFrame()
-    df_lf['channel'] = np.arange(nc)
-    df_lf['rms_lf'] = ibldsp.utils.rms(data, axis=-1)
+    df_lf["channel"] = np.arange(nc)
+    df_lf["rms_lf"] = ibldsp.utils.rms(data, axis=-1)
     for b in BANDS:
         df_lf[f"psd_{b}"] = _get_power_in_band(fscale, period, bands[b])
     ModelLfFeatures.validate(df_lf)
@@ -122,7 +135,9 @@ def csd(data, fs, geometry, bands=None, decimate=10):
     data_rs = ibldsp.cadzow.cadzow_np1(data_rs, rank=2, fs=fs, niter=1, fmax=90)
     data_rs = ibldsp.voltage.current_source_density(data_rs, h=geometry)
     df_csd = lf(data_rs, fs, bands=bands)
-    df_csd = df_csd.rename(columns={c: f'{c}_csd' for c in df_csd.columns if c not in ['channel']})
+    df_csd = df_csd.rename(
+        columns={c: f"{c}_csd" for c in df_csd.columns if c not in ["channel"]}
+    )
     ModelCsdFeatures.validate(df_csd)
     return df_csd
 
@@ -136,9 +151,9 @@ def ap(data, geometry=None):
     assert geometry is not None, "Geometry is required for AP band computation"
     df_ap = pd.DataFrame()
     nc = data.shape[0]  # number of channels
-    df_ap['channel'] = np.arange(nc)
-    df_ap['rms_ap'] = ibldsp.utils.rms(data, axis=-1)
-    df_ap['cor_ratio'] = xcor_acor_ratio(data, geometry=geometry)
+    df_ap["channel"] = np.arange(nc)
+    df_ap["rms_ap"] = ibldsp.utils.rms(data, axis=-1)
+    df_ap["cor_ratio"] = xcor_acor_ratio(data, geometry=geometry)
     ModelApFeatures.validate(df_ap)
     return df_ap
 
@@ -155,7 +170,7 @@ def dart_subtraction_numpy(data, fs, geometry, **params):
     import spikeinterface.core as sc
     import h5py
 
-    dart_xy = np.c_[geometry['x'], geometry['y']]
+    dart_xy = np.c_[geometry["x"], geometry["y"]]
 
     zdata = data / ibldsp.utils.rms(data, axis=-1)[:, np.newaxis]
     rec_np = sc.NumpyRecording(zdata.T, sampling_frequency=fs)
@@ -186,10 +201,12 @@ def dart_subtraction_numpy(data, fs, geometry, **params):
     )
 
     # we make sure that each runs get a different temp folder
-    temp_suffix = ''.join([random.choice(string.ascii_lowercase + string.digits) for _ in range(8)])
+    temp_suffix = "".join(
+        [random.choice(string.ascii_lowercase + string.digits) for _ in range(8)]
+    )
     detected_spikes, h5_filename = dartsort.subtract(
         rec_np,
-        temp_folder := Path.home().joinpath('scratch', f"dart_{temp_suffix}"),
+        temp_folder := Path.home().joinpath("scratch", f"dart_{temp_suffix}"),
         featurization_config=featurization_cfg,
         subtraction_config=subtraction_cfg,
         n_jobs=0,
@@ -197,22 +214,23 @@ def dart_subtraction_numpy(data, fs, geometry, **params):
         show_progress=True,
     )
 
-    df_spikes = pd.DataFrame({
-        'sample': detected_spikes.times_samples,
-        'channel': detected_spikes.channels,
-        'ptp': detected_spikes.denoised_ptp_amplitudes,
-        'xloc': detected_spikes.point_source_localizations[:, 0],  # xyza
-        'yloc': detected_spikes.point_source_localizations[:, 1],  # xyza
-        'zloc': detected_spikes.point_source_localizations[:, 2],  # xyza
-        'alpha': detected_spikes.point_source_localizations[:, 3],  # xyza
-
-    })
+    df_spikes = pd.DataFrame(
+        {
+            "sample": detected_spikes.times_samples,
+            "channel": detected_spikes.channels,
+            "ptp": detected_spikes.denoised_ptp_amplitudes,
+            "xloc": detected_spikes.point_source_localizations[:, 0],  # xyza
+            "yloc": detected_spikes.point_source_localizations[:, 1],  # xyza
+            "zloc": detected_spikes.point_source_localizations[:, 2],  # xyza
+            "alpha": detected_spikes.point_source_localizations[:, 3],  # xyza
+        }
+    )
 
     h5file = h5py.File(h5_filename)
     d_waveforms = {  # n_spikes, nsw, ncw
-        'raw': np.array(h5file['collisioncleaned_waveforms']),
-        'denoised': np.array(h5file['denoised_waveforms']),
-        'channel_index':  np.array(h5file['channel_index'])
+        "raw": np.array(h5file["collisioncleaned_waveforms"]),
+        "denoised": np.array(h5file["denoised_waveforms"]),
+        "channel_index": np.array(h5file["channel_index"]),
     }
     shutil.rmtree(temp_folder)
     return df_spikes, d_waveforms
@@ -228,31 +246,47 @@ def spikes(data, fs: int, geometry: dict, return_waveforms=True, **params):
     """
     params = DartParameters() if params is None else DartParameters(**params)
     df_spikes_, d_waveforms = dart_subtraction_numpy(data, fs, geometry, params=params)
-    df_waveforms = ibldsp.waveforms.compute_spike_features( d_waveforms['denoised'])
+    df_waveforms = ibldsp.waveforms.compute_spike_features(d_waveforms["denoised"])
     df_spikes = df_spikes_.merge(df_waveforms, left_index=True, right_index=True)
     # we cast the float32 values as float64
-    df_spikes[df_spikes.select_dtypes(np.float32).columns] = df_spikes.select_dtypes(np.float32).astype(np.float64)
+    df_spikes[df_spikes.select_dtypes(np.float32).columns] = df_spikes.select_dtypes(
+        np.float32
+    ).astype(np.float64)
     fcn_mean_time = lambda x: np.mean((x - params.trough_offset)) / fs
     # aggregation by channel of the spikes / waveforms features
-    df_spiking = df_spikes.groupby('channel').agg(
-        alpha_mean=pd.NamedAgg(column="alpha", aggfunc="mean"),
-        alpha_std=pd.NamedAgg(column="alpha", aggfunc=lambda x: np.std(x, ddof=0)),
-        spike_count=pd.NamedAgg(column="alpha", aggfunc="count"),
-        peak_time_secs=pd.NamedAgg(column="peak_time_idx", aggfunc=fcn_mean_time),
-        peak_val=pd.NamedAgg(column="peak_val", aggfunc="mean"),
-        trough_time_secs=pd.NamedAgg(column="trough_time_idx", aggfunc=fcn_mean_time),
-        trough_val=pd.NamedAgg(column="trough_val", aggfunc="mean"),
-        tip_time_secs=pd.NamedAgg(column="tip_time_idx", aggfunc=fcn_mean_time),
-        tip_val=pd.NamedAgg(column="tip_val", aggfunc="mean"),
-        recovery_time_secs=pd.NamedAgg(column="recovery_time_idx", aggfunc=fcn_mean_time),
-        depolarisation_slope=pd.NamedAgg(column="depolarisation_slope", aggfunc="mean"),
-        repolarisation_slope=pd.NamedAgg(column="repolarisation_slope", aggfunc="mean"),
-        recovery_slope=pd.NamedAgg(column="recovery_slope", aggfunc="mean"),
-        polarity=pd.NamedAgg(column='invert_sign_peak', aggfunc=lambda x: -x.mean()),
-    ).reset_index()
+    df_spiking = (
+        df_spikes.groupby("channel")
+        .agg(
+            alpha_mean=pd.NamedAgg(column="alpha", aggfunc="mean"),
+            alpha_std=pd.NamedAgg(column="alpha", aggfunc=lambda x: np.std(x, ddof=0)),
+            spike_count=pd.NamedAgg(column="alpha", aggfunc="count"),
+            peak_time_secs=pd.NamedAgg(column="peak_time_idx", aggfunc=fcn_mean_time),
+            peak_val=pd.NamedAgg(column="peak_val", aggfunc="mean"),
+            trough_time_secs=pd.NamedAgg(
+                column="trough_time_idx", aggfunc=fcn_mean_time
+            ),
+            trough_val=pd.NamedAgg(column="trough_val", aggfunc="mean"),
+            tip_time_secs=pd.NamedAgg(column="tip_time_idx", aggfunc=fcn_mean_time),
+            tip_val=pd.NamedAgg(column="tip_val", aggfunc="mean"),
+            recovery_time_secs=pd.NamedAgg(
+                column="recovery_time_idx", aggfunc=fcn_mean_time
+            ),
+            depolarisation_slope=pd.NamedAgg(
+                column="depolarisation_slope", aggfunc="mean"
+            ),
+            repolarisation_slope=pd.NamedAgg(
+                column="repolarisation_slope", aggfunc="mean"
+            ),
+            recovery_slope=pd.NamedAgg(column="recovery_slope", aggfunc="mean"),
+            polarity=pd.NamedAgg(
+                column="invert_sign_peak", aggfunc=lambda x: -x.mean()
+            ),
+        )
+        .reset_index()
+    )
     ModelSpikeFeatures.validate(df_spiking)
     if return_waveforms:
-        return df_spiking, d_waveforms | {'df_spikes': df_spikes}
+        return df_spiking, d_waveforms | {"df_spikes": df_spikes}
     else:
         return df_spiking
 
@@ -269,10 +303,18 @@ def xcor_acor_ratio(v: np.ndarray, geometry: dict, n_neighbor: int = 3) -> np.nd
     n_mirror = 12
     n_diags = 8
     nc = v.shape[0]
-    i_mirror = np.r_[np.arange(n_mirror, 0, -1), np.arange(nc), np.arange(nc - 2, nc - n_mirror - 2, -1)]
+    i_mirror = np.r_[
+        np.arange(n_mirror, 0, -1),
+        np.arange(nc),
+        np.arange(nc - 2, nc - n_mirror - 2, -1),
+    ]
     ncm = i_mirror.size
     i0, i1 = np.meshgrid(i_mirror, i_mirror)
-    dxy = geometry['x'][i0] - geometry['x'][i1] + (geometry['y'][i0] - geometry['y'][i1]) * 1j
+    dxy = (
+        geometry["x"][i0]
+        - geometry["x"][i1]
+        + (geometry["y"][i0] - geometry["y"][i1]) * 1j
+    )
     cov = v[i_mirror] @ v[i_mirror].T
 
     # Here for each channel we extract the covariances of neighbouring channels
@@ -283,10 +325,10 @@ def xcor_acor_ratio(v: np.ndarray, geometry: dict, n_neighbor: int = 3) -> np.nd
             diags[i, :] = np.diag(cov)
             continue
         if di < 0:
-            ic = np.s_[- di:]
+            ic = np.s_[-di:]
         elif di > 0:
-            ic = np.s_[:- di]
-        d =  np.diag(cov, di).copy()
+            ic = np.s_[:-di]
+        d = np.diag(cov, di).copy()
         d[np.diag(i0, di) == np.diag(i1, di)] = np.nan
         diags[i, ic] = d
         diags_xy[i, ic] = np.diag(dxy, di)

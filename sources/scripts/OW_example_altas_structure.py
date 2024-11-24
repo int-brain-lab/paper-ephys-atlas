@@ -44,7 +44,7 @@ br.id[1]  # = 997 , corresponding to 'root'
 br.acronym[0]  # = 'void'
 br.acronym[1]  # = 'root'
 
-rindx_void = np.where(br.acronym == 'void')
+rindx_void = np.where(br.acronym == "void")
 np.where(rowindx != rindx_void)
 """
 This give out an array:
@@ -54,8 +54,10 @@ This give out an array:
 """
 
 # To find what is the brain region acronym associated to a given voxel (e.g. coordinates index [1,175,187] ):
-rowindx[1,175,187]  # Get the corresponding label, or "i_row", value ; = 2434
-br.acronym[2434]  # Get the corresponding acronym from that label using the BrainRegions variable ; = 'onl'
+rowindx[1, 175, 187]  # Get the corresponding label, or "i_row", value ; = 2434
+br.acronym[
+    2434
+]  # Get the corresponding acronym from that label using the BrainRegions variable ; = 'onl'
 """
 Note on the value 2434:
 The acronym table index: https://github.com/int-brain-lab/ibllib/blob/master/ibllib/atlas/allen_structure_tree.csv
@@ -74,22 +76,22 @@ mapped_atlas_ac = br.acronym[ba.label]
 np.where(mapped_atlas_id == 997)
 
 # To reorganise the mapping, use the br.mappings function:
-cosmos_label = br.mappings['Cosmos']
+cosmos_label = br.mappings["Cosmos"]
 # This is a 2655 vector containing the unique values:
 # [   0,    1,    6,  380,  455,  556,  571,  642,  716,  807,  883,  1015]
 # which correspond to :
-br.acronym[np.unique(br.mappings['Cosmos'])]
+br.acronym[np.unique(br.mappings["Cosmos"])]
 # ['void', 'root', 'Isocortex', 'OLF', 'HPF', 'CTXsp', 'CNU', 'TH', 'HY', 'MB', 'HB', 'CB']
 
 
-'''
+"""
 Parents / Ascendants
 Here you can check sub-division of an area of interest:
 https://alyx.internationalbrainlab.org/admin/experiments/brainregion/
-'''
+"""
 # Programmatically, you can check using the methods descendants and ancestors:
 br.descendants(ids=br.id[10])  # br.acronym[10] = 'FRP5'
-'''
+"""
 output:
 {'id': array([526157192]),
  'name': array(['Frontal pole layer 5'], dtype=object),
@@ -97,14 +99,14 @@ output:
  'rgb': array([[ 38, 143,  69]], dtype=uint8),
  'level': array([7.]),
  'parent': array([184.])}
-'''
+"""
 # Note: the method descendants will always returns in the `parent` the node above
 # In this example: br.acronym[184] = FRP , the node above FRP5
 # If you need to check a region is a leaf node, check by doing :
 # len(parent)==1 from the *descendants* method
 
 br.ancestors(ids=br.id[10])
-'''
+"""
 output:
 {'id': array([      997,         8,       567,       688,       695,       315,
               184, 526157192]),
@@ -124,15 +126,15 @@ output:
         [ 38, 143,  69]], dtype=uint8),
  'level': array([0., 1., 2., 3., 4., 5., 6., 7.]),
  'parent': array([ nan, 997.,   8., 567., 688., 695., 315., 184.])}
-'''
+"""
 
-'''
+"""
 Coordinates system
 Examples showing how can one know :
     - Which voxel is Bregma (point of origin)
     - The resolution of each axis (e.g 25/25/25 um for the edge of each voxel in in ML/AP/DV)
     - The sign (or direction) of axis
-'''
+"""
 
 # Find the resolution in um
 res_xyz = ba.bc.dxyz
@@ -141,7 +143,7 @@ res_xyz = ba.bc.dxyz
 sign_xyz = np.sign(res_xyz)
 
 # Find bregma position in indices * resolution in um (not sure why this is the case)
-bregma_index = ALLEN_CCF_LANDMARKS_MLAPDV_UM['bregma'] / ba.res_um
+bregma_index = ALLEN_CCF_LANDMARKS_MLAPDV_UM["bregma"] / ba.res_um
 
 # Find bregma position in xyz in m (expect this to be 0 0 0)
 bregma_xyz = ba.bc.i2xyz(bregma_index)

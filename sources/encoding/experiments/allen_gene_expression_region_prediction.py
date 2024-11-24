@@ -11,13 +11,21 @@ ba = AllenAtlas()
 df_genes, gene_expression = allen_gene_expression()
 
 ne, nml, ndv, nap = DIM_EXP = gene_expression.shape
-ccf_coords = np.meshgrid(*[np.arange(DIM_EXP[i]) * 200 for i in [1, 2, 3]])  # ml, dv, ap
-xyzs = ba.ccf2xyz(np.c_[ccf_coords[0].flatten(), ccf_coords[2].flatten(), ccf_coords[1].flatten()])
-aids = ba.get_labels(xyzs, mode='clip', mapping='Cosmos')
+ccf_coords = np.meshgrid(
+    *[np.arange(DIM_EXP[i]) * 200 for i in [1, 2, 3]]
+)  # ml, dv, ap
+xyzs = ba.ccf2xyz(
+    np.c_[ccf_coords[0].flatten(), ccf_coords[2].flatten(), ccf_coords[1].flatten()]
+)
+aids = ba.get_labels(xyzs, mode="clip", mapping="Cosmos")
 
 sel = ~np.logical_or(aids == 0, aids == 997)  # remove void and root voxels
 # reshape in a big array nexp x nvoxels
-gexps = gene_expression.reshape((ne, nml * nap * ndv))[:, sel].astype(np.float32).transpose()
+gexps = (
+    gene_expression.reshape((ne, nml * nap * ndv))[:, sel]
+    .astype(np.float32)
+    .transpose()
+)
 xyzs = xyzs[sel]
 aids = aids[sel]
 

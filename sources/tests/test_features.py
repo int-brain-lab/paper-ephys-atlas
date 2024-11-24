@@ -12,36 +12,34 @@ import ephys_atlas.features
 
 TEST_DATA_PATH = Path("/home/olivier/scratch")
 
-class TestLFPFeatures(unittest.TestCase):
 
+class TestLFPFeatures(unittest.TestCase):
     def setUp(self):
         self.data_lf = np.load(TEST_DATA_PATH / "lfp_destriped.npy").astype(np.float32)
 
     def test_csd(self):
-        df = ephys_atlas.features.csd(self.data_lf, fs=2500, geometry=neuropixel.trace_header(version=1))
+        df = ephys_atlas.features.csd(
+            self.data_lf, fs=2500, geometry=neuropixel.trace_header(version=1)
+        )
         self.assertTrue(df.shape[0] == self.data_lf.shape[0])
+
     def test_lf(self):
         df = ephys_atlas.features.lf(self.data_lf, fs=2500)
         self.assertTrue(df.shape[0] == self.data_lf.shape[0])
 
 
-
-
 class TestAPFeatures(unittest.TestCase):
-
     def setUp(self):
         self.data_ap = np.load(TEST_DATA_PATH / "ap_destriped.npy").astype(np.float32)
 
-
     def test_ap(self):
-        df = ephys_atlas.features.ap(self.data_ap[:, 10_000:11_000], geometry=neuropixel.trace_header(version=1))
+        df = ephys_atlas.features.ap(
+            self.data_ap[:, 10_000:11_000], geometry=neuropixel.trace_header(version=1)
+        )
         self.assertTrue(df.shape[0] == self.data_ap.shape[0])
 
 
-
-
 class TestWaveformFeatures(unittest.TestCase):
-
     def setUp(self):
         self.data_ap = np.load(TEST_DATA_PATH / "ap_destriped.npy").astype(np.float32)
 
@@ -52,5 +50,5 @@ class TestWaveformFeatures(unittest.TestCase):
             geometry=neuropixel.trace_header(version=1),
             return_waveforms=True,
         )
-        self.assertTrue(df.shape[0] == waveforms['df_spikes']['channel'].nunique())
+        self.assertTrue(df.shape[0] == waveforms["df_spikes"]["channel"].nunique())
         self.assertEqual(4, len(waveforms.keys()))

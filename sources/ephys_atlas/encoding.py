@@ -4,6 +4,7 @@ features to brain regions.
 This allows to define stable and reproducible electrophysiological feature sets when experimenting with different models,
 and also to split the training and test sets in a reproducible way, stratified by pids
 """
+
 import abc
 import pandas as pd
 import numpy as np
@@ -14,8 +15,7 @@ from iblutil.numerical import ismember
 import ephys_atlas.data
 
 _SEED = 7654
-FEATURES_LIST = ['raw_ap', 'raw_lf', 'localisation', 'waveforms']
-
+FEATURES_LIST = ["raw_ap", "raw_lf", "localisation", "waveforms"]
 
 
 def voltage_features_set(features_list=FEATURES_LIST):
@@ -26,30 +26,60 @@ def voltage_features_set(features_list=FEATURES_LIST):
     :return:
     """
     x_list = []
-    if 'raw_ap' in features_list:  # full mode
-        x_list += ['rms_ap']
-    if 'raw_lf' in features_list:
-        x_list += ['rms_lf', 'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma']
-    if 'raw_lf_csd' in features_list:
-        x_list += ['rms_lf_csd', 'psd_lfp_csd', 'psd_delta_csd', 'psd_alpha_csd', 'psd_beta_csd', 'psd_gamma_csd']
-    if 'localisation' in features_list:
-        x_list += ['alpha_mean', 'alpha_std', 'spike_count']
-    if 'waveforms' in features_list:
-        x_list += ['peak_time_secs', 'peak_val', 'trough_time_secs', 'trough_val', 'tip_time_secs', 'tip_val',
-                   'polarity', 'depolarisation_slope', 'repolarisation_slope', 'recovery_time_secs',
-                   'recovery_slope']
-    if 'micro-manipulator' in features_list:
-        x_list += ['x_target', 'y_target', 'z_target']
+    if "raw_ap" in features_list:  # full mode
+        x_list += ["rms_ap"]
+    if "raw_lf" in features_list:
+        x_list += [
+            "rms_lf",
+            "psd_delta",
+            "psd_theta",
+            "psd_alpha",
+            "psd_beta",
+            "psd_gamma",
+        ]
+    if "raw_lf_csd" in features_list:
+        x_list += [
+            "rms_lf_csd",
+            "psd_lfp_csd",
+            "psd_delta_csd",
+            "psd_alpha_csd",
+            "psd_beta_csd",
+            "psd_gamma_csd",
+        ]
+    if "localisation" in features_list:
+        x_list += ["alpha_mean", "alpha_std", "spike_count"]
+    if "waveforms" in features_list:
+        x_list += [
+            "peak_time_secs",
+            "peak_val",
+            "trough_time_secs",
+            "trough_val",
+            "tip_time_secs",
+            "tip_val",
+            "polarity",
+            "depolarisation_slope",
+            "repolarisation_slope",
+            "recovery_time_secs",
+            "recovery_slope",
+        ]
+    if "micro-manipulator" in features_list:
+        x_list += ["x_target", "y_target", "z_target"]
     return x_list
 
 
 def _train_test_split(df_voltage, test_size=0.25, seed=_SEED, include_benchmarks=True):
-    pids = df_voltage.iloc[:, 0].groupby('pid').count()
+    pids = df_voltage.iloc[:, 0].groupby("pid").count()
     if include_benchmarks:
-        benchmark_idx, _ = ismember(df_voltage.index.get_level_values(0), ephys_atlas.data.BENCHMARK_PIDS)
+        benchmark_idx, _ = ismember(
+            df_voltage.index.get_level_values(0), ephys_atlas.data.BENCHMARK_PIDS
+        )
         # this is the number of test channels to add to the benchmark to reach the test_size overall proportion
         ntest_channels = benchmark_idx.size * test_size - np.sum(benchmark_idx)
-        pids = pids.iloc[~ismember(pids.index.get_level_values(0), ephys_atlas.data.BENCHMARK_PIDS)[0]]
+        pids = pids.iloc[
+            ~ismember(pids.index.get_level_values(0), ephys_atlas.data.BENCHMARK_PIDS)[
+                0
+            ]
+        ]
         test_size = ntest_channels / pids.sum()
         fixed_test_pids = ephys_atlas.data.BENCHMARK_PIDS
     else:
@@ -69,17 +99,23 @@ def train_test_split_folds(df_voltage, N=4, seed=_SEED, include_benchmarks=True)
     :param include_benchmarks (True): include benchmark probes in the test set
     :return:
     """
-    pids, fixed_test_pids = _train_test_split(df_voltage, test_size=1 / N, seed=seed, include_benchmarks=include_benchmarks)
+    pids, fixed_test_pids = _train_test_split(
+        df_voltage, test_size=1 / N, seed=seed, include_benchmarks=include_benchmarks
+    )
     folds = np.floor(np.arange(pids.size) / pids.size * N).astype(int)
-    index_pids = df_voltage.index.get_level_values(0).values.astype('<U36')
+    index_pids = df_voltage.index.get_level_values(0).values.astype("<U36")
     test_idx_folds = []
     for fold in np.arange(N):
-        test_idx, _ = ismember(index_pids, np.array(list(pids.index[folds == fold]) + fixed_test_pids))
+        test_idx, _ = ismember(
+            index_pids, np.array(list(pids.index[folds == fold]) + fixed_test_pids)
+        )
         test_idx_folds.append(test_idx)
     return test_idx_folds
 
 
-def train_test_split_indices(df_voltage, test_size=0.25, seed=_SEED, include_benchmarks=True):
+def train_test_split_indices(
+    df_voltage, test_size=0.25, seed=_SEED, include_benchmarks=True
+):
     """
     Splits the features dataframe into a training and a test set, stratified by pid, with optionally
     pinning some insertions as test insertions, typically the 13 benchmark insertions scattered accross
@@ -90,15 +126,21 @@ def train_test_split_indices(df_voltage, test_size=0.25, seed=_SEED, include_ben
     :param include_benchmarks (True): include benchmark probes in the test set
     :return: boolean vectors (nfeats,) train_idx, test_idx
     """
-    pids, fixed_test_pids = _train_test_split(df_voltage, test_size=test_size, seed=seed, include_benchmarks=include_benchmarks)
+    pids, fixed_test_pids = _train_test_split(
+        df_voltage,
+        test_size=test_size,
+        seed=seed,
+        include_benchmarks=include_benchmarks,
+    )
     ilast = np.searchsorted(pids.cumsum() / pids.sum(), test_size)
-    test_idx, _ = ismember(df_voltage.index.get_level_values(0), list(pids.index[:ilast]) + fixed_test_pids)
+    test_idx, _ = ismember(
+        df_voltage.index.get_level_values(0), list(pids.index[:ilast]) + fixed_test_pids
+    )
     train_idx = ~test_idx
     return train_idx, test_idx
 
 
 class AbstractModel(abc.ABC):
-
     @abc.abstractmethod
     def predict(self, X, **kwargs):
         pass
@@ -154,13 +196,13 @@ class NullModel01(AbstractModel):
             return
         # the input features X is a 3 columns array of xyz coordinates
         if isinstance(X, pd.DataFrame):
-            X = X[['x', 'y', 'z']].values
-        aids = self.atlas.get_labels(X, mapping='Beryl')
+            X = X[["x", "y", "z"]].values
+        aids = self.atlas.get_labels(X, mapping="Beryl")
         # here the prediction is a simple lookup of the existing dataframe
         isin, idfr = ismember(aids, self.df_regions.index)
-        return self.df_regions.iloc[idfr]['spike_rate']['median'].values, isin
+        return self.df_regions.iloc[idfr]["spike_rate"]["median"].values, isin
 
-    def fit(self, df_voltage, x_list, y_name='atlas_id'):
+    def fit(self, df_voltage, x_list, y_name="atlas_id"):
         """
 
         :param df_voltage:
@@ -171,8 +213,8 @@ class NullModel01(AbstractModel):
         # percentiles = np.arange(10) / 10
         # quantile_funcs = [(p, lambda x: x.quantile(p)) for p in percentiles]
         self.df_regions = df_voltage.groupby(y_name).agg(
-            **{x: pd.NamedAgg(column=x, aggfunc='median') for x in x_list},
-            channel_count=pd.NamedAgg(column=x_list[0], aggfunc='count'),
+            **{x: pd.NamedAgg(column=x, aggfunc="median") for x in x_list},
+            channel_count=pd.NamedAgg(column=x_list[0], aggfunc="count"),
         )
 
     def score(self, X, y, **kwargs):

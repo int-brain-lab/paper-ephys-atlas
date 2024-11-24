@@ -13,22 +13,26 @@ from iblutil.numerical import ismember2d
 from ephys_atlas.data import atlas_pids
 from brainbox.io.one import SpikeSortingLoader
 
-logger = setup_logger('brainbox')
+logger = setup_logger("brainbox")
 
 ba = AllenAtlas()
 
 year_week = date.today().isocalendar()[:2]
 year_week = date(2022, 8, 23).isocalendar()[:2]
-STAGING_PATH = Path('/mnt/s0/aggregates/atlas').joinpath(f'{year_week[0]}_W{year_week[1]:02}_metrics')
+STAGING_PATH = Path("/mnt/s0/aggregates/atlas").joinpath(
+    f"{year_week[0]}_W{year_week[1]:02}_metrics"
+)
 
 excludes = []
 errorkey = []
 error404 = []
-one = ONE(base_url='https://alyx.internationalbrainlab.org')
+one = ONE(base_url="https://alyx.internationalbrainlab.org")
 pids, _ = atlas_pids(one, tracing=True)
 
 # init dataframes
-df_probes = pd.DataFrame(dict(eid='', pname='', spike_sorter='', histology=''), index=pids)
+df_probes = pd.DataFrame(
+    dict(eid="", pname="", spike_sorter="", histology=""), index=pids
+)
 ldf_channels = []
 ldf_clusters = []
 ldf_depths = []
@@ -43,8 +47,8 @@ for i, pid in enumerate(pids):
     if pid in excludes:
         continue
     eid, pname = one.pid2eid(pid)
-    df_probes['eid'][i] = eid
-    df_probes['pname'][i] = pname
+    df_probes["eid"][i] = eid
+    df_probes["pname"][i] = pname
 
     # spikes, clusters, channels = load_spike_sorting_fast(eid=eid, probe=pname, one=one, nested=False)
     logger.info(f"{i}/{len(pids)}, {pid}")
@@ -60,30 +64,32 @@ for i, pid in enumerate(pids):
         logger.error(f"{pid} key error")
         continue
     clusters = ss.merge_clusters(spikes, clusters, channels, compute_metrics=True)
-    df_probes['spike_sorter'][i] = ss.collection
-    df_probes['histology'][i] = ss.histology
+    df_probes["spike_sorter"][i] = ss.collection
+    df_probes["histology"][i] = ss.histology
     if not spikes:
         no_spike_sorting.append(pid)
         continue
     df_ch = pd.DataFrame(channels)
-    df_ch['pid'] = pid
+    df_ch["pid"] = pid
     ldf_channels.append(df_ch)
     df_clu = pd.DataFrame(clusters)
-    df_clu['pid'] = pid
+    df_clu["pid"] = pid
     ldf_clusters.append(df_clu)
     # aggregate spike features per depth
     df_spikes = pd.DataFrame(spikes)
-    df_spikes.dropna(axis=0, how='any', inplace=True)
-    df_spikes['rdepths'] = (np.round(df_spikes['depths'] / 20) * 20).astype(np.int32)
-    df_spikes['amps'] = df_spikes['amps'] * 1e6
-    df_depths = df_spikes.groupby('rdepths').agg(
+    df_spikes.dropna(axis=0, how="any", inplace=True)
+    df_spikes["rdepths"] = (np.round(df_spikes["depths"] / 20) * 20).astype(np.int32)
+    df_spikes["amps"] = df_spikes["amps"] * 1e6
+    df_depths = df_spikes.groupby("rdepths").agg(
         amps=pd.NamedAgg(column="amps", aggfunc="median"),
         amps_std=pd.NamedAgg(column="amps", aggfunc="std"),
         cell_count=pd.NamedAgg(column="clusters", aggfunc="nunique"),
         spike_rate=pd.NamedAgg(column="amps", aggfunc="count"),
     )
-    df_depths['pid'] = pid
-    df_depths['spike_rate'] = df_depths['spike_rate'] / (np.max(spikes['times']) - np.min(spikes['times']))
+    df_depths["pid"] = pid
+    df_depths["spike_rate"] = df_depths["spike_rate"] / (
+        np.max(spikes["times"]) - np.min(spikes["times"])
+    )
     ldf_depths.append(df_depths)
 
 ## %%
@@ -93,21 +99,22 @@ df_depths = pd.concat(ldf_depths)
 
 # convert the channels dataframe to a multi-index dataframe
 h = trace_header(version=1)
-_, chind = ismember2d(df_channels.loc[:, ['lateral_um', 'axial_um']].to_numpy(), np.c_[h['x'], h['y']])
-df_channels['raw_ind'] = chind
-df_channels = df_channels.set_index(['pid', 'raw_ind'])
+_, chind = ismember2d(
+    df_channels.loc[:, ["lateral_um", "axial_um"]].to_numpy(), np.c_[h["x"], h["y"]]
+)
+df_channels["raw_ind"] = chind
+df_channels = df_channels.set_index(["pid", "raw_ind"])
 
 # convert the depths dataframe to a multi-index dataframe
-df_depths['depths'] = df_depths.index.values
-df_depths = df_depths.set_index(['pid', 'depths'])
+df_depths["depths"] = df_depths.index.values
+df_depths = df_depths.set_index(["pid", "depths"])
 
 # saves the 3 dataframes
 STAGING_PATH.mkdir(exist_ok=True, parents=True)
-df_channels.to_parquet(STAGING_PATH.joinpath('channels.pqt'))
-df_clusters.to_parquet(STAGING_PATH.joinpath('clusters.pqt'))
-df_probes.to_parquet(STAGING_PATH.joinpath('probes.pqt'))
-df_depths.to_parquet(STAGING_PATH.joinpath('depths.pqt'))
-
+df_channels.to_parquet(STAGING_PATH.joinpath("channels.pqt"))
+df_clusters.to_parquet(STAGING_PATH.joinpath("clusters.pqt"))
+df_probes.to_parquet(STAGING_PATH.joinpath("probes.pqt"))
+df_depths.to_parquet(STAGING_PATH.joinpath("depths.pqt"))
 
 
 print(f'aws s3 sync "/mnt/s0/aggregates" s3://ibl-brain-wide-map-private/aggregates')

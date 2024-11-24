@@ -14,11 +14,17 @@ import iblatlas.regions
 from iblatlas.atlas import AllenAtlas
 import iblatlas.regions
 
-NEW_VOID = {'id': 2_000, 'name': 'void_fluid', 'acronym': 'void_fluid', 'rgb': [100, 40, 40], 'level': 0, 'parent': np.nan}
+NEW_VOID = {
+    "id": 2_000,
+    "name": "void_fluid",
+    "acronym": "void_fluid",
+    "rgb": [100, 40, 40],
+    "level": 0,
+    "parent": np.nan,
+}
 
 
 class EncodingRegions(iblatlas.regions.BrainRegions):
-
     def __init__(self):
         super().__init__()
 
@@ -29,16 +35,26 @@ class EncodingRegions(iblatlas.regions.BrainRegions):
         :param new_region: dictionary with keys 'id', 'name', 'acronym', 'rgb', 'level', 'parent'
         :return: indices of the new regions
         """
-        assert new_region['id'] not in self.id, 'Region ID already exists'
+        assert new_region["id"] not in self.id, "Region ID already exists"
         order = np.max(self.order) + 1
         nr = len(self.id)
         # first update the properties of the region object, appending the new region
-        self.id = np.append(self.id, [new_region['id'], -new_region['id']])
-        self.name = np.append(self.name, [new_region['name'], new_region['name']])
-        self.acronym = np.append(self.acronym, [new_region['acronym'], new_region['acronym']])
-        self.rgb = np.append(self.rgb, np.tile(np.array(new_region['rgb'])[np.newaxis, :], [2, 1]), axis=0).astype(np.uint8)
-        self.level = np.append(self.level, [new_region['level'], new_region['level']]).astype(np.uint16)
-        self.parent = np.append(self.parent, [new_region['parent'], new_region['parent']])
+        self.id = np.append(self.id, [new_region["id"], -new_region["id"]])
+        self.name = np.append(self.name, [new_region["name"], new_region["name"]])
+        self.acronym = np.append(
+            self.acronym, [new_region["acronym"], new_region["acronym"]]
+        )
+        self.rgb = np.append(
+            self.rgb,
+            np.tile(np.array(new_region["rgb"])[np.newaxis, :], [2, 1]),
+            axis=0,
+        ).astype(np.uint8)
+        self.level = np.append(
+            self.level, [new_region["level"], new_region["level"]]
+        ).astype(np.uint16)
+        self.parent = np.append(
+            self.parent, [new_region["parent"], new_region["parent"]]
+        )
         self.order = np.append(self.order, [order, order])
         # then need to to update the mappings and append to them as well
         for k in self.mappings:
@@ -55,12 +71,12 @@ class EncodingAtlas(AllenAtlas):
     -   voids inside the skull are relabeled to a new region, this is done computing the convex hull of the non-void
     labels and then splitting the void in two regions: one below the convex hull and one above
     """
+
     def __init__(self):
         super().__init__()
         self.compute_surface()
         self.regions = EncodingRegions()
         self.assign_voids_inside_skull()
-
 
     def assign_voids_inside_skull(self):
         # we create a mask of the convex hull and label all of the voxels below the hull to True
@@ -89,9 +105,9 @@ class EncodingAtlas(AllenAtlas):
         z = scipy.interpolate.griddata(
             points=yxz[ch.vertices[1:], :2],
             values=yxz[ch.vertices[1:], 2],
-            xi=yxz[:, :2], method='linear')
+            xi=yxz[:, :2],
+            method="linear",
+        )
         # the output is the convex surface of the brain - note that we
         self.convex_top = np.zeros_like(self.top) * np.nan
         self.convex_top[iok] = z
-
-
