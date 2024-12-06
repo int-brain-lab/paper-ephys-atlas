@@ -11,6 +11,7 @@ import numpy as np
 from iblbrainviewer.api import FeatureUploader
 
 bucket = 'gc_volume_bucket'
+bucket = 'ow_bucket'
 
 # Create or load the bucket.
 up = FeatureUploader(bucket)
