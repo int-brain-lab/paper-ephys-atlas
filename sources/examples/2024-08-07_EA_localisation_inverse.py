@@ -18,29 +18,32 @@ import ephys_atlas.plots
 import ephys_atlas.anatomy
 import ephys_atlas.data
 
+LOCAL_DATA_PATH = Path("/mnt/sdceph/users/hyu10/ephys-atlas")
+NEMO_PATH = Path("/mnt/sdceph/users/hyu10/ephys-atlas/NEMO")
+model_tag = "2024_W04_Cosmos_03f2362c"
 
-match socket.gethostname():
-    case "little mac":
-        # little mac
-        LOCAL_DATA_PATH = Path(
-            "/Users/olivier/Documents/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding"
-        )
-        NEMO_PATH = Path(
-            "/Users/olivier/Library/CloudStorage/GoogleDrive-olivier.winter@internationalbrainlab.org/Shared drives/Task Force - Electrophysiology Atlas/Decoding/NEMO"
-        )
-    case "parede":
-        LOCAL_DATA_PATH = Path("/mnt/s0/ephys-atlas-decoding")
-        NEMO_PATH = Path(
-            "/home/olivier/Insync/olivier.winter@internationalbrainlab.org/Google Drive - Shared drives/Task Force - Electrophysiology Atlas/Decoding/NEMO"
-        )
-    case "ferret":
-        # work off linux
-        LOCAL_DATA_PATH = Path("/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding")
-        NEMO_PATH = Path(
-            "/datadisk/team_drives/Task Force - Electrophysiology Atlas/Decoding/NEMO"
-        )
+# match socket.gethostname():
+#     case "little mac":
+#         # little mac
+#         LOCAL_DATA_PATH = Path(
+#             "/Users/olivier/Documents/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding"
+#         )
+#         NEMO_PATH = Path(
+#             "/Users/olivier/Library/CloudStorage/GoogleDrive-olivier.winter@internationalbrainlab.org/Shared drives/Task Force - Electrophysiology Atlas/Decoding/NEMO"
+#         )
+#     case "parede":
+#         LOCAL_DATA_PATH = Path("/mnt/s0/ephys-atlas-decoding")
+#         NEMO_PATH = Path(
+#             "/home/olivier/Insync/olivier.winter@internationalbrainlab.org/Google Drive - Shared drives/Task Force - Electrophysiology Atlas/Decoding/NEMO"
+#         )
+#     case "ferret":
+#         # work off linux
+#         LOCAL_DATA_PATH = Path("/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding")
+#         NEMO_PATH = Path(
+#             "/datadisk/team_drives/Task Force - Electrophysiology Atlas/Decoding/NEMO"
+#         )
 
-model_tag = "2024_W04_Cosmos_03f2362c"  # 0.54 accuracy, void fluid
+# model_tag = "2024_W04_Cosmos_03f2362c"  # 0.54 accuracy, void fluid
 # '2024_W04_Cosmos_a16bb436'  # 0.53 accuracy, baseline
 # '2024_W04_Cosmos_bea38057'  # 0.61 accuracy, no void/root
 # '2024_W04_Cosmos_a8b06f2c'  # 0.57 accuracy, void fluid and root inflated
@@ -161,8 +164,8 @@ y_pred = df_depths.loc[:, map(str, list(brain_template["cosmos_aids"]))].values
 # phi: azimuth from right (x+) in degrees  [0 - 360]
 # theta: polar angle from vertical (z+) in degrees [0 - 180]
 # depths: dephts along the shank of the probe (m), starting from 0 at the tip and positive going up the shank
-def forward(x, y, z, theta, phi, depths):
-    xyz = np.c_[iblatlas.atlas.sph2cart(depths, theta, phi)] + np.array((x, y, z))
+def forward(x, y, z, theta, phi, scaling, depths):
+    xyz = np.c_[iblatlas.atlas.sph2cart(depths*scaling, theta, phi)] + np.array((x, y, z))
     # labels = ba.get_labels(xyz, mapping='Cosmos', mode='clip')
     return xyz
 
@@ -170,10 +173,14 @@ def forward(x, y, z, theta, phi, depths):
 def loss(X):
     # x, y, z, theta, phi, depths = (x0, y0, z0, theta0, phi0, df_depths.index.values / 1e6)
     # y_pred = df_depths['Cosmos_prediction'].values
-    x, y, z, theta, phi = X
-    xyz = forward(x, y, z, theta, phi, df_depths.index.values / 1e6)
+    x, y, z, theta, phi, scaling = X
+    xyz = forward(x, y, z, theta, phi, scaling, df_depths.index.values / 1e6)
     soft_probas = brain_template["soft_boundaries"][ba._lookup(xyz, mode="clip"), :]
-    log_likelihood = np.sum(np.log2(np.sum(y_pred * soft_probas, axis=1)))
+    soft_probas += 1e-5
+    soft_probas /= np.sum(soft_probas, axis=1, keepdims=True)  # Re-normalize
+    log_likelihood = np.sum(np.sum(soft_probas * np.log2(y_pred), axis=1))
+    # log_likelihood = np.sum(np.sum(y_pred * np.log2(soft_probas + 1e-8), axis=1))
+    # log_likelihood = np.sum(np.log2(np.sum(y_pred * soft_probas, axis=1)))
     # log_likelihood = np.sum(np.log2(np.sum(np.minimum(y_pred, soft_probas), axis=1)))
     return -log_likelihood
 
@@ -183,7 +190,7 @@ ins = iblatlas.atlas.Insertion.from_track(
     df_pid.loc[:, ["x", "y", "z"]].values, brain_atlas=ba
 )
 x0, y0, z0, phi0, theta0, d0 = (*ins.tip, ins.phi, ins.theta, ins.depth)
-xyz_svd = forward(x0, y0, z0, theta0, phi0, depths=df_depths.index.values / 1e6)
+xyz_svd = forward(x0, y0, z0, theta0, phi0, 1, depths=df_depths.index.values / 1e6)
 ba.regions.id[
     ba.regions.mappings["Cosmos"][ba.label.flatten()[ba._lookup(xyz_svd, mode="clip")]]
 ]
@@ -202,24 +209,30 @@ ins_planned = iblatlas.atlas.Insertion.from_dict(
     brain_atlas=ba,
 )
 x0, y0, z0, phi0, theta0 = (*ins_planned.tip, ins_planned.phi, ins_planned.theta)
-xyz_planned = forward(x0, y0, z0, theta0, phi0, depths=df_depths.index.values / 1e6)
+xyz_planned = forward(x0, y0, z0, theta0, phi0, 1, depths=df_depths.index.values / 1e6)
 
-X0 = (*ins_planned.tip, ins_planned.phi, ins_planned.theta)
-x, y, z, theta, phi = X0
-opt = scipy.optimize.minimize(loss, x0=X0, method="CG")
+X0 = (*ins_planned.tip, ins_planned.theta, ins_planned.phi, 1)
 
+history = []
+def record_history(xk, convergence=None):
+    # Evaluate the objective function and append it to history
+    history.append(loss(xk))
+    
 opt = scipy.optimize.differential_evolution(
     loss,
     bounds=(
-        np.array([-1, 1]) * 1e-3 + X0[0],
-        np.array([-1, 1]) * 1e-3 + X0[1],
-        np.array([-1, 1]) * 1e-3 + X0[2],
-        np.array([-20, 20]) + X0[3],
-        np.array([-10, 10]) + X0[4],
+        np.array([-1, 1]) * 1e-3/2 + X0[0],
+        np.array([-1, 1]) * 1e-3/2 + X0[1],
+        np.array([-1, 1]) * 1e-3/2 + X0[2],
+        np.array([-15, 15]) + X0[3],
+        np.array([-15, 15]) + X0[4],
+        np.array([0.8, 1.2])
     ),
+    x0 = X0,
+    callback=record_history
 )
 
-xyz_opt = forward(*opt.x, depths=-df_depths.index.values / 1e6)
+xyz_opt = forward(*opt.x, depths=df_depths.index.values / 1e6)
 
 
 # %%
@@ -277,32 +290,12 @@ axs[1].legend()
 fig.tight_layout()
 
 
-# %% Visualize part of the cost function
-X0 = (*ins.tip, ins.phi, ins.theta)  # regression of histology channel locations
-
-plt.figure()
-
-x = np.linspace(-1, 1, 250) * 1e-3
-y = np.zeros_like(x)
-X = np.array(X0)
-for i, xi in enumerate(x):
-    X[0] = X0[0] + xi
-    y[i] = loss(X)
-plt.plot(x * 1e6, y)
-
-
-X = np.array(X0)
-for i, xi in enumerate(x):
-    X[1] = X0[1] + xi
-    y[i] = loss(X)
-plt.plot(x * 1e6, y)
-
-
-X = np.array(X0)
-for i, xi in enumerate(x):
-    X[2] = X0[2] + xi
-    y[i] = loss(X)
-plt.plot(x * 1e6, y)
+# %% Visualize cost function
+plt.plot(history)
+plt.xlabel('Iteration')
+plt.ylabel('Objective Function Value')
+plt.title('Learning Curve')
+plt.show()
 
 
 # %%
