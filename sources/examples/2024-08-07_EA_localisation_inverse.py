@@ -19,6 +19,7 @@ import ephys_atlas.anatomy
 import ephys_atlas.data
 
 
+
 match socket.gethostname():
     case "little mac":
         # little mac
@@ -33,7 +34,7 @@ match socket.gethostname():
         NEMO_PATH = Path(
             "/home/olivier/Insync/olivier.winter@internationalbrainlab.org/Google Drive - Shared drives/Task Force - Electrophysiology Atlas/Decoding/NEMO"
         )
-    case "ferret":
+    case 'olivier-N8xxEP6':
         # work off linux
         LOCAL_DATA_PATH = Path("/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding")
         NEMO_PATH = Path(

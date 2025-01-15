@@ -412,15 +412,20 @@ def load_voltage_features(local_path, regions=None, mapping="Cosmos"):
     return df_voltage, df_clusters, df_channels, df_probes
 
 
-def load_tables(local_path, verify=True):
+def load_tables(local_path, verify=False):
     """
     :param local_path: path to the folder containing the tables
     """
+    local_path = Path(local_path)
     local_path.mkdir(exist_ok=True)  # no parent here
-    df_clusters = pd.read_parquet(local_path.joinpath("clusters.pqt"))
+
     df_channels = pd.read_parquet(local_path.joinpath("channels.pqt"))
     df_voltage = pd.read_parquet(local_path.joinpath("raw_ephys_features.pqt"))
     df_probes = pd.read_parquet(local_path.joinpath("probes.pqt"))
+    if local_path.joinpath("clusters.pqt").exists():
+        df_clusters = pd.read_parquet(local_path.joinpath("clusters.pqt"))
+    else:
+        df_clusters = None
     if verify:
         verify_tables(df_voltage, df_clusters, df_channels)
     return df_voltage, df_clusters, df_channels, df_probes
@@ -435,7 +440,7 @@ def read_correlogram(file_correlogram, nclusters):
 
 
 def download_tables(
-    local_path, label="latest", one=None, verify=True, overwrite=False, extended=False
+    local_path, label="latest", one=None, verify=False, overwrite=False, extended=False
 ):
     """
     :param local_path: pathlib.Path() where the data will be stored locally
