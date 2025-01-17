@@ -1,126 +1,115 @@
+# %%
 from pathlib import Path
-
-import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+import numpy as np
 
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
+import sklearn.metrics
+from xgboost import XGBClassifier  # pip install xgboost  # https://xgboost.readthedocs.io/en/stable/prediction.html
 
-from iblatlas.atlas import BrainRegions
+from iblutil.numerical import ismember
+import ephys_atlas.encoding
+import ephys_atlas.anatomy
 import ephys_atlas.data
-
-pd.set_option("use_inf_as_na", True)
-x_list = []
-# x_list = ['rms_ap', 'alpha_mean', 'alpha_std', 'cloud_x_std', 'cloud_y_std', 'cloud_z_std',
-#           'rms_lf', 'psd_delta', 'psd_theta', 'psd_alpha', 'psd_beta', 'psd_gamma','spike_count']
-# x_list += ['peak_time_idx', 'peak_val', 'trough_time_idx', 'trough_val', 'tip_time_idx', 'tip_val']
-# x_list += ['atlas_id_planned']
-x_list += ["x_planned", "y_planned", "z_planned", "peak_val"]
-regions = BrainRegions()
-
-## data loading section
-config = ephys_atlas.data.get_config()
-# this path contains channels.pqt, clusters.pqt and raw_ephys_features.pqt
-path_features = Path(config["paths"]["features"]).joinpath(config["decoding"]["tag"])
-
-df_voltage, df_clusters, df_channels = ephys_atlas.data.load_tables(path_features)
-df_voltage = pd.merge(
-    df_voltage, df_channels, left_index=True, right_index=True
-).dropna()
-
-aids_cosmos = regions.remap(
-    df_voltage["atlas_id"], source_map="Allen", target_map="Cosmos"
-)
-aids_beryl = regions.remap(
-    df_voltage["atlas_id"], source_map="Allen", target_map="Beryl"
-)
-df_voltage["beryl_id"] = aids_beryl
-df_voltage["cosmos_id"] = aids_cosmos
-
-#
+# we are shooting for around 55% accuracy
 
 
-X = df_voltage.loc[:, x_list].values
-scaler = StandardScaler()
-scaler.fit(X)
-stratify = df_voltage.index.get_level_values("pid")
-kwargs = {
-    "n_estimators": 30,
-    "max_depth": 25,
-    "max_leaf_nodes": 10000,
-    "random_state": 420,
+# import ephys_atlas.data
+# from one.api import ONE
+# one = ONE(base_url='https://alyx.internationalbrainlab.org', mode='remote')
+# df_voltage, _, df_channels, df_probes = ephys_atlas.data.download_tables(local_path='/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding/features', label='2024_W50', one=one)
+
+
+
+brain_atlas = ephys_atlas.anatomy.EncodingAtlas()
+# brain_atlas = ephys_atlas.anatomy.AllenAtlas()  # Accuracy: 0.5536619920744102
+
+path_features = Path('/mnt/s0/ephys-atlas-decoding/features/2024_W50')  # parede
+path_features = Path('/Users/olivier/Documents/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding/features/2024_W50')  # mac
+path_features = Path('/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding/features/2024_W50')  # mac
+
+df_features = pd.read_parquet(path_features / 'raw_ephys_features_denoised.pqt')
+df_features = df_features.merge(pd.read_parquet(path_features / 'channels.pqt'), how='inner', right_index=True, left_index=True)
+df_features = df_features.merge(pd.read_parquet(path_features / 'channels_labels.pqt').fillna(0), how='inner', right_index=True, left_index=True)
+ephys_atlas.data.load_tables(local_path=path_features)
+
+
+FEATURE_SET = ['raw_ap', 'raw_lf', 'raw_lf_csd', 'localisation', 'waveforms', 'micro-manipulator']
+x_list = sorted(ephys_atlas.encoding.voltage_features_set(FEATURE_SET))
+x_list.append('cor_ratio')
+
+df_features['outside'] = df_features['labels'] == 3
+x_list.append('outside')
+
+
+aids = brain_atlas.get_labels(df_features.loc[:, ['x', 'y', 'z']].values, mode='clip')
+df_features['Allen_id'] = aids
+df_features['Cosmos_id'] = brain_atlas.regions.remap(aids, 'Allen', 'Cosmos')
+df_features['Beryl_id'] = brain_atlas.regions.remap(aids, 'Allen', 'Beryl')
+
+TRAIN_LABEL = 'Cosmos_id'  # ['Beryl_id', 'Cosmos_id']
+
+
+
+test_sets = {
+    'benchmark': ephys_atlas.data.BENCHMARK_PIDS,
+    'nemo': ephys_atlas.data.NEMO_TEST_PIDS,
 }
+all_classes = np.unique(df_features.loc[:, TRAIN_LABEL])
 
-# auto-encoder or contrastive learning
-# take your learned features and model spikes
-# phase / frequency / amplitude
-accuracy_score(df_voltage["atlas_id"], df_voltage["atlas_id_planned"])  # 0.12
-accuracy_score(
-    df_voltage["beryl_id"],
-    regions.remap(
-        df_voltage["atlas_id_planned"], source_map="Allen", target_map="Beryl"
-    ),
-)  # 0.19 - 0.91
-accuracy_score(
-    df_voltage["cosmos_id"],
-    regions.remap(
-        df_voltage["atlas_id_planned"], source_map="Allen", target_map="Cosmos"
-    ),
-)  # 0.44 - 0.95
+def train(test_idx, fold_label):
+    train_idx = ~test_idx
+    print(f"{fold_label}: {df_features.shape[0]} channels", f'training set {np.sum(test_idx) / test_idx.size}')
+    df_features.loc[train_idx, :].groupby(TRAIN_LABEL).count()
+    x_train = df_features.loc[train_idx, x_list].values
+    x_test = df_features.loc[test_idx, x_list].values
+    y_train = df_features.loc[train_idx, TRAIN_LABEL].values
+    y_test = df_features.loc[test_idx, TRAIN_LABEL].values
+    df_benchmarks = df_features.loc[ismember(df_features.index.get_level_values(0), ephys_atlas.data.BENCHMARK_PIDS)[0], :].copy()
+    df_test = df_features.loc[test_idx, :].copy()
+    classes = np.unique(df_features.loc[train_idx, TRAIN_LABEL])
 
+    _, iy_train = ismember(y_train, classes)
+    _, iy_test = ismember(y_test, classes)
+    # 0.5376271321378102
+    #  create model instance
+    classifier = XGBClassifier(device='gpu', verbosity=2)
+    # fit model
+    classifier.fit(x_train, iy_train)
+    # make predictions
+    y_pred = classes[classifier.predict(x_test)]
+    df_test[f'cosmos_prediction'] = classes[classifier.predict(df_test.loc[:, x_list].values)]
+    accuracy = sklearn.metrics.accuracy_score(y_test, y_pred)
 
-# It would also be informative to check that the target location error increases as a function of depth.  Can just scatterplot error vs depth (instead of histogram()
-# June 6th practice / June 15th U19 talk
+    confusion_matrix = sklearn.metrics.confusion_matrix(y_test, y_pred, normalize='true')  # row: true, col: predicted
+    print(f"{fold_label} Accuracy: {accuracy}")
 
-
-def decode(X, scaler, aids, classifier=None, save_path=None, stratify=None):
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, aids, stratify=stratify, random_state=875
-    )
-    X_train = scaler.transform(X_train)
-    X_test = scaler.transform(X_test)
-    clf = classifier.fit(X_train, y_train)
-    score_model = clf.score(X_test, y_test)
-    y_null = aids[np.random.randint(0, aids.size - 1, y_test.size)]
-    score_null = clf.score(X_test, y_null)
-    return clf, score_model, score_null
+    np.testing.assert_array_equal(classes, all_classes)
+    return classifier.predict_proba(x_test)
 
 
-cclas, cs, csn = decode(
-    X,
-    scaler,
-    aids_cosmos,
-    classifier=RandomForestClassifier(verbose=True, **kwargs),
-    stratify=stratify,
-)
-bclas, bs, bsn = decode(
-    X,
-    scaler,
-    aids_beryl,
-    classifier=RandomForestClassifier(verbose=True, **kwargs),
-    stratify=stratify,
-)
-print(bs, bsn, cs, csn)
-#
-sns.set_theme(context="talk")
-# forest_importances = pd.Series(cclas.feature_importances_, index=x_list)
-# std = np.std([tree.feature_importances_ for tree in cclas.estimators_], axis=0)
-forest_importances = pd.Series(bclas.feature_importances_, index=x_list)
-std = np.std([tree.feature_importances_ for tree in bclas.estimators_], axis=0)
-fig, ax = plt.subplots()
-forest_importances.plot.bar(yerr=std, ax=ax)
-ax.set_title("Feature importances using MDI")
-ax.set_ylabel("Mean decrease in impurity")
-fig.tight_layout()
+# %%
+n_folds = 5
+all_pids = np.array(df_features.index.get_level_values(0).unique())
+np.random.seed(12345)
+np.random.shuffle(all_pids)
+ifold = np.floor(np.arange(len(all_pids)) / len(all_pids) * n_folds)
 
+df_predictions = pd.DataFrame(index=df_features.index, columns=list(all_classes))
+for i in range(n_folds):
+    test_pids = all_pids[ifold == i]
+    test_idx = np.isin(df_features.index.get_level_values(0), test_pids)
+    probas = train(test_idx=test_idx, fold_label=f'fold {i}')
+    df_predictions.loc[test_idx, all_classes] = probas
 
-# 0.40807415084013554 0.10099092909791683 0.5734580048673134 0.12062320241269693
-# 0.44346114882567333 0.09820794373478965 0.6149000337684416 0.12400004657716089
-# 0.5216991348292365 0.09059257792941232 0.659602463931811 0.12369729503138137
+df_predictions.to_parquet(path_features / 'predictions_Cosmos.pqt')
 
-
-##
+# fold 0: 384215 channels training set 0.2008120453391981
+# fold 0 Accuracy: 0.6679541183332254
+# fold 1: 384215 channels training set 0.19975013989563134
+# fold 1 Accuracy: 0.6525857688248401
+# fold 2: 384215 channels training set 0.20078601824499304
+# fold 2 Accuracy: 0.6892734461079785
+# fold 3: 384215 channels training set 0.19982041304998505
+# fold 3 Accuracy: 0.6961862088727955
+# fold 4: 384215 channels training set 0.19883138347019247
+# fold 4 Accuracy: 0.6831033850825982
