@@ -5,15 +5,15 @@ import scipy.signal
 import pandas as pd
 
 import neuropixel
-from neurodsp import voltage
-from neurodsp.utils import rms
+from ibldsp import voltage
+from ibldsp.utils import rms
 from brainbox.io.spikeglx import Streamer
 
 from iblutil.util import setup_logger
-from neurodsp.utils import WindowGenerator
-from neurodsp.waveforms import compute_spike_features
-from neurodsp.voltage import current_source_density
-from neurodsp.cadzow import cadzow_np1
+from ibldsp.utils import WindowGenerator
+from ibldsp.waveforms import compute_spike_features
+from ibldsp.voltage import current_source_density
+from ibldsp.cadzow import cadzow_np1
 from neuropixel import trace_header
 import ephys_atlas.features
 

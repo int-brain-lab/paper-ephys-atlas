@@ -18,6 +18,7 @@ import ephys_atlas.data
 import ephys_atlas.encoding
 import ephys_atlas.decoding
 import ephys_atlas.anatomy
+import ephys_atlas.features
 
 # parede
 LOCAL_DATA_PATH = Path("/mnt/s0/ephys-atlas-decoding")
@@ -115,7 +116,7 @@ if VOID_ROOT_HANDLING == "inflate":
 # df_voltage = df_voltage.loc[~np.isin(df_voltage['Cosmos_id'], [0]), :]
 FEATURE_SET = ["raw_ap", "raw_lf", "raw_lf_csd", "localisation", "waveforms"]
 TRAIN_LABEL = f"{meta.REGION_MAP}_id"  # ['beryl_id', 'cosmos_id', 'atlas_id']
-x_list = meta.FEATURES = sorted(ephys_atlas.encoding.voltage_features_set(FEATURE_SET))
+x_list = meta.FEATURES = sorted(ephys_atlas.features.voltage_features_set(FEATURE_SET))
 test_idx = np.isin(df_voltage.index.get_level_values(0), test_pids)
 train_idx = ~test_idx
 

@@ -21,7 +21,7 @@ def save_model(path_model, classifier, meta, subfolder=""):
         2023_W41_Cosmos_dfd731f0/FOLD01/
     :return:
     """
-    meta.MODEL_CLASS = (
+    meta['MODEL_CLASS'] = (
         f"{classifier.__class__.__module__}.{classifier.__class__.__name__}"
     )
     hash = hashlib.md5(yaml.dump(meta).encode("utf-8")).hexdigest()[:8]

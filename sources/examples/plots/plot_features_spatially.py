@@ -10,7 +10,7 @@ import pandas as pd
 from iblatlas.atlas import BrainRegions
 from ephys_atlas.data import load_voltage_features
 from ephys_atlas.plots import figure_features_chspace
-from ephys_atlas.encoding import voltage_features_set
+from ephys_atlas.features import voltage_features_set
 
 br = BrainRegions()
 label = "2023_W51"

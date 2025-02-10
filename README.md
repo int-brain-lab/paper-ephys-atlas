@@ -43,7 +43,7 @@ from one.api import ONE
 import ephys_atlas.data
 
 LOCAL_DATA_PATH = Path.home().joinpath("Downloads")
-LABEL = "2023_W41"  # or put "latest"
+LABEL = "2024_W50"  # or put "latest"
 one = ONE(base_url="https://alyx.internationalbrainlab.org", mode='local')
 df_raw_features, df_clusters, df_channels, df_probes = ephys_atlas.data.download_tables(label=LABEL, local_path=LOCAL_DATA_PATH, one=one)
 ```

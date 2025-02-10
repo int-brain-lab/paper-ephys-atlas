@@ -13,6 +13,7 @@ import sklearn.metrics
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+import ephys_atlas.features
 from iblatlas.atlas import BrainRegions
 from iblutil.numerical import ismember
 from brainbox.ephys_plots import plot_brain_regions
@@ -24,7 +25,7 @@ FOLDER_GDRIVE = Path(
     "/datadisk/team_drives/Task Force - Electrophysiology Atlas/Decoding/HMM_Decoding"
 )
 
-features_list = ephys_atlas.encoding.voltage_features_set()
+features_list = ephys_atlas.features.voltage_features_set()
 
 regions = BrainRegions()
 

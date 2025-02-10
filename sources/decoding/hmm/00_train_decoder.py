@@ -9,6 +9,8 @@ from xgboost import (
 )  # pip install xgboost  # https://xgboost.readthedocs.io/en/stable/prediction.html
 
 from iblutil.numerical import ismember
+
+import ephys_atlas.features
 from iblatlas.atlas import BrainRegions
 from iblutil.util import Bunch
 
@@ -38,7 +40,7 @@ df_voltage, _, _, _ = ephys_atlas.data.load_voltage_features(
 
 FEATURE_SET = ["raw_ap", "raw_lf", "raw_lf_csd", "localisation", "waveforms"]
 TRAIN_LABEL = f"{meta.REGION_MAP}_id"  # ['beryl_id', 'cosmos_id', 'atlas_id']
-x_list = meta.FEATURES = sorted(ephys_atlas.encoding.voltage_features_set(FEATURE_SET))
+x_list = meta.FEATURES = sorted(ephys_atlas.features.voltage_features_set(FEATURE_SET))
 # x_list = meta.FEATURES = ['rms_lf', 'trough_time_secs', 'rms_ap']
 
 # smooth features

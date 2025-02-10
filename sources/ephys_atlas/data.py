@@ -418,9 +418,10 @@ def load_tables(local_path, verify=False):
     """
     local_path = Path(local_path)
     local_path.mkdir(exist_ok=True)  # no parent here
-
+    if not (file_raw_features := local_path.joinpath("raw_ephys_features_denoised.pqt")).exists():
+        file_raw_features = local_path.joinpath("raw_ephys_features.pqt")
     df_channels = pd.read_parquet(local_path.joinpath("channels.pqt"))
-    df_voltage = pd.read_parquet(local_path.joinpath("raw_ephys_features.pqt"))
+    df_voltage = pd.read_parquet(file_raw_features)
     df_probes = pd.read_parquet(local_path.joinpath("probes.pqt"))
     if local_path.joinpath("clusters.pqt").exists():
         df_clusters = pd.read_parquet(local_path.joinpath("clusters.pqt"))
