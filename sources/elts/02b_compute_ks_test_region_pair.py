@@ -11,7 +11,7 @@ import dask.dataframe as dd
 from pathlib import Path
 from iblatlas.atlas import BrainRegions
 from ephys_atlas.data import download_tables, load_voltage_features
-from ephys_atlas.encoding import voltage_features_set
+from ephys_atlas.features import voltage_features_set
 from one.api import ONE
 from ephys_atlas.entropy import compute_ks_test
 
