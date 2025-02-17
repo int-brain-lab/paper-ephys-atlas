@@ -29,7 +29,7 @@ for feature in features:
     # Find in which quantile index is each sample
     quantiles_idx = np.searchsorted(quantiles, df_voltage[feature])
     # Create table of shape (n_regions, n_quantiles) that contains the count
-    # Note: counts give NAN in bins where there are 0 counts
+
     counts = pd.pivot_table(
         df_voltage,
         values=feature,
@@ -37,9 +37,13 @@ for feature in features:
         columns=quantiles_idx,
         aggfunc="count",
     )
-
-    # # Reformat index into brain region ID
-    # counts = counts.rename_axis(mapping + "_id").reset_index()
+    # Note: counts give NAN in bins where there are 0 counts. Replace Nan with 0
+    counts = counts.fillna(0)
+    # Divide counts by sum over rows to get probabilities
+    sum_rows = counts.sum(axis=1)
+    proba = counts.div(sum_rows, axis=0)
+    # Test to check sum over row == 1
+    np.testing.assert_array_almost_equal(proba.sum(axis=1), 1.0, decimal=5)
 
     # Reformat quantiles series into numpy array
     quantiles = quantiles.to_numpy()
@@ -48,4 +52,4 @@ for feature in features:
     namesave = f'{label}_{mapping}_{feature}'
 
     np.save(local_data_savebin.joinpath(namesave + '.npy'), quantiles)
-    counts.to_parquet(local_data_savebin.joinpath(namesave + '.pqt'))
+    proba.to_parquet(local_data_savebin.joinpath(namesave + '.pqt'))
