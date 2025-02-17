@@ -20,7 +20,7 @@ folder_seizure = Path('/Users/gaellechapuis/Documents/Work/EphysAtlas/seizure')
 df_new = pd.read_parquet(folder_seizure.joinpath('col_5246af08.pqt')) # or 'col_5246af08-seizure.pqt'
 
 # Select feature
-df_out = pd.DataFrame(index=df_new['channel'], columns=features)
+# df_out = pd.DataFrame(index=df_new['channel'], columns=features)
 
 for feature in features:
 
@@ -35,4 +35,14 @@ for feature in features:
     # Localise the value for each channel using 1. the brain region 2. the quantile
     df_proba = proba.loc[df_new[mapping + '_id'], quantile_idx]
     # Take only diagonal terms
-    df_out[feature] = pd.Series(np.diag(df_proba))
+    df_new[feature + '_proba'] = pd.Series(np.diag(df_proba))
+
+##
+# Plot
+from ephys_atlas.plots import figure_features_chspace
+pid_ch_df = df_new.copy()
+# Create numpy array of xy um (only 2D for plotting)
+xy = df_new[['lateral_um', 'axial_um']].to_numpy()
+# Plot
+fig, axs = figure_features_chspace(pid_ch_df, features, xy, pid='5246af08', mapping=mapping)
+fig, axs = figure_features_chspace(pid_ch_df, [s + '_proba' for s in features], xy, pid='5246af08', mapping=mapping)

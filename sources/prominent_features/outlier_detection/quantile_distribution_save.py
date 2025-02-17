@@ -24,32 +24,45 @@ df_voltage, df_clusters, df_channels, df_probes = \
 # Compute probability distribution using count in bins
 nbin = 600
 for feature in features:
-    # Compute quantile boundaries
-    quantiles = df_voltage[feature].quantile(np.linspace(0, 1, nbin)[1:])
-    # Find in which quantile index is each sample
-    quantiles_idx = np.searchsorted(quantiles, df_voltage[feature])
-    # Create table of shape (n_regions, n_quantiles) that contains the count
+    # # Compute bin boundaries using histogram
+    overall_counts, divisions = np.histogram(df_voltage[feature], bins=nbin)
 
+    # Find in which division index is each sample
+    division_idx = np.searchsorted(divisions, df_voltage[feature])
+    # Create table of shape (n_regions, n_quantiles) that contains the count
     counts = pd.pivot_table(
         df_voltage,
         values=feature,
         index=mapping + "_id",
-        columns=quantiles_idx,
+        columns=division_idx,
         aggfunc="count",
     )
-    # Note: counts give NAN in bins where there are 0 counts. Replace Nan with 0
+    # Note: counts give Nan in bins where there are 0 counts. Replace Nan with 0
     counts = counts.fillna(0)
+
+    # Columns that did not have a hit in division_idx are generated and filled with 0 :
+    diff_col = set(np.linspace(0, nbin-1, nbin)) - set(np.unique(division_idx))
+    diff_col = np.fromiter(diff_col,int)
+    df_0 = pd.DataFrame(0, index=counts.index, columns=diff_col)
+    # Merge
+    counts = counts.join(df_0)
+
     # Divide counts by sum over rows to get probabilities
+    # NOTE THIS IS WRONG IF NOT USING SAME SIZE BIN
     sum_rows = counts.sum(axis=1)
     proba = counts.div(sum_rows, axis=0)
     # Test to check sum over row == 1
     np.testing.assert_array_almost_equal(proba.sum(axis=1), 1.0, decimal=5)
-
-    # Reformat quantiles series into numpy array
-    quantiles = quantiles.to_numpy()
-
     # Save counts and quantiles
     namesave = f'{label}_{mapping}_{feature}'
 
-    np.save(local_data_savebin.joinpath(namesave + '.npy'), quantiles)
+    np.save(local_data_savebin.joinpath(namesave + '.npy'), divisions)
     proba.to_parquet(local_data_savebin.joinpath(namesave + '.pqt'))
+
+
+# Debug plot
+if False:
+    import matplotlib.pyplot as plt
+    plt.stairs(overall_counts, divisions)
+    plt.stairs(counts.iloc[0, :], divisions)
+    plt.show()
