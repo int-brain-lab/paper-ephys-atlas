@@ -31,6 +31,13 @@ df_ch = pd.DataFrame(channels)
 # Add each column to the dataframe
 df_baseline = pd.merge(df_baseline, df_ch, on=['lateral_um', 'axial_um'], how='left')
 df_seizure = pd.merge(df_seizure, df_ch, on=['lateral_um', 'axial_um'], how='left')
+# Rename to Allen
+df_baseline = df_baseline.rename(
+        columns={"atlas_id": "Allen_id", "acronym": "Allen_acronym"}
+    )
+df_seizure = df_seizure.rename(
+        columns={"atlas_id": "Allen_id", "acronym": "Allen_acronym"}
+    )
 
 # Save
 df_baseline.to_parquet(folder_seizure.joinpath('col_5246af08.pqt'))
