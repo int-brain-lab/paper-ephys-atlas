@@ -25,11 +25,12 @@ pid = "5246af08-0730-40f7-83de-29b5d62b9b6d"
 ssl = SpikeSortingLoader(pid=pid, one=one)
 channels = ssl.load_channels()
 
+# Create dataframe from channels
+df_ch = pd.DataFrame(channels)
+
 # Add each column to the dataframe
-# TODO check that the index in dataframe is indeed the index of channels
-for col in channels.keys():
-    df_baseline[col] = channels[col]
-    df_seizure[col] = channels[col]
+df_baseline = pd.merge(df_baseline, df_ch, on=['lateral_um', 'axial_um'], how='left')
+df_seizure = pd.merge(df_seizure, df_ch, on=['lateral_um', 'axial_um'], how='left')
 
 # Save
 df_baseline.to_parquet(folder_seizure.joinpath('col_5246af08.pqt'))
