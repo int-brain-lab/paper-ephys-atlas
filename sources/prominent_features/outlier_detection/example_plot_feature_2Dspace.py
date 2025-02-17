@@ -2,7 +2,10 @@
 Example plot of features onto channel layout in 2D space
 '''
 from pathlib import Path
-from ephys_atlas.plots import figure_features_chspace
+
+import matplotlib.pyplot as plt
+
+from ephys_atlas.plots import figure_features_chspace, plot_probe_rect, plot_probe_rect2
 from ephys_atlas.encoding import voltage_features_set
 from ephys_atlas.data import load_voltage_features
 
@@ -17,7 +20,8 @@ df_voltage, df_clusters, df_channels, df_probes = \
 
 # Plot
 pids = df_voltage.index.get_level_values(0).unique()
-for i_pid, pid in enumerate(pids[0:1]):  # Take the first PID for show
+n = 1
+for i_pid, pid in enumerate(pids[0:n]):  # Take the first PID for show
     print(i_pid)
     # Prepare the dataframe for a single probe
     pid_ch_df = df_voltage[df_voltage.index.get_level_values(0).isin([pid])].copy()
@@ -25,4 +29,8 @@ for i_pid, pid in enumerate(pids[0:1]):  # Take the first PID for show
     # Create numpy array of xy um (only 2D for plotting)
     xy = pid_ch_df[['lateral_um', 'axial_um']].to_numpy()
     # Plot
-    fig, axs = figure_features_chspace(pid_ch_df, features, xy, pid='5246af08', mapping=mapping)
+    fig, axs = figure_features_chspace(
+        pid_ch_df, features, xy, pid='5246af08', mapping=mapping, plot_rect=plot_probe_rect)
+    fig, axs = figure_features_chspace(
+        pid_ch_df, features, xy, pid='5246af08', mapping=mapping, plot_rect=plot_probe_rect2)
+plt.show()

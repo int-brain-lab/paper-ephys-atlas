@@ -224,7 +224,7 @@ def plot_feature_colorbar(features_sort, val_sort, ax=None):
     ax.set_yticks(np.arange(features_sort.size))
     ax.set_yticklabels(features_sort)
     ax.set_xticks([])
-    plt.show()
+    # plt.show()
     if ax is None:
         return fig, ax
 
@@ -323,7 +323,52 @@ def plot_probe_rect(xy, color, ax, width=16, height=40):
         )
     ax.set_xlim([min(xy[:, 0]) - width / 2, max(xy[:, 0]) + width / 2])
     ax.set_ylim([min(xy[:, 1]) - height / 2, max(xy[:, 1]) + height / 2])
-    plt.show()
+    # plt.show()
+
+
+def plot_probe_rect2(xy, color, ax, width=16, height=40):
+    """
+    This function uses imshow to draw rectangles painted around the yx coordinates
+    :param xy:
+    :param color:
+    :param ax:
+    :param width:
+    :param height:
+    :return:
+    """
+
+    # HACK: stretch the probe in the X direction to improve readability of the plots with very
+    # long thin probes
+    xy = xy.copy()
+    k = 3
+    xy[:, 1] /= k
+
+    xmin, ymin = xy.min(axis=0)
+    ymin = 0
+    xmax, ymax = xy.max(axis=0)
+    hw, hh = width / 2, height / 2
+    # extent = [xmin - hw, xmax + hw, ymin - hh, ymax + hh]
+    extent = [xmin - hw, xmax + hw, ymin, ymax]
+    X = round(extent[1] - extent[0]) + 1
+    Y = round(extent[3] - extent[2]) + 1
+
+    im = np.zeros((Y, X, 4), dtype=np.float32)
+    im[..., 3] = 1
+
+    for a_x, a_y, a_color in zip(xy[:, 0], xy[:, 1], color):
+        i0 = max(0, round(a_y - hh))
+        i1 = min(Y, round(a_y + hh) + 1)
+        j0 = max(0, round(a_x - hw))
+        j1 = min(X, round(a_x + hw) + 1)
+        im[i0:i1, j0:j1, :3] = a_color.ravel()[:3]
+
+    ax.imshow(im, extent=extent, origin='lower', aspect='auto')
+
+    ax.set_xlim(*extent[:2])
+    ax.set_xticks([])
+    ax.set_ylim(ymin, ymax + 1)
+    yticks = np.arange(0, ymax, 500)
+    ax.set_yticks(yticks, labels=map(int, yticks * k))
 
 
 def figure_features_chspace_probeplot(pid_df, features, xy):
@@ -392,7 +437,8 @@ def get_color_feat(x, cmap_name="viridis"):
 
 
 def figure_features_chspace(
-    pid_df, features, xy, pid, fig=None, axs=None, br=None, mapping="Cosmos"
+    pid_df, features, xy, pid, fig=None, axs=None, br=None, mapping="Cosmos",
+    plot_rect=plot_probe_rect,
 ):
     """
 
@@ -418,7 +464,7 @@ def figure_features_chspace(
         feat_arr = pid_df[[feature]].to_numpy()
         # Plot feature
         color = get_color_feat(feat_arr)
-        plot_probe_rect(xy, color, ax=axs[i_feat])
+        plot_rect(xy, color, ax=axs[i_feat])
         axs[i_feat].set_title(feature, rotation=90)
 
     # Plot brain region in space in unique colors
@@ -426,12 +472,12 @@ def figure_features_chspace(
     d_uni = np.unique(pid_df[mapping + "_id"].to_numpy(), return_inverse=True)[1]
     d_uni = d_uni.astype(np.float32)
     color = get_color_feat(d_uni)
-    plot_probe_rect(xy, color, ax=axs[len(features)])
+    plot_rect(xy, color, ax=axs[len(features)])
     axs[len(features)].set_title("unique region", rotation=90)
 
     # Plot brain region along probe depth with color code
     color = get_color_br(pid_df, br, mapping=mapping)
-    plot_probe_rect(xy, color, ax=axs[len(features) + 1])  # + 1
+    plot_rect(xy, color, ax=axs[len(features) + 1])  # + 1
     axs[len(features) + 1].set_title(mapping, rotation=90)
 
     # Add pid as suptitle
