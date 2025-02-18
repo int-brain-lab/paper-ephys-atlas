@@ -41,7 +41,7 @@ for feature in features:
     counts = counts.fillna(0)
 
     # Columns that did not have a hit in division_idx are generated and filled with 0 :
-    diff_col = set(np.linspace(0, nbin-1, nbin)) - set(np.unique(division_idx))
+    diff_col = set(np.linspace(0, nbin, nbin+1)) - set(np.unique(division_idx))
     diff_col = np.fromiter(diff_col,int)
     df_0 = pd.DataFrame(0, index=counts.index, columns=diff_col)
     # Merge
@@ -64,5 +64,5 @@ for feature in features:
 if False:
     import matplotlib.pyplot as plt
     plt.stairs(overall_counts, divisions)
-    plt.stairs(counts.iloc[0, :], divisions)
+    plt.stairs(counts.iloc[5, np.sort(counts.columns)[0:-1]], divisions)
     plt.show()
