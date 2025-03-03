@@ -57,15 +57,14 @@ label = 'latest'
 features = voltage_features_set()
 
 # Path where distributions are saved
-local_data_savebin = Path('/Users/gaellechapuis/Documents/Work/EphysAtlas/Data/regions')
 local_data_path = Path('/Users/gaellechapuis/Documents/Work/EphysAtlas/Data')
+folder_seizure = Path('/Users/gaellechapuis/Documents/Work/EphysAtlas/seizure')
 
 # Load dataset
 # === Ephys atlas DF
 df_voltage, df_clusters, df_channels, df_probes = \
     load_voltage_features(local_data_path.joinpath(label), mapping=mapping)
 # === Seizure dataset
-folder_seizure = Path('/Users/gaellechapuis/Documents/Work/EphysAtlas/seizure')
 df_seiz = pd.read_parquet(folder_seizure.joinpath('col_5246af08.pqt')) # or 'col_5246af08-seizure.pqt'
 df_new = prep_voltage_dataframe(df_seiz, mapping=mapping)
 
