@@ -100,11 +100,10 @@ for count, region in enumerate(regions):
         df_save = pd.concat([df_save, df_new_compute])
 
 ##
-# Assign high and low values for picked quantile threshold
+# Assign high and low values for picked threshold
 for feature in features:
     df_save[feature + '_extremes'] = 0
     df_save.loc[df_save[feature + '_q'] > 0.9, feature + '_extremes'] = 1
-    df_save.loc[df_save[feature + '_q'] < 0.1, feature + '_extremes'] = -1
 
 ##
 # Plot
