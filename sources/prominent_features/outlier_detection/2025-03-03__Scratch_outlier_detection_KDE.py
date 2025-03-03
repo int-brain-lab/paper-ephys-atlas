@@ -5,6 +5,7 @@ from sklearn.neighbors import KernelDensity
 import pandas as pd
 from pathlib import Path
 from iblatlas.atlas import BrainRegions
+from scipy import stats
 
 ## ========
 # Definition of functions
@@ -25,6 +26,13 @@ def detect_outliers_kde(train_data: np.ndarray, test_data: np.ndarray):
     mean_score = kde.score(train_data) / train_data.shape[0]
     out = 1 - np.exp(1-kde.score_samples(test_data) / mean_score)
     return out
+
+def detect_outlier_kstest(sample_values, cdf):
+    pval = np.zeros(sample_values.shape)
+    for count, sample in enumerate(sample_values):  # Test on each channel value independently
+        ks_stat = stats.kstest(sample, cdf)
+        pval[count] = ks_stat.pvalue
+    return pval
 
 
 def select_series_v2(df, features=None, acronym=None, id=None, mapping='Allen'):
@@ -54,7 +62,8 @@ def prep_voltage_dataframe(df_voltage, mapping='Allen', regions=None):
 ## ========
 mapping = 'Beryl'
 label = 'latest'
-features = voltage_features_set()
+features = voltage_features_set() #[0:1]  # TODO remove, test on 2 features to begin with
+TEST_TYPE = 'KSTest'
 
 # Path where distributions are saved
 local_data_path = Path('/Users/gaellechapuis/Documents/Work/EphysAtlas/Data')
@@ -65,7 +74,7 @@ folder_seizure = Path('/Users/gaellechapuis/Documents/Work/EphysAtlas/seizure')
 df_voltage, df_clusters, df_channels, df_probes = \
     load_voltage_features(local_data_path.joinpath(label), mapping=mapping)
 # === Seizure dataset
-df_seiz = pd.read_parquet(folder_seizure.joinpath('col_5246af08.pqt')) # or 'col_5246af08-seizure.pqt'
+df_seiz = pd.read_parquet(folder_seizure.joinpath('col_5246af08-seizure.pqt')) # 'col_5246af08.pqt' or 'col_5246af08-seizure.pqt'
 df_new = prep_voltage_dataframe(df_seiz, mapping=mapping)
 
 # # Pre-assign columns with 0 values
@@ -87,8 +96,12 @@ for count, region in enumerate(regions):
 
     for feature in features:
         # For all channels at once, test if outside the distribution for the given feature
-        score_out = detect_outliers_kde(train_data=df_region[feature].values.reshape(-1, 1),
-                                        test_data=df_new_compute[feature].values.reshape(-1, 1))
+        if TEST_TYPE == 'KDE':
+            score_out = detect_outliers_kde(train_data=df_region[feature].values.reshape(-1, 1),
+                                            test_data=df_new_compute[feature].values.reshape(-1, 1))
+        elif TEST_TYPE == 'KSTest':
+            score_out =  detect_outlier_kstest(sample_values=df_new_compute[feature].values,
+                                               cdf=df_region[feature].values)
 
         # Save into new column
         df_new_compute[feature + '_q'] = score_out  # TODO check ordering of channels
@@ -103,7 +116,10 @@ for count, region in enumerate(regions):
 # Assign high and low values for picked threshold
 for feature in features:
     df_save[feature + '_extremes'] = 0
-    df_save.loc[df_save[feature + '_q'] > 0.9, feature + '_extremes'] = 1
+    if TEST_TYPE == 'KDE':
+        df_save.loc[df_save[feature + '_q'] > 0.9, feature + '_extremes'] = 1
+    elif TEST_TYPE == 'KSTest':
+        df_save.loc[df_save[feature + '_q'] < 0.001, feature + '_extremes'] = 1
 
 ##
 # Plot
