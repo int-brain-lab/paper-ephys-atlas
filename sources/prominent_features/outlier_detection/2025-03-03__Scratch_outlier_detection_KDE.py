@@ -1,8 +1,10 @@
 from ephys_atlas.encoding import voltage_features_set
 from ephys_atlas.data import load_voltage_features
 import numpy as np
+import tqdm
 from sklearn.neighbors import KernelDensity
 import pandas as pd
+import matplotlib.pyplot as plt
 from pathlib import Path
 from iblatlas.atlas import BrainRegions
 from scipy import stats
@@ -62,12 +64,15 @@ def prep_voltage_dataframe(df_voltage, mapping='Allen', regions=None):
 ## ========
 mapping = 'Beryl'
 label = 'latest'
-features = voltage_features_set() #[0:1]  # TODO remove, test on 2 features to begin with
-TEST_TYPE = 'KSTest'
+features = voltage_features_set()[0:5]  # TODO remove, test on 2 features to begin with
+TEST_TYPE = 'KDE'
 
 # Path where distributions are saved
-local_data_path = Path('/Users/gaellechapuis/Documents/Work/EphysAtlas/Data')
-folder_seizure = Path('/Users/gaellechapuis/Documents/Work/EphysAtlas/seizure')
+# local_data_path = Path('/Users/gaellechapuis/Documents/Work/EphysAtlas/Data')
+# folder_seizure = Path('/Users/gaellechapuis/Documents/Work/EphysAtlas/seizure')
+ROOT = Path(__file__).parent.parent.parent.parent
+local_data_path = ROOT / 'data'
+folder_seizure = ROOT / 'data/seizure'
 
 # Load dataset
 # === Ephys atlas DF
@@ -84,7 +89,7 @@ df_new = prep_voltage_dataframe(df_seiz, mapping=mapping)
 # Regions
 regions = np.unique(df_new[mapping + '_id']).astype(int)
 
-for count, region in enumerate(regions):
+for count, region in tqdm.tqdm(enumerate(regions), total=len(regions)):
 
     # Load data for that regions
     df_region = select_series_v2(df_voltage, features=features,
@@ -94,17 +99,20 @@ for count, region in enumerate(regions):
     idx_reg = np.where(df_new[mapping + '_id'] == region)
     df_new_compute = df_new.iloc[idx_reg].copy()
 
-    for feature in features:
+    if TEST_TYPE == 'KSTest':
+
+        for feature in features:
         # For all channels at once, test if outside the distribution for the given feature
-        if TEST_TYPE == 'KDE':
-            score_out = detect_outliers_kde(train_data=df_region[feature].values.reshape(-1, 1),
-                                            test_data=df_new_compute[feature].values.reshape(-1, 1))
-        elif TEST_TYPE == 'KSTest':
             score_out =  detect_outlier_kstest(sample_values=df_new_compute[feature].values,
                                                cdf=df_region[feature].values)
+            # Save into new column
+            df_new_compute[feature + '_q'] = score_out  # TODO check ordering of channels
 
+    elif TEST_TYPE == 'KDE':
+        score_out = detect_outliers_kde(train_data=df_region[features].values,
+                                        test_data=df_new_compute[features].values)
         # Save into new column
-        df_new_compute[feature + '_q'] = score_out  # TODO check ordering of channels
+        df_new_compute['kde_q'] = score_out
 
     # Concatenate dataframes
     if count == 0:
@@ -114,12 +122,12 @@ for count, region in enumerate(regions):
 
 ##
 # Assign high and low values for picked threshold
-for feature in features:
-    df_save[feature + '_extremes'] = 0
-    if TEST_TYPE == 'KDE':
-        df_save.loc[df_save[feature + '_q'] > 0.9, feature + '_extremes'] = 1
-    elif TEST_TYPE == 'KSTest':
+if TEST_TYPE == 'KSTest':
+    for feature in features:
+        df_save[feature + '_extremes'] = 0
         df_save.loc[df_save[feature + '_q'] < 0.001, feature + '_extremes'] = 1
+elif TEST_TYPE == 'KDE':
+    df_save.loc[df_save['kde_q'] > 0.9, 'kde_extremes'] = 1
 
 ##
 # Plot
@@ -128,6 +136,14 @@ pid_ch_df = df_save.copy()
 # Create numpy array of xy um (only 2D for plotting)
 xy = pid_ch_df[['lateral_um', 'axial_um']].to_numpy()
 # Plot
-fig, axs = figure_features_chspace(pid_ch_df, features, xy, pid='5246af08', mapping=mapping)
-fig, axs = figure_features_chspace(pid_ch_df, [s + '_q' for s in features], xy, pid='5246af08', mapping=mapping)
-fig, axs = figure_features_chspace(pid_ch_df, [s + '_extremes' for s in features], xy, pid='5246af08', mapping=mapping)
+if TEST_TYPE == 'KSTest':
+    fig, axs = figure_features_chspace(pid_ch_df, features, xy, pid='5246af08', mapping=mapping)
+    fig, axs = figure_features_chspace(pid_ch_df, [s + '_q' for s in features], xy, pid='5246af08', mapping=mapping)
+    fig, axs = figure_features_chspace(pid_ch_df, [s + '_extremes' for s in features], xy, pid='5246af08', mapping=mapping)
+elif TEST_TYPE == 'KDE':
+    fig, axs = figure_features_chspace(pid_ch_df, features, xy, pid='5246af08', mapping=mapping)
+    fig, axs = figure_features_chspace(pid_ch_df, ['kde_q'], xy, pid='5246af08', mapping=mapping)
+    fig, axs = figure_features_chspace(pid_ch_df, ['kde_extremes'], xy, pid='5246af08', mapping=mapping)
+
+
+plt.show()
