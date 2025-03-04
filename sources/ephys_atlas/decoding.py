@@ -9,7 +9,7 @@ from xgboost import XGBClassifier
 from iblutil.util import Bunch
 
 
-def save_model(path_model, classifier, meta, subfolder=""):
+def save_model(path_model, classifier, meta, subfolder="", identifier=None):
     """
     Save model to disk in ubj format with associated meta-data and a hash
     The model is a set of files in a folder named after the meta-data
@@ -17,6 +17,7 @@ def save_model(path_model, classifier, meta, subfolder=""):
     :param classifier:
     :param meta:
     :param path_model:
+    :param identifier: optional identifier for the model, defaults to a 8 character hexdigest of the meta data
     :param subfolder: optional level to add to the model path, for example 'FOLD01' will write to
         2023_W41_Cosmos_dfd731f0/FOLD01/
     :return:
@@ -24,9 +25,10 @@ def save_model(path_model, classifier, meta, subfolder=""):
     meta['MODEL_CLASS'] = (
         f"{classifier.__class__.__module__}.{classifier.__class__.__name__}"
     )
-    hash = hashlib.md5(yaml.dump(meta).encode("utf-8")).hexdigest()[:8]
+    if identifier is None:
+        identifier = hashlib.md5(yaml.dump(meta).encode("utf-8")).hexdigest()[:8]
     path_model = path_model.joinpath(
-        f"{meta['VINTAGE']}_{meta['REGION_MAP']}_{hash}", subfolder
+        f"{meta['VINTAGE']}_{meta['REGION_MAP']}_{identifier}", subfolder
     )
     path_model.mkdir(exist_ok=True, parents=True)
     with open(path_model.joinpath("meta.yaml"), "w+") as fid:

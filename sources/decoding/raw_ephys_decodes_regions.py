@@ -26,20 +26,20 @@ import ephys_atlas.features
 brain_atlas = ephys_atlas.anatomy.EncodingAtlas()
 # brain_atlas = ephys_atlas.anatomy.AllenAtlas()  # Accuracy: 0.5536619920744102
 
-path_features = Path('/mnt/s0/ephys-atlas-decoding/features/2024_W50')  # parede
 path_features = Path('/Users/olivier/Documents/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding/features/2024_W50')  # mac
 path_features = Path('/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding/features/2024_W50')  # mac
+path_features = Path('/mnt/s0/ephys-atlas-decoding/features/2024_W50')  # parede
 path_models = path_features.parents[1].joinpath('models')
-
+path_models.mkdir(exist_ok=True)
 df_features = pd.read_parquet(path_features / 'raw_ephys_features_denoised.pqt')
 df_features = df_features.merge(pd.read_parquet(path_features / 'channels.pqt'), how='inner', right_index=True, left_index=True)
 df_features = df_features.merge(pd.read_parquet(path_features / 'channels_labels.pqt').fillna(0), how='inner', right_index=True, left_index=True)
 ephys_atlas.data.load_tables(local_path=path_features)
 
 
-FEATURE_SET = ['raw_ap', 'raw_lf', 'raw_lf_csd', 'localisation', 'waveforms', 'micro-manipulator']
-x_list = sorted(ephys_atlas.features.voltage_features_set(FEATURE_SET))
-x_list.append('cor_ratio')
+FEATURE_SET = ['raw_lf', 'raw_lf_csd', 'raw_ap', 'localisation', 'waveforms', 'micro-manipulator']
+FEATURE_SET = ['raw_lf', 'raw_lf_csd', 'raw_ap', 'micro-manipulator']
+x_list = ephys_atlas.features.voltage_features_set(FEATURE_SET)
 
 df_features['outside'] = df_features['labels'] == 3
 x_list.append('outside')
@@ -93,6 +93,8 @@ def train(test_idx, fold_label):
     return classifier.predict_proba(x_test), classifier, accuracy
 
 # %%
+IDENTIFIER = 'lid-basket-sense'
+IDENTIFIER = 'voter-snap-pudding'
 n_folds = 5
 all_pids = np.array(df_features.index.get_level_values(0).unique())
 np.random.seed(12345)
@@ -110,13 +112,14 @@ for i in range(n_folds):
         VINTAGE="2024_W50",
         REGION_MAP="Cosmos",
         FEATURES=x_list,
-        CLASSES=all_classes,
+        CLASSES=[int(c) for c in all_classes],
+        ACCURACY=accuracy,
         )
-    ephys_atlas.decoding.save_model(path_models, classifier, meta, subfolder=f'FOLD{i :02d}')
+    path_model = ephys_atlas.decoding.save_model(path_models, classifier, meta, subfolder=f'FOLD{i :02d}', identifier=IDENTIFIER)
 
 df_predictions.to_parquet(path_models / 'predictions_Cosmos.pqt')
 
-
+# lid_basket_sense
 # fold 0: 384215 channels training set 0.2008120453391981
 # fold 0 Accuracy: 0.6679541183332254
 # fold 1: 384215 channels training set 0.19975013989563134

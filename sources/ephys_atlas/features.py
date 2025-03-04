@@ -95,7 +95,7 @@ class ModelChannelLayout(BaseChannelFeatures):
 class ModelHistologyPlanned(BaseChannelFeatures):
     x_target: Series[float] = pandera.Field(coerce=True)
     y_target: Series[float] = pandera.Field(coerce=True)
-    y_target: Series[float] = pandera.Field(coerce=True)
+    z_target: Series[float] = pandera.Field(coerce=True)
 
 
 class ModelHistologyResolved(BaseChannelFeatures):
@@ -121,19 +121,21 @@ def voltage_features_set(features_list=FEATURES_LIST):
     """
     if features_list == 'all':
         features_list = ['raw_ap', 'raw_lf', 'raw_lf_csd', 'waveforms', 'micro-manipulator']
+    # the looping preserves the order of the features groups in the list
     x_list = []
-    if "raw_ap" in features_list:  # full mode
-        x_list += list(set(ModelApFeatures.to_schema().columns.keys()) - set(['channel']))
-    if "raw_lf" in features_list:
-        x_list += list(set(ModelLfFeatures.to_schema().columns.keys()) - set(['channel']))
-    if "raw_lf_csd" in features_list:
-        x_list += list(set(ModelCsdFeatures.to_schema().columns.keys()) - set(['channel']))
-    if "waveforms" in features_list:
-        x_list += list(set(ModelSpikeFeatures.to_schema().columns.keys()) - set(['channel']))
-    if "micro-manipulator" in features_list:
-        x_list += list(set(ModelHistologyPlanned.to_schema().columns.keys()) - set(['channel']))
+    for feature_group in features_list:
+        match feature_group:
+            case 'raw_ap':
+                x_list += list(set(ModelApFeatures.to_schema().columns.keys()) - set(['channel']))
+            case "raw_lf":
+                x_list += list(set(ModelLfFeatures.to_schema().columns.keys()) - set(['channel']))
+            case "raw_lf_csd":
+                x_list += list(set(ModelCsdFeatures.to_schema().columns.keys()) - set(['channel']))
+            case "waveforms":
+                x_list += list(set(ModelSpikeFeatures.to_schema().columns.keys()) - set(['channel']))
+            case "micro-manipulator":
+                x_list += list(set(ModelHistologyPlanned.to_schema().columns.keys()) - set(['channel']))
     return x_list
-
 
 def _get_power_in_band(fscale, period, band):
     band = np.array(band)
