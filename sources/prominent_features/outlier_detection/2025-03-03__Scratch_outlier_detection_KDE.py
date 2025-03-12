@@ -64,15 +64,15 @@ def prep_voltage_dataframe(df_voltage, mapping='Allen', regions=None):
 ## ========
 mapping = 'Beryl'
 label = 'latest'
-features = voltage_features_set()[0:5]  # TODO remove, test on 2 features to begin with
+features = voltage_features_set() #[0:5]  # TODO remove, test on 2 features to begin with
 TEST_TYPE = 'KDE'
 
 # Path where distributions are saved
-# local_data_path = Path('/Users/gaellechapuis/Documents/Work/EphysAtlas/Data')
-# folder_seizure = Path('/Users/gaellechapuis/Documents/Work/EphysAtlas/seizure')
-ROOT = Path(__file__).parent.parent.parent.parent
-local_data_path = ROOT / 'data'
-folder_seizure = ROOT / 'data/seizure'
+local_data_path = Path('/Users/gaellechapuis/Documents/Work/EphysAtlas/Data')
+folder_seizure = Path('/Users/gaellechapuis/Documents/Work/EphysAtlas/seizure')
+# ROOT = Path(__file__).parent.parent.parent.parent
+# local_data_path = ROOT / 'data'
+# folder_seizure = ROOT / 'data/seizure'
 
 # Load dataset
 # === Ephys atlas DF
