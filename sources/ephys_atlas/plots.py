@@ -438,7 +438,7 @@ def get_color_feat(x, cmap_name="viridis"):
 
 def figure_features_chspace(
     pid_df, features, xy, pid, fig=None, axs=None, br=None, mapping="Cosmos",
-    plot_rect=plot_probe_rect,
+    plot_rect=plot_probe_rect, cmap="viridis"
 ):
     """
 
@@ -463,7 +463,7 @@ def figure_features_chspace(
     for i_feat, feature in enumerate(features):
         feat_arr = pid_df[[feature]].to_numpy()
         # Plot feature
-        color = get_color_feat(feat_arr)
+        color = get_color_feat(feat_arr, cmap_name=cmap)
         plot_rect(xy, color, ax=axs[i_feat])
         axs[i_feat].set_title(feature, rotation=90)
 
