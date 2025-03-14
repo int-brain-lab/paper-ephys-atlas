@@ -8,9 +8,17 @@ import ephys_atlas.features
 
 # np.save("/home/olivier/scratch/lfp_destriped.npy", des_lf.astype(np.float16))
 # np.save("/home/olivier/scratch/ap_destriped.npy", des_ap.astype(np.float16))
-#
+
 
 TEST_DATA_PATH = Path("/home/olivier/scratch")
+
+
+class TestFeatureSets(unittest.TestCase):
+
+    def test_sets(self):
+        assert len(ephys_atlas.features.voltage_features_set('all')) == 32
+        assert len(ephys_atlas.features.voltage_features_set('raw_ap')) == 2
+        assert len(ephys_atlas.features.voltage_features_set()) == 23
 
 
 class TestLFPFeatures(unittest.TestCase):

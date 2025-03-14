@@ -6,6 +6,8 @@ Plot of KDEs and similarity matrix
 from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
+
+import ephys_atlas.features
 from iblatlas.atlas import BrainRegions
 import numpy as np
 
@@ -13,7 +15,8 @@ from ephys_atlas.plots import plot_kde, plot_similarity_matrix
 from ephys_atlas.data import prepare_mat_plot, load_tables, prepare_df_voltage
 
 import seaborn as sns
-from ephys_atlas.encoding import voltage_features_set, FEATURES_LIST
+from ephys_atlas.encoding import FEATURES_LIST
+from ephys_atlas.features import voltage_features_set
 from ephys_atlas.plots import color_map_feature
 import ephys_atlas.encoding
 
@@ -77,7 +80,7 @@ for id_feat, feature in enumerate(features):
 
 color_set = color_map_feature()
 
-features_select = ephys_atlas.encoding.voltage_features_set()
+features_select = ephys_atlas.features.voltage_features_set()
 df_f = pd.DataFrame()
 df_f["features"] = features
 df_b = df_f[df_f["features"].isin(features_select)]

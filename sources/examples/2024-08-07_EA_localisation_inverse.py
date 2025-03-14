@@ -10,6 +10,7 @@ import seaborn as sns
 import scipy.stats
 import socket
 
+import ephys_atlas.features
 from brainbox.ephys_plots import plot_brain_regions
 import iblatlas.atlas
 from ibllib.plots import color_cycle
@@ -85,7 +86,7 @@ fig, axs = plt.subplots(
     1, 6, figsize=(16, 8), gridspec_kw={"width_ratios": [7, 1, 1, 1, 2, 7]}
 )
 fig.suptitle(f"Probe {pid}")
-features_list = ephys_atlas.encoding.voltage_features_set()
+features_list = ephys_atlas.features.voltage_features_set()
 sns.heatmap(
     scipy.stats.zscore(df_depths.loc[:, features_list]),
     ax=axs[0],

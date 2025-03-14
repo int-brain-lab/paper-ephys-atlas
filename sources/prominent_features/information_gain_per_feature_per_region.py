@@ -4,7 +4,7 @@ import pandas as pd
 
 from iblatlas.atlas import BrainRegions
 from ephys_atlas.data import load_tables, download_tables
-from ephys_atlas.encoding import voltage_features_set
+from ephys_atlas.features import voltage_features_set
 from ephys_atlas.feature_information import feature_region_entropy
 from one.api import ONE
 

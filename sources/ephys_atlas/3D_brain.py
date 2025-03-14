@@ -6,7 +6,7 @@ NOTES:
 
 """
 
-from ibllib.atlas import NeedlesAtlas, AllenAtlas
+from iblatlas.atlas import NeedlesAtlas, AllenAtlas
 from pprint import pprint
 from pathlib import Path
 
