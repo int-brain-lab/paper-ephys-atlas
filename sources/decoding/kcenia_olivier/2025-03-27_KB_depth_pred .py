@@ -217,19 +217,41 @@ plt.show()
 """
 CODE TO PLOT BRAIN REGIONS AND A FEATURE SIDE BY SIDE - WE WANT THE DEPTH IN THE FEATURE PART
 """ 
+import sys
+sys.path.append('/mnt/h0/kb/code_kcenia/ibllib')
+
+# Now you can import anything from ibllib, like:
+import brainbox
+from brainbox import ephys_plots
+from iblatlas.regions import BrainRegions
+
+
 pids = df_voltage.index.get_level_values(0).unique().tolist()
 
 for pid in pids:
     print(pid)
     pid_df = df_voltage.loc[pid]
 
+first_pid = pids[0]
+df_voltage_test01 = df_voltage.loc[first_pid]
+channel_ids = df_voltage_test01.atlas_id
+
+
+br = BrainRegions()
+region_info = br.get(channel_ids)
+boundaries = np.where(np.diff(region_info.id) != 0)[0]
+boundaries = np.r_[0, boundaries, region_info.id.shape[0] - 1]
+
+regions = np.c_[boundaries[0:-1], boundaries[1:]]
 
 
 
 
 
-for i, pid in enumerate(pids):
+for i, pid in enumerate(pids[:5]):
     # TODO label with the pids
+    n_pids = 5
+    fig, ax = plt.subplots(n_pids, 3, figsize=(12, 4 * n_pids))
     df_pid = df_voltage.loc[pid]
     depth = df_pid.groupby('axial_um').agg(atlas_id=pd.NamedAgg(column='atlas_id', aggfunc='first')).reset_index()
     brainbox.ephys_plots.plot_brain_regions(depth['atlas_id'].values, channel_depths=depth['axial_um'].values,
@@ -251,4 +273,64 @@ for i, pid in enumerate(pids):
     data.clim = clim
     brainbox.ephys_plots.plot_probe(data.convert2dict(), ax=ax[i * 3 + 1], show_cbar=False)
     ax[i * 3 + 1].axis('off')
+# %%
+import matplotlib.pyplot as plt
+
+# Select only the first 5 pids
+pids = df_voltage.index.get_level_values(0).unique().tolist()[:5]
+n_pids = len(pids)
+
+# Set up figure and axes once
+fig, ax = plt.subplots(n_pids, 3, figsize=(1, 4 * n_pids))
+ax = ax.flatten()
+
+br = BrainRegions()
+
+# Use first PID to define regions (you already did this)
+channel_ids = df_voltage.loc[pids[0]].atlas_id
+region_info = br.get(channel_ids)
+boundaries = np.where(np.diff(region_info.id) != 0)[0]
+boundaries = np.r_[0, boundaries, region_info.id.shape[0] - 1]
+regions = np.c_[boundaries[0:-1], boundaries[1:]]
+
+# Now loop through the 5 pids
+for i, pid in enumerate(pids):
+    df_pid = df_voltage.loc[pid]
+    
+    # Plot brain regions
+    depth = df_pid.groupby('axial_um').agg(
+        atlas_id=pd.NamedAgg(column='atlas_id', aggfunc='first')
+    ).reset_index()
+    
+    brainbox.ephys_plots.plot_brain_regions(
+        depth['atlas_id'].values,
+        channel_depths=depth['axial_um'].values,
+        brain_regions=br,
+        display=True,
+        ax=ax[i * 3]
+    )
+    ax[i * 3].set_title(f"Regions - {pid[:8]}")
+
+    # Plot 2D coordinates
+    ax[i * 3 + 2].plot(df_pid['x'].values * 1e6, df_pid['y'].values * 1e6, '.', color='r', markersize=2)
+    ax[i * 3 + 2].plot(df_pid['x'].values[-1] * 1e6, df_pid['y'].values[-1] * 1e6, '*', color='k', markersize=2)
+    ax[i * 3 + 2].axis('off')
+
+    # Plot feature with depth
+    feature = df_pid["cortical_depths"].values
+
+    data_bank, x_bank, y_bank = brainbox.plot_base.arrange_channels2banks(
+        data=feature,
+        chn_coords=df_pid[['lateral_um', 'axial_um']].values,
+        pad=True,
+    )
+    data = brainbox.plot_base.ProbePlot(data_bank, x=x_bank, y=y_bank, cmap='coolwarm')
+    # data.clim = clim
+    # brainbox.ephys_plots.plot_probe(data.convert2dict(), ax=ax[i * 3 + 1], show_cbar=False)
+    ax[i * 3 + 1].axis('off')
+
+# Optional: adjust layout and show/save
+plt.tight_layout()
+plt.show()
+
 # %%
