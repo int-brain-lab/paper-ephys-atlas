@@ -552,7 +552,7 @@ adjust_figure(fig)
 widths = np.r_[np.ones(n_pids), 1.5, 8]
 fig, ax = plt.subplots(1, len(widths), figsize=FIG_SIZE, gridspec_kw={'width_ratios': widths})
 
-feature_name = 'trough_val'
+feature_name = 'cortical_depths'
 colormap = 'PuOr_r'
 feature = df_voltage[feature_name].values
 if feature_name in transform:
@@ -596,3 +596,4 @@ adjust_figure(fig)
 # fig, ax = plt.subplots(1, n_pids * 3  + 2, figsize=FIG_SIZE,
 #                        gridspec_kw={'width_ratios': np.r_[np.ones(n_pids * 3), 1.5, 8]})
 # ba.plot_top(ax=ax[-1])
+# %%
