@@ -202,9 +202,9 @@ plt.show()
 import matplotlib.pyplot as plt
 
 plt.figure(figsize=(6, 6))
-scatter = plt.scatter(y_test, y_pred, c=y_test, cmap='viridis', alpha=0.5)
+scatter = plt.scatter(y_test, y_pred, c=y_test, cmap='viridis', alpha=0.02)
 plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', label='Ideal Prediction')
-
+plt.gca().set(ylim=[-50, 1000])
 plt.xlabel('Actual Depth')
 plt.ylabel('Predicted Depth')
 plt.title('Predicted vs Actual Depth (Color = True Depth)')
@@ -460,17 +460,11 @@ plt.show()
 # %%
 ##############################################
 from pathlib import Path
-
+import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-
-import ephys_atlas.data
-import brainbox.ephys_plots
-import iblatlas.atlas
-import iblatlas.plots
-import matplotlib
 
 def figure_style():
     sns.set(style="ticks", context="paper",
@@ -498,6 +492,17 @@ def figure_style():
     matplotlib.rcParams['pdf.fonttype'] = 42
     matplotlib.rcParams['ps.fonttype'] = 42
 
+
+import ephys_atlas.data
+import brainbox.ephys_plots
+import iblatlas.atlas
+import iblatlas.plots
+import matplotlib
+from iblatlas.atlas import xyz_to_depth
+from one.api import ONE
+
+
+
 MM_TO_INCH = 1 / 25.4
 
 transform = {
@@ -512,20 +517,22 @@ figure_style()
 FIG_SIZE = (13, 6)
 
 
-def adjust_figure(fig):
-    # Remove 7.5 mm of whitespace around figure in all directions
-    adjust = 7.5
-    # Depending on the location of axis labels leave a bit more space
-    extra =  5
-    width, height = fig.get_size_inches() / MM_TO_INCH
-    fig.subplots_adjust(top=1-adjust/height, bottom=(adjust + extra)/height,
-                        left=(adjust + extra)/width, right=1-adjust/width)
+
+
+LOCAL_DATA_PATH = Path.home().joinpath("Downloads")
+LABEL = "2024_W50"  # or put "latest" # or '2024_W50'
+one = ONE(base_url="https://alyx.internationalbrainlab.org", mode='local')
+df_raw_features, df_clusters, df_channels, df_probes = ephys_atlas.data.download_tables(label=LABEL, local_path=LOCAL_DATA_PATH, one=one)
+
+df_voltage = df_raw_features.merge(df_channels, left_index=True, right_index=True)
+
+df_voltage['cortical_depths']  = xyz_to_depth(df_voltage[['x', 'y', 'z']].to_numpy())
+
+
 
 regions = iblatlas.atlas.BrainRegions()
 ba = iblatlas.atlas.AllenAtlas()
 pids = df_voltage.index.get_level_values(0).unique().tolist()[:3]
-df_voltage_3 = df_voltage.loc[pids]
-df_voltage = df_voltage_3
 n_pids = len(pids)
 
 
@@ -536,7 +543,7 @@ ba.plot_top(ax=ax[-1])
 
 for i, pid in enumerate(pids):
     df_pid = df_voltage.loc[pid]
-    depth = df_pid.groupby('axial_um').agg(atlas_id=pd.NamedAgg(column='atlas_id', aggfunc='first')).reset_index()
+    depth = df_pid.groupby('axial_um').agg(atlas_id=pd.NamedAgg(column='atlas_id_target', aggfunc='first')).reset_index()
     brainbox.ephys_plots.plot_brain_regions(depth['atlas_id'].values, channel_depths=depth['axial_um'].values, brain_regions=regions, display=True, ax=ax[i])
     ax[-1].plot(df_pid['x'].values * 1e6, df_pid['y'].values * 1e6, '.', color='r', markersize=2)
     ax[-1].plot(df_pid['x'].values[-1] * 1e6, df_pid['y'].values[-1] * 1e6, '*', color='k', markersize=2)
@@ -545,10 +552,7 @@ plt.show()
 for i in range(len(ax) - 2, len(ax)):
     ax[i].axis('off') #changed
 
-adjust_figure(fig)
-
 # %% Plot the features for the selected pid
-
 widths = np.r_[np.ones(n_pids), 1.5, 8]
 fig, ax = plt.subplots(1, len(widths), figsize=FIG_SIZE, gridspec_kw={'width_ratios': widths})
 
@@ -590,10 +594,3 @@ ax[0].set(ylabel='Depth (um)')
 ax[-2].axis('off')
 fig.suptitle(f'{feature_name}')
 plt.show()
-adjust_figure(fig)
-
-# # %% double trouble
-# fig, ax = plt.subplots(1, n_pids * 3  + 2, figsize=FIG_SIZE,
-#                        gridspec_kw={'width_ratios': np.r_[np.ones(n_pids * 3), 1.5, 8]})
-# ba.plot_top(ax=ax[-1])
-# %%
