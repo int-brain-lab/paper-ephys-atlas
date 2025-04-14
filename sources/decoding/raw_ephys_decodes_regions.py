@@ -8,8 +8,11 @@ from xgboost import XGBClassifier  # pip install xgboost  # https://xgboost.read
 
 from iblutil.numerical import ismember
 import ephys_atlas.encoding
+import ephys_atlas.decoding
 import ephys_atlas.anatomy
 import ephys_atlas.data
+import ephys_atlas.features
+
 # we are shooting for around 55% accuracy
 
 
@@ -23,19 +26,20 @@ import ephys_atlas.data
 brain_atlas = ephys_atlas.anatomy.EncodingAtlas()
 # brain_atlas = ephys_atlas.anatomy.AllenAtlas()  # Accuracy: 0.5536619920744102
 
-path_features = Path('/mnt/s0/ephys-atlas-decoding/features/2024_W50')  # parede
 path_features = Path('/Users/olivier/Documents/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding/features/2024_W50')  # mac
 path_features = Path('/datadisk/Data/paper-ephys-atlas/ephys-atlas-decoding/features/2024_W50')  # mac
-
+path_features = Path('/mnt/s0/ephys-atlas-decoding/features/2024_W50')  # parede
+path_models = path_features.parents[1].joinpath('models')
+path_models.mkdir(exist_ok=True)
 df_features = pd.read_parquet(path_features / 'raw_ephys_features_denoised.pqt')
 df_features = df_features.merge(pd.read_parquet(path_features / 'channels.pqt'), how='inner', right_index=True, left_index=True)
 df_features = df_features.merge(pd.read_parquet(path_features / 'channels_labels.pqt').fillna(0), how='inner', right_index=True, left_index=True)
 ephys_atlas.data.load_tables(local_path=path_features)
 
 
-FEATURE_SET = ['raw_ap', 'raw_lf', 'raw_lf_csd', 'localisation', 'waveforms', 'micro-manipulator']
-x_list = sorted(ephys_atlas.encoding.voltage_features_set(FEATURE_SET))
-x_list.append('cor_ratio')
+FEATURE_SET = ['raw_lf', 'raw_lf_csd', 'raw_ap', 'localisation', 'waveforms', 'micro-manipulator']
+FEATURE_SET = ['raw_lf', 'raw_lf_csd', 'raw_ap', 'micro-manipulator']
+x_list = ephys_atlas.features.voltage_features_set(FEATURE_SET)
 
 df_features['outside'] = df_features['labels'] == 3
 x_list.append('outside')
@@ -57,6 +61,7 @@ test_sets = {
 all_classes = np.unique(df_features.loc[:, TRAIN_LABEL])
 
 def train(test_idx, fold_label):
+
     train_idx = ~test_idx
     print(f"{fold_label}: {df_features.shape[0]} channels", f'training set {np.sum(test_idx) / test_idx.size}')
     df_features.loc[train_idx, :].groupby(TRAIN_LABEL).count()
@@ -73,6 +78,7 @@ def train(test_idx, fold_label):
     # 0.5376271321378102
     #  create model instance
     classifier = XGBClassifier(device='gpu', verbosity=2)
+
     # fit model
     classifier.fit(x_train, iy_train)
     # make predictions
@@ -84,10 +90,11 @@ def train(test_idx, fold_label):
     print(f"{fold_label} Accuracy: {accuracy}")
 
     np.testing.assert_array_equal(classes, all_classes)
-    return classifier.predict_proba(x_test)
-
+    return classifier.predict_proba(x_test), classifier, accuracy
 
 # %%
+IDENTIFIER = 'lid-basket-sense'
+IDENTIFIER = 'voter-snap-pudding'
 n_folds = 5
 all_pids = np.array(df_features.index.get_level_values(0).unique())
 np.random.seed(12345)
@@ -98,11 +105,21 @@ df_predictions = pd.DataFrame(index=df_features.index, columns=list(all_classes)
 for i in range(n_folds):
     test_pids = all_pids[ifold == i]
     test_idx = np.isin(df_features.index.get_level_values(0), test_pids)
-    probas = train(test_idx=test_idx, fold_label=f'fold {i}')
+    probas, classifier, accuracy = train(test_idx=test_idx, fold_label=f'fold {i}')
     df_predictions.loc[test_idx, all_classes] = probas
+    meta = dict(
+        RANDOM_SEED=713705,
+        VINTAGE="2024_W50",
+        REGION_MAP="Cosmos",
+        FEATURES=x_list,
+        CLASSES=[int(c) for c in all_classes],
+        ACCURACY=accuracy,
+        )
+    path_model = ephys_atlas.decoding.save_model(path_models, classifier, meta, subfolder=f'FOLD{i :02d}', identifier=IDENTIFIER)
 
-df_predictions.to_parquet(path_features / 'predictions_Cosmos.pqt')
+df_predictions.to_parquet(path_models / 'predictions_Cosmos.pqt')
 
+# lid_basket_sense
 # fold 0: 384215 channels training set 0.2008120453391981
 # fold 0 Accuracy: 0.6679541183332254
 # fold 1: 384215 channels training set 0.19975013989563134

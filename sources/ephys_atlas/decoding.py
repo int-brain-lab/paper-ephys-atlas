@@ -6,33 +6,8 @@ import yaml
 import numpy as np
 from xgboost import XGBClassifier
 
+from ephys_atlas.data import save_model  # NO QA
 from iblutil.util import Bunch
-
-
-def save_model(path_model, classifier, meta, subfolder=""):
-    """
-    Save model to disk in ubj format with associated meta-data and a hash
-    The model is a set of files in a folder named after the meta-data
-     'VINTAGE' and 'REGION_MAP' fields, with the hash as suffix e.g. 2023_W41_Cosmos_dfd731f0
-    :param classifier:
-    :param meta:
-    :param path_model:
-    :param subfolder: optional level to add to the model path, for example 'FOLD01' will write to
-        2023_W41_Cosmos_dfd731f0/FOLD01/
-    :return:
-    """
-    meta.MODEL_CLASS = (
-        f"{classifier.__class__.__module__}.{classifier.__class__.__name__}"
-    )
-    hash = hashlib.md5(yaml.dump(meta).encode("utf-8")).hexdigest()[:8]
-    path_model = path_model.joinpath(
-        f"{meta['VINTAGE']}_{meta['REGION_MAP']}_{hash}", subfolder
-    )
-    path_model.mkdir(exist_ok=True, parents=True)
-    with open(path_model.joinpath("meta.yaml"), "w+") as fid:
-        fid.write(yaml.dump(dict(meta)))
-    classifier.save_model(path_model.joinpath("model.ubj"))
-    return path_model
 
 
 def load_model(path_model):

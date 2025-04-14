@@ -6,7 +6,8 @@ import seaborn as sns
 
 from iblatlas.atlas import BrainRegions
 from ephys_atlas.data import load_tables, download_tables
-from ephys_atlas.encoding import voltage_features_set, FEATURES_LIST
+from ephys_atlas.encoding import FEATURES_LIST
+from ephys_atlas.features import voltage_features_set
 from ephys_atlas.plots import color_map_feature
 from ephys_atlas.feature_information import feature_overall_entropy
 from one.api import ONE

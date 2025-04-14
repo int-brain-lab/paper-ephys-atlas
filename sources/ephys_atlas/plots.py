@@ -6,18 +6,15 @@ import numpy as np
 import matplotlib.patches as patches
 from iblatlas.atlas import BrainRegions
 from ephys_atlas.data import compute_summary_stat
-from ephys_atlas.encoding import FEATURES_LIST
-from matplotlib import (
-    cm,
-)  # This is deprecated, but cannot import matplotlib.colormaps as cm
+import ephys_atlas.features
+
 from brainbox.plot_base import ProbePlot, arrange_channels2banks, plot_probe
 from brainbox.ephys_plots import plot_brain_regions
 from matplotlib.patches import Rectangle
 import matplotlib
-import scipy
 
 
-def color_map_feature(feature_list=FEATURES_LIST, cmap="Pastel1_r", n_inc=12):
+def color_map_feature(feature_list=None, cmap="Pastel1_r", n_inc=12):
     # color_map = cm.get_cmap(cmap, n_inc)
     # np.linspace(0, 1, num=len(feature_list))
     # color_alpha = color_map(np.linspace(0, 1, num=len(feature_list)))
@@ -27,10 +24,10 @@ def color_map_feature(feature_list=FEATURES_LIST, cmap="Pastel1_r", n_inc=12):
     # list_out = list()
     # for i_col in list_col:
     #     list_out.append(tuple(i_col))
-    # TODO above is correct but umpractical ?
+    if feature_list is None:
+        feature_list = ephys_atlas.features.FEATURES_LIST
     list_out = ["m", "g", "m", "b"]
-    assert len(list_out) == len(FEATURES_LIST)
-
+    assert len(list_out) == len(feature_list)
     return list_out
 
 
@@ -532,4 +529,65 @@ def plt_unit_acg(
         f"firing_rate {np.around(info_cell.firing_rate, decimals=2)} Hz, "
         f"label {np.around(info_cell.label, decimals=1)}"
     )
+    return fig, ax
+
+
+def region_bars_horizontal(atlas_id, feature, regions=None, scale="linear", ylims=None, nrows=3, error_bars=None, title=None):
+    """
+    Plot horizontal bars for a given feature and regions.
+
+    :param atlas_id: Atlas id (e.g., Allen)
+    :param feature: Feature to plot (e.g., a vector of features values')
+    :param regions: Brain regions object
+    :param scale: Scale for y-axis (linear or log)
+    :param ylims: Y-axis limits
+    :param nrows: Number of rows for the plot
+    :param error_bars: Error bars for the feature
+    :param title: Title for the plot
+    :return: Figure and axis
+    :return:
+    """
+    if regions is None:
+        regions = BrainRegions()
+    fs = 5
+    barwidth = 0.9
+    nfeats = feature.size
+
+    _, rids, fids = np.intersect1d(regions.id, atlas_id, return_indices=True)
+    ordre = np.flipud(np.argsort(rids))
+    _feature = feature[fids[ordre]]
+    rids = rids[ordre]
+
+    fig, ax = plt.subplots(nrows=nrows, figsize=(12, 6))
+    ylims = ylims or [np.nanmin(_feature), np.nanmax(_feature)]
+
+    for k, k0 in zip(range(nrows), reversed(range(nrows))):
+        cind = slice(k0 * nfeats // nrows, (k0 + 1) * nfeats // nrows)
+        _colours = regions.rgb[rids[cind], :].astype(np.float32) / 255
+        _acronyms = regions.acronym[rids[cind]]
+        nbars = _colours.shape[0]
+
+        bars = ax[k].bar(np.arange(nbars), _feature[cind], color=_colours, width=barwidth)
+        ax[k].set(yscale=scale, xticks=np.arange(nbars), ylim=ylims)
+        ax[k].tick_params(axis="x", pad=2, left=False)
+        ax[k].set_xticklabels(_acronyms, fontsize=fs, ha="center")
+
+        # indicate 10% with black line
+        if error_bars is not None:
+            if error_bars.ndim == 2:
+                error_min = error_bars[ordre, 0][cind]
+                error_max = error_bars[ordre, 1][cind]
+            elif error_bars.ndim == 1:
+                error_min = _feature[cind] - error_bars[ordre][cind]
+                error_max = _feature[cind] + error_bars[ordre][cind]
+            xmin = np.array([plt.getp(item, 'x') for item in bars])
+            xmax = xmin + [plt.getp(item, 'width') for item in bars]
+            ax[k].hlines(error_min, xmin, xmax, linewidth=1, color=_colours)
+            ax[k].hlines(error_max, xmin, xmax, linewidth=1, color=_colours)
+            ax[k].vlines((xmin + xmax) / 2, error_min, error_max, color=_colours, linewidth=1, alpha=0.5)
+
+        for xtick, color in zip(ax[k].get_xticklabels(), _colours):
+            xtick.set_color(color)
+    fig.suptitle(title) if title else None
+    fig.tight_layout()
     return fig, ax

@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 import ephys_atlas.data
 import ephys_atlas.plots
-from ephys_atlas.encoding import voltage_features_set
+from ephys_atlas.features import voltage_features_set
 from iblatlas.atlas import BrainRegions
 from one.api import ONE
 import os
