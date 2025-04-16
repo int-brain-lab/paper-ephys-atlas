@@ -62,10 +62,10 @@ def prep_voltage_dataframe(df_voltage, mapping='Allen', regions=None):
     return df_voltage
 
 ## ========
-mapping = 'Beryl'
+mapping = 'Cosmos'
 label = 'latest'
 features = voltage_features_set() #[0:5]  # TODO remove, test on 2 features to begin with
-TEST_TYPE = 'KDE'
+TEST_TYPE = 'KSTest' #'KDE'
 
 # Path where distributions are saved
 local_data_path = Path('/Users/gaellechapuis/Documents/Work/EphysAtlas/Data')
