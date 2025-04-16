@@ -483,6 +483,20 @@ def load_tables(local_path, verify=False):
     return df_voltage, df_clusters, df_channels, df_probes
 
 
+def prep_voltage_dataframe(df_voltage, mapping='Allen', regions=None):
+    regions = BrainRegions() if regions is None else regions
+    df_voltage.replace([np.inf, -np.inf], np.nan, inplace=True)
+    if mapping != "Allen":
+        df_voltage[mapping + "_id"] = regions.remap(
+            df_voltage["Allen_id"], source_map="Allen", target_map=mapping
+        )
+        df_voltage[mapping + "_acronym"] = regions.id2acronym(
+            df_voltage[mapping + "_id"]
+        )
+
+    return df_voltage
+
+
 def read_correlogram(file_correlogram, nclusters):
     nbins = int(Path(file_correlogram).stat().st_size / nclusters / 4)
     mmap_correlogram = np.memmap(
