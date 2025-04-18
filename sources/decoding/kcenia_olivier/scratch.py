@@ -14,6 +14,63 @@ import matplotlib
 import iblatlas.atlas
 from iblatlas.gui import atlasview
 
+from iblutil.numerical import ismember
+import matplotlib.pyplot as plt
+from iblatlas.atlas import get_bc, BrainAtlas, aws, AllenAtlas
+from iblatlas.regions import BrainRegions
+
+def _download_depth_files(file_name):
+    """
+    Download and return path to relevant file
+    :param file_name:
+    :return:
+    """
+    file_path = BrainAtlas._get_cache_dir().joinpath('depths', file_name)
+    if not file_path.exists():
+        file_path.parent.mkdir(exist_ok=True, parents=True)
+        aws.s3_download_file(f'atlas/depths/{file_path.name}', file_path)
+
+    return file_path
+def xyz_to_depth(xyz, per=True, res_um=25):
+    """
+    For a given xyz coordinates return the depth from the surface of the cortex. The depth is returned
+    as a percentage if per=True and in um if per=False. Note the lookup will only work for xyz cooordinates
+    that are in the Isocortex of the Allen volume. If coordinates outside of this region are given then
+    the depth is returned as nan.
+
+    Parameters
+    ----------
+    xyz : numpy.array
+        An (n, 3) array of Cartesian coordinates. The order is ML, AP, DV and coordinates should be given in meters
+        relative to bregma.
+
+    per : bool
+        Whether to do the lookup in percentage from the surface of the cortex or depth in um from the surface of the cortex.
+
+    res_um : float or int
+        The resolution of the brain atlas to do the depth lookup
+
+    Returns
+    -------
+        numpy.array
+        The depths from the surface of the cortex for each cartesian coordinate. If the coordinate does not lie within
+        the Isocortex, depth value returned is nan
+    """
+
+    ind_flat = np.load(_download_depth_files(f'depths_ind_{res_um}.npy'))
+    depth_file = f'depths_per_{res_um}.npy' if per else f'depths_um_{res_um}.npy'
+    depths = np.load(_download_depth_files(depth_file))
+    bc = get_bc(res_um=res_um)
+
+    ixyz = bc.xyz2i(xyz, mode='clip')
+    iravel = np.ravel_multi_index((ixyz[:, 1], ixyz[:, 0], ixyz[:, 2]), (bc.ny, bc.nx, bc.nz))
+    a, b = ismember(iravel, ind_flat)
+
+    lookup_depths = np.full(iravel.shape, np.nan, dtype=np.float32)
+    lookup_depths[a] = depths[b]
+
+    return lookup_depths
+
 ba = iblatlas.atlas.AllenAtlas()
 
 MM_TO_INCH = 1 / 25.4
@@ -34,7 +91,8 @@ df_voltage, df_clusters, df_channels, df_probes = ephys_atlas.data.load_voltage_
 regions = iblatlas.atlas.BrainRegions()
 
 all_pids = df_voltage.index.get_level_values(0).unique().tolist()
-df_voltage['cortical_depth'] = iblatlas.atlas.xyz_to_depth(df_voltage.loc[:, ['x', 'y', 'z']].values)
+# df_voltage['cortical_depth'] = iblatlas.atlas.xyz_to_depth(df_voltage.loc[:, ['x', 'y', 'z']].values)
+df_voltage['cortical_depth'] = xyz_to_depth(df_voltage.loc[:, ['x', 'y', 'z']].values, per=True)
 
 
 
@@ -71,3 +129,4 @@ plt.show()
 
 for i in np.r_[np.arange(2, len(ax) -1, 2),  np.arange(len(ax) - 2, len(ax))]:
     ax[i].axis('off') #changed
+# %%

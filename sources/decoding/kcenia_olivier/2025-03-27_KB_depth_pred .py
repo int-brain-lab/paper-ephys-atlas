@@ -24,7 +24,7 @@ import ephys_atlas.decoding
 import ephys_atlas.anatomy
 import ephys_atlas.data
 import ephys_atlas.features
-from iblatlas.atlas import xyz_to_depth
+# from iblatlas.atlas import xyz_to_depth
 
 
 import seaborn as sns
@@ -37,7 +37,75 @@ from sklearn.metrics import r2_score, mean_squared_error
 from sklearn.tree import DecisionTreeRegressor
 
 
+import brainbox.ephys_plots
+import iblatlas.atlas
+import iblatlas.plots
+import matplotlib
+
+import iblatlas.atlas
+from iblatlas.gui import atlasview
+
 from iblatlas.atlas import BrainRegions
+
+from iblutil.numerical import ismember
+import matplotlib.pyplot as plt
+from iblatlas.atlas import get_bc, BrainAtlas, aws, AllenAtlas
+from iblatlas.regions import BrainRegions
+
+def _download_depth_files(file_name):
+    """
+    Download and return path to relevant file
+    :param file_name:
+    :return:
+    """
+    file_path = BrainAtlas._get_cache_dir().joinpath('depths', file_name)
+    if not file_path.exists():
+        file_path.parent.mkdir(exist_ok=True, parents=True)
+        aws.s3_download_file(f'atlas/depths/{file_path.name}', file_path)
+
+    return file_path
+def xyz_to_depth(xyz, per=True, res_um=25):
+    """
+    For a given xyz coordinates return the depth from the surface of the cortex. The depth is returned
+    as a percentage if per=True and in um if per=False. Note the lookup will only work for xyz cooordinates
+    that are in the Isocortex of the Allen volume. If coordinates outside of this region are given then
+    the depth is returned as nan.
+
+    Parameters
+    ----------
+    xyz : numpy.array
+        An (n, 3) array of Cartesian coordinates. The order is ML, AP, DV and coordinates should be given in meters
+        relative to bregma.
+
+    per : bool
+        Whether to do the lookup in percentage from the surface of the cortex or depth in um from the surface of the cortex.
+
+    res_um : float or int
+        The resolution of the brain atlas to do the depth lookup
+
+    Returns
+    -------
+        numpy.array
+        The depths from the surface of the cortex for each cartesian coordinate. If the coordinate does not lie within
+        the Isocortex, depth value returned is nan
+    """
+
+    ind_flat = np.load(_download_depth_files(f'depths_ind_{res_um}.npy'))
+    depth_file = f'depths_per_{res_um}.npy' if per else f'depths_um_{res_um}.npy'
+    depths = np.load(_download_depth_files(depth_file))
+    bc = get_bc(res_um=res_um)
+
+    ixyz = bc.xyz2i(xyz, mode='clip')
+    iravel = np.ravel_multi_index((ixyz[:, 1], ixyz[:, 0], ixyz[:, 2]), (bc.ny, bc.nx, bc.nz))
+    a, b = ismember(iravel, ind_flat)
+
+    lookup_depths = np.full(iravel.shape, np.nan, dtype=np.float32)
+    lookup_depths[a] = depths[b]
+
+    return lookup_depths
+
+ba = iblatlas.atlas.AllenAtlas()
+
 
 # %%
 LOCAL_DATA_PATH = Path.home().joinpath("Downloads")
@@ -50,7 +118,7 @@ df_raw_features, df_clusters, df_channels, df_probes = ephys_atlas.data.download
 
 df_voltage = df_raw_features.merge(df_channels, left_index=True, right_index=True)
 
-df_voltage['cortical_depths']  = xyz_to_depth(df_voltage[['x', 'y', 'z']].to_numpy())
+df_voltage['cortical_depths']  = xyz_to_depth(df_voltage[['x', 'y', 'z']].to_numpy(), per=True) #change here for percentage per=True
 df_voltage = df_voltage.dropna().copy()
 
 print(df_voltage.dropna().shape)
