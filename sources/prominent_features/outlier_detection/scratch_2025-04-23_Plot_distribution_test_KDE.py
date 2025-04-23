@@ -97,6 +97,4 @@ plot_histogram(series, ax=ax, xlabel=feature, title=None)
 plt.show()
 
 y = df_new_compute[feature].values
-plt.scatter(y, 2000 * np.ones(y.shape))
-
 seaborn.scatterplot(data=df_new_compute, x=feature, y=2000, hue='score')
