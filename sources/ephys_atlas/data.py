@@ -444,11 +444,11 @@ def load_voltage_features(local_path, regions=None, mapping="Cosmos"):
         # this path contains channels.pqt, clusters.pqt and raw_ephys_features.pqt
         local_path = Path(config["paths"]["features"]).joinpath("latest")
     df_voltage, df_clusters, df_channels, df_probes = load_tables(Path(local_path))
+    df_voltage = pd.merge(df_voltage, df_channels, left_index=True, right_index=True)
     df_voltage = df_voltage.rename(
         columns={"atlas_id": "Allen_id", "acronym": "Allen_acronym"}
     )
     df_voltage = prep_voltage_dataframe(df_voltage, mapping=mapping, regions=regions)
-    df_voltage = pd.merge(df_voltage, df_channels, left_index=True, right_index=True)
     df_voltage["pids"] = df_voltage.index.get_level_values(0)
     _logger.info(f"Loaded {df_voltage.shape[0]} channels")
     df_voltage = df_voltage.dropna()
