@@ -151,7 +151,7 @@ print(f'R² score: {r2:.4f}')
 print(f'Mean Squared Error: {mse:.4f}')
 
 # %%
-model = DecisionTreeRegressor(max_depth=5)
+model = DecisionTreeRegressor(max_depth=20)
 model.fit(X_train, y_train)
 
 # 4. Predict on test set
@@ -250,6 +250,85 @@ mlp_model = MLPRegressor(hidden_layer_sizes=(50, 30), max_iter=1000, random_stat
 mlp_model.fit(X_train, y_train)
 y_pred = mlp_model.predict(X_test)
 print(f"MLPRegressor: R² = {r2_score(y_test, y_pred):.4f}, MSE = {mean_squared_error(y_test, y_pred):.4f}")
+
+
+
+#%% 
+########################
+# ADDED 24042025 - new way of using stratify
+# 1. Get features and target
+x_list = ephys_atlas.features.voltage_features_set(features_list=['raw_ap', 'raw_lf', 'raw_lf_csd', 'waveforms'])
+X = df_voltage.loc[:, x_list].values
+Y = df_voltage['cortical_depths'].to_numpy()
+
+# 2. Stratify by 'pid'
+stratify = df_voltage.index.get_level_values("pid").to_numpy()
+
+# 3. Split using indices
+train_idx, test_idx = train_test_split(
+    np.arange(len(Y)),
+    test_size=0.2,
+    random_state=42,
+    stratify=stratify
+)
+
+# 4. Scale *using only training data*
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X[train_idx])
+X_test = scaler.transform(X[test_idx])
+y_train = Y[train_idx]
+y_test = Y[test_idx]
+
+
+# 5. Initialize and train the model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# 6. Predict on test set
+y_pred = model.predict(X_test)
+
+# 7. Evaluate the model
+r2 = r2_score(y_test, y_pred)
+mse = mean_squared_error(y_test, y_pred)
+
+print(f'R² score: {r2:.4f}')
+print(f'Mean Squared Error: {mse:.4f}')
+#R2 goes from: R² score: -0.7229 with the previous code, to this: R² score: 0.1554
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #%%
 """
@@ -661,4 +740,4 @@ for i, pid in enumerate(pids):
 ax[0].set(ylabel='Depth (um)')
 ax[-2].axis('off')
 fig.suptitle(f'{feature_name}')
-plt.show()
+plt.show()atlas_id
