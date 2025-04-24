@@ -40,31 +40,31 @@ regions = np.unique(df_new[mapping + '_id']).astype(int)
 
 for count, region in tqdm.tqdm(enumerate(regions), total=len(regions)):
 
-    # Load data for that regions
-    df_region = select_series(df_base, features=features,
-                              acronym=None, id=region, mapping=mapping)
-
-    # Get channel indices that are in region, keeping only feature values
-    df_new_compute = select_series(df_new, features=features,
-                                   acronym=None, id=region, mapping=mapping)
-
     # Get channel indices that are in region, but keeping all info besides features
     idx_reg = np.where(df_new[mapping + '_id'] == region)
-    df_new_compute2 = df_new.iloc[idx_reg].copy()
+    df_new_compute = df_new.iloc[idx_reg].copy()
 
     for feature in features:
+        # Load data for that regions
+        df_train = select_series(df_base, features=[feature],
+                                 acronym=None, id=region, mapping=mapping)
+
+        # Get channel indices that are in region, keeping only feature values
+        df_test = select_series(df_new, features=[feature],
+                                acronym=None, id=region, mapping=mapping)
+
         # For all channels at once, test if outside the distribution for the given features
-        train_data = df_region.to_numpy()
-        test_data = df_new_compute.to_numpy()
+        train_data = df_train.to_numpy()
+        test_data = df_test.to_numpy()
         score_out = detect_outliers_kde(train_data, test_data)
         # Save into new column
-        df_new_compute2[feature + '_q'] = score_out  # TODO check ordering of channels
+        df_new_compute[feature + '_q'] = score_out  # TODO check ordering of channels
 
     # Concatenate dataframes
     if count == 0:
-        df_save = df_new_compute2.copy()
+        df_save = df_new_compute.copy()
     else:
-        df_save = pd.concat([df_save, df_new_compute2])
+        df_save = pd.concat([df_save, df_new_compute])
 
 ##
 # Assign high and low values for picked threshold

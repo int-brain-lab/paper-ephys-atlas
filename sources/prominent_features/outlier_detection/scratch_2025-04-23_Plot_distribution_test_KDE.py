@@ -58,7 +58,7 @@ df_new_compute['score'] = score_out
 # -- Plot example
 feature = features[0]
 fig, ax = plt.subplots()
-series = select_series(df_voltage, feature, id=region)
+series = select_series(df_base, feature, id=region)
 plot_histogram(series, ax=ax, xlabel=feature, title=None)
 # Tailored for alpha_mean : plot_histogram(series, ax=ax, xlabel=feature, title=None, bins=np.linspace(0,2000,100))
 plt.show()
