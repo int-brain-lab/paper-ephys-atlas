@@ -6,46 +6,17 @@ from ephys_atlas.features import voltage_features_set
 from pathlib import Path
 import seaborn
 from one.api import ONE
-##
 import numpy as np
-from sklearn.neighbors import KernelDensity
-
-def detect_outliers_kde(train_data: np.ndarray, test_data: np.ndarray, kde=None):
-    """
-    Detects outliers in D-dimensional space using Kernel Density Estimation (KDE).
-
-    Parameters:
-    - train_data: (N, D) numpy array, training dataset (assumed to represent the true distribution).
-    - test_data: (M, D) numpy array, test dataset (points to evaluate for outlier probability).
-
-    Returns:
-    - outlier_probs: (M,) numpy array, probability of each test sample being an outlier.
-    """
-    # If kde is set, it is assumed to be alread trained
-    if not kde:
-        kde = KernelDensity()
-        kde.fit(train_data)
-
-    score_train = kde.score_samples(train_data)  # (N channel train,)
-    score_test = kde.score_samples(test_data)  # (N channel test,)
-    # We need to create a matrix
-    # Put score train vertically, score test horizontally
-    score_train = score_train[:, np.newaxis]
-    score_test = score_test[np.newaxis, :]
-    # We want the value of the KDE for the train samples to be higher than the test
-    out = score_train >= score_test
-    # This is the probability for the samples to be outliers
-    return out.mean(axis=0)
-
+from ephys_atlas.outliers import detect_outliers_kde
 
 ##
-one = ONE()
 mapping = 'Beryl'
 label = 'latest'
 features = voltage_features_set()
 local_data_path = Path('/Users/gaellechapuis/Documents/Work/EphysAtlas/Data/23AprTest')
 
 # -- Force download and load Ephys atlas DF
+# one = ONE()
 # download_tables(local_data_path, label=label, one=one, verify=False, overwrite=False, extended=False)
 df_voltage, _, _, _ = \
     load_voltage_features(local_data_path.joinpath(label), mapping=mapping) # df_clusters, df_channels, df_probes
@@ -53,7 +24,7 @@ df_voltage, _, _, _ = \
 # -- Check that features are in df columns
 features = sorted(list(set(df_voltage.columns).intersection(set(features))))
 
-features = ['rms_ap']
+features =  features[0:2] #['rms_ap']
 
 ##
 # Take PID into new DF and drop PID from df_voltage (baseline distribution)
