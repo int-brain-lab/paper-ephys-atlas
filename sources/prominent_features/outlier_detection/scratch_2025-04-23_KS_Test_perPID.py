@@ -15,7 +15,7 @@ def detect_outlier_kstest(sample_values, cdf):
     pval = np.zeros(sample_values.shape)
     for count, sample in enumerate(sample_values):  # Test on each channel value independently
         ks_stat = stats.kstest(sample, cdf)
-        pval[count] = ks_stat.pvalue
+        pval[count] = ks_stat.statistic # ks_stat.pvalue
     return pval
 ##
 one = ONE()
@@ -43,7 +43,7 @@ df_base = df_voltage.drop(idx).copy()
 # -- Plot example
 feature = 'alpha_mean'
 fig, ax = plt.subplots()
-series = select_series(df_voltage, feature, acronym='void')
+series = select_series(df_base, feature, acronym='void')
 plot_histogram(series, ax=ax, xlabel=feature, title=None, bins=np.linspace(0,2000,100))
 plt.show()
 
@@ -100,3 +100,17 @@ fig, axs = figure_features_chspace(pid_ch_df, [s + '_q' for s in features], xy, 
 fig, axs = figure_features_chspace(pid_ch_df, [s + '_extremes' for s in features], xy, pid=pid, mapping=mapping, plot_rect=plot_probe_rect2)
 
 plt.show()
+
+##
+# Plot distribution
+import seaborn
+feature = features[2]
+fig, ax = plt.subplots()
+series = select_series(df_base, feature, id=region)
+plot_histogram(series, ax=ax, xlabel=feature, title=None)
+plt.show()
+
+idx_reg = np.where(df_save[mapping + '_id'] == region)
+df_plot = df_save.iloc[idx_reg].copy()
+seaborn.scatterplot(data=df_plot, x=feature, y=1200, hue=f'{feature}_extremes')
+seaborn.scatterplot(data=df_plot, x=feature, y=1000, hue=f'{feature}_q')

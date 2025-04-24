@@ -24,11 +24,11 @@ df_voltage, _, _, _ = \
 
 # -- Check that features are in df columns
 features = sorted(list(set(df_voltage.columns).intersection(set(features))))
-features = features[0:3]
+# features = ['alpha_mean', 'rms_lf', 'depolarisation_slope']
 
 ##
 # Take PID into new DF and drop PID from df_voltage (baseline distribution)
-pid = '0ce74616-abf8-47c2-86d9-f821cd25efd3'
+pid = '091392a5-73f6-40f3-8552-fa917cf96deb'
 idx = df_voltage[df_voltage['pids'] == pid].index
 
 df_new = df_voltage.loc[idx].copy()
@@ -85,3 +85,18 @@ fig, axs = figure_features_chspace(pid_ch_df, [s + '_q' for s in features], xy, 
 fig, axs = figure_features_chspace(pid_ch_df, [s + '_extremes' for s in features], xy, pid=pid, mapping=mapping, plot_rect=plot_probe_rect2)
 
 plt.show()
+
+##
+# Plot distribution
+import seaborn
+feature = features[2]
+fig, ax = plt.subplots()
+series = select_series(df_base, feature, id=region)
+plot_histogram(series, ax=ax, xlabel=feature, title=None)
+# Tailored for alpha_mean : plot_histogram(series, ax=ax, xlabel=feature, title=None, bins=np.linspace(0,2000,100))
+plt.show()
+
+idx_reg = np.where(df_save[mapping + '_id'] == region)
+df_plot = df_save.iloc[idx_reg].copy()
+seaborn.scatterplot(data=df_plot, x=feature, y=1200, hue=f'{feature}_extremes')
+seaborn.scatterplot(data=df_plot, x=feature, y=1000, hue=f'{feature}_q')
