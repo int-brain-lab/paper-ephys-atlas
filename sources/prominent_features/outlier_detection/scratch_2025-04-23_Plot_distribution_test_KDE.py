@@ -67,31 +67,27 @@ df_base = df_voltage.drop(idx).copy()
 ##
 # Regions
 regions = np.unique(df_new[mapping + '_id']).astype(int)
-region = regions[0]
+region = regions[1]
 
 # Load data for that regions
-df_region = select_series(df_voltage, features=features,
+df_region = select_series(df_base, features=features,
                           acronym=None, id=region, mapping=mapping)
 
 # Get channel indices that are in region, keeping only feature values
 df_new_compute = select_series(df_new, features=features,
                                acronym=None, id=region, mapping=mapping)
-# # Get channel indices that are in region, but keeping all info besides features
-# idx_reg = np.where(df_new[mapping + '_id'] == region)
-# df_new_compute2 = df_new.iloc[idx_reg].copy()
 
 # Compute test/train sets
 train_data = df_region.to_numpy()
 test_data = df_new_compute.to_numpy()
 
-# score_out = detect_outliers_kde(train_data, test_data)
 score_out = detect_outliers_kde(train_data, test_data)
 df_new_compute['score'] = score_out
 ##
 # -- Plot example
 feature = features[0]
 fig, ax = plt.subplots()
-series = select_series(df_voltage, feature, acronym='void')
+series = select_series(df_voltage, feature, id=region)
 plot_histogram(series, ax=ax, xlabel=feature, title=None)
 # Tailored for alpha_mean : plot_histogram(series, ax=ax, xlabel=feature, title=None, bins=np.linspace(0,2000,100))
 plt.show()
