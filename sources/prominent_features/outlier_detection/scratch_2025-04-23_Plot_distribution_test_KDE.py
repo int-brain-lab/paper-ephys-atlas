@@ -24,7 +24,7 @@ df_voltage, _, _, _ = \
 # -- Check that features are in df columns
 features = sorted(list(set(df_voltage.columns).intersection(set(features))))
 
-features =  features[0:2] #['rms_ap']
+features =  features[0:1] #['rms_ap']
 
 ##
 # Take PID into new DF and drop PID from df_voltage (baseline distribution)

@@ -59,7 +59,7 @@ regions = np.unique(df_new[mapping + '_id']).astype(int)
 for count, region in tqdm.tqdm(enumerate(regions), total=len(regions)):
 
     # Load data for that regions
-    df_region = select_series(df_voltage, features=features,
+    df_region = select_series(df_base, features=features,
                               acronym=None, id=region, mapping=mapping)
 
     # Get channel indices that are in region
