@@ -19,8 +19,7 @@ def detect_outliers_kde(train_data: np.ndarray, test_data: np.ndarray, kde=None)
     """
     # If kde is set, it is assumed to be alread trained
     if not kde:
-        kde = KernelDensity()
-        kde.fit(train_data)
+        kde = kde_fit_params(train_data)
     # Scores are logp
     score_train = kde.score_samples(train_data)  # (N,)
     score_test = kde.score_samples(test_data)  # (M,)
@@ -33,6 +32,11 @@ def detect_outliers_kde(train_data: np.ndarray, test_data: np.ndarray, kde=None)
     # This is the probability for the samples to be outliers
     return out.mean(axis=0)
 
+
+def kde_fit_params(train_data):
+    kde = KernelDensity(bandwidth=np.std(train_data) / 16, kernel='gaussian')
+    kde.fit(train_data)
+    return kde
 
 def detect_outlier_kstest(train_data: np.ndarray, test_data: np.ndarray):
     '''
@@ -54,8 +58,7 @@ def detect_outlier_kstest(train_data: np.ndarray, test_data: np.ndarray):
 
 def plot_kde_fit(train_data: np.ndarray, ax = None, kde = None):
     if not kde:
-        kde = KernelDensity()
-        kde.fit(train_data)
+        kde = kde_fit_params(train_data)
     if not ax:
         fig, ax = plt.subplots()
 
