@@ -3,7 +3,7 @@ from sklearn.neighbors import KernelDensity
 from scipy import stats
 import matplotlib.pyplot as plt
 
-def detect_outliers_kde(train_data: np.ndarray, test_data: np.ndarray, kde=None):
+def detect_outliers_kde(train_data: np.ndarray, test_data: np.ndarray, kde=None, multithread=False):
     """
     Detects outliers in D-dimensional space using Kernel Density Estimation (KDE).
 
@@ -21,8 +21,12 @@ def detect_outliers_kde(train_data: np.ndarray, test_data: np.ndarray, kde=None)
     if not kde:
         kde = kde_fit_params(train_data)
     # Scores are logp
-    score_train = kde.score_samples(train_data)  # (N,)
-    score_test = kde.score_samples(test_data)  # (M,)
+    if not multithread:
+        score_train = kde.score_samples(train_data)  # (N,)
+        score_test = kde.score_samples(test_data)  # (M,)
+    else:
+        score_train = parrallel_score_samples(kde, train_data)
+        score_test = parrallel_score_samples(kde, test_data)
     # We need to create a matrix
     # Put score train vertically, score test horizontally
     score_train = score_train[:, np.newaxis]
@@ -67,3 +71,11 @@ def plot_kde_fit(train_data: np.ndarray, ax = None, kde = None):
     ax.text(-3.5, 0.31, "Gaussian Kernel Density")
 
     return ax
+
+import multiprocessing
+
+def parrallel_score_samples(kde, samples, thread_count=int(0.875 * multiprocessing.cpu_count())):
+    # Taken from
+    # https://stackoverflow.com/questions/32607552/scipy-speed-up-kernel-density-estimations-score-sample-method  
+    with multiprocessing.Pool(thread_count) as p:
+        return np.concatenate(p.map(kde.score_samples, np.array_split(samples, thread_count)))

@@ -24,7 +24,7 @@ df_voltage, _, _, _ = \
 # -- Check that features are in df columns
 features = sorted(list(set(df_voltage.columns).intersection(set(features))))
 
-feature = 'depolarisation_slope' # features[1] #
+feature = features[21] #'depolarisation_slope' #
 
 ##
 # Take PID into new DF and drop PID from df_voltage (baseline distribution)
@@ -65,7 +65,7 @@ df_new_compute.loc[df_new_compute[feature + '_kde_q'] > p_thresh, feature + '_kd
 score_out = detect_outlier_kstest(train_data, test_data)
 df_new_compute[feature + '_ks_q'] = score_out
 # Assign high and low values for picked threshold
-p_thresh = 0.90
+p_thresh = 0.94
 df_new_compute[feature + '_ks_extremes'] = 0
 df_new_compute.loc[df_new_compute[feature + '_ks_q'] > p_thresh, feature + '_ks_extremes'] = 1
 
@@ -94,3 +94,6 @@ lof.predict(test_data)
 ##
 
 plot_kde_fit(train_data)
+
+fig, ax = plt.subplots()
+seaborn.scatterplot(data=df_new_compute, x=f'{feature}_ks_q', y=f'{feature}_kde_q', hue=f'{feature}_kde_extremes')
