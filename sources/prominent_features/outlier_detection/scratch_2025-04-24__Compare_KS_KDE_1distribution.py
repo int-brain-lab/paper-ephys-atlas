@@ -7,7 +7,7 @@ from pathlib import Path
 import seaborn
 from one.api import ONE
 import numpy as np
-from ephys_atlas.outliers import detect_outliers_kde, detect_outlier_kstest
+from ephys_atlas.outliers import detect_outliers_kde, detect_outlier_kstest, plot_kde_fit
 
 ##
 mapping = 'Beryl'
@@ -24,7 +24,7 @@ df_voltage, _, _, _ = \
 # -- Check that features are in df columns
 features = sorted(list(set(df_voltage.columns).intersection(set(features))))
 
-feature = 'depolarisation_slope' # features[1]
+feature = 'depolarisation_slope' # features[1] #
 
 ##
 # Take PID into new DF and drop PID from df_voltage (baseline distribution)
@@ -81,3 +81,16 @@ seaborn.scatterplot(data=df_new_compute, x=feature, y=1000, hue=f'{feature}_kde_
 
 seaborn.scatterplot(data=df_new_compute, x=feature, y=2200, hue=f'{feature}_ks_extremes')
 seaborn.scatterplot(data=df_new_compute, x=feature, y=2000, hue=f'{feature}_ks_q')
+
+
+##
+from sklearn.neighbors import LocalOutlierFactor
+lof = LocalOutlierFactor(novelty=True, n_neighbors=20)
+X_train = train_data
+lof.fit(X_train)
+
+lof.predict(test_data)
+
+##
+
+plot_kde_fit(train_data)

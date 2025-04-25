@@ -552,13 +552,15 @@ def select_series(df, features=None, acronym=None, id=None, mapping='Allen'):
     return series
 
 
-def plot_histogram(series, ax=None, quantiles=None, bins=None, xlabel=None, title=None):
+def plot_histogram(series, ax=None, quantiles=None, bins=None, xlabel=None, title=None, normalise=False):
     quantiles = quantiles if quantiles is not None else QUANTILES
     quantile_values = np.quantile(series, quantiles)
 
     bins = bins if bins is not None else BINS
 
     hist_values, bin_edges = np.histogram(series, bins=bins)
+    if normalise:
+        hist_values = hist_values/len(series)
     bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
 
     color_indices = np.digitize(bin_centers, quantile_values, right=True)
@@ -567,7 +569,10 @@ def plot_histogram(series, ax=None, quantiles=None, bins=None, xlabel=None, titl
     ax.bar(bin_edges[:-1], hist_values, width=np.diff(bin_edges), color=colors, align='edge')
 
     ax.set_xlabel(xlabel)
-    ax.set_ylabel('Count')
+    if normalise:
+        ax.set_ylabel('Normalised Count')
+    else:
+        ax.set_ylabel('Count')
     ax.set_title(title)
     ax.text(
         0.95, 0.95, f"{len(series):,} samples",

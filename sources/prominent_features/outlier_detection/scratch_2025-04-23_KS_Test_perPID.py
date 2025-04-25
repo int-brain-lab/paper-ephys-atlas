@@ -8,15 +8,8 @@ import pandas as pd
 import tqdm
 from one.api import ONE
 ##
-from scipy import stats
 import numpy as np
-
-def detect_outlier_kstest(sample_values, cdf):
-    pval = np.zeros(sample_values.shape)
-    for count, sample in enumerate(sample_values):  # Test on each channel value independently
-        ks_stat = stats.kstest(sample, cdf)
-        pval[count] = ks_stat.statistic # ks_stat.pvalue
-    return pval
+from ephys_atlas.outliers import detect_outlier_kstest
 ##
 one = ONE()
 mapping = 'Beryl'
@@ -34,7 +27,7 @@ features = sorted(list(set(df_voltage.columns).intersection(set(features))))
 
 ##
 # Take PID into new DF and drop PID from df_voltage (baseline distribution)
-pid = '0ce74616-abf8-47c2-86d9-f821cd25efd3'
+pid = '091392a5-73f6-40f3-8552-fa917cf96deb'
 idx = df_voltage[df_voltage['pids'] == pid].index
 
 df_new = df_voltage.loc[idx].copy()
@@ -69,8 +62,8 @@ for count, region in tqdm.tqdm(enumerate(regions), total=len(regions)):
 
     for feature in features:
     # For all channels at once, test if outside the distribution for the given feature
-        score_out =  detect_outlier_kstest(sample_values=df_new_compute[feature].values,
-                                           cdf=df_region[feature].values)
+        score_out =  detect_outlier_kstest(test_data=df_new_compute[feature].values,
+                                           train_data=df_region[feature].values)
         # Save into new column
         df_new_compute[feature + '_q'] = score_out  # TODO check ordering of channels
 
@@ -83,10 +76,10 @@ for count, region in tqdm.tqdm(enumerate(regions), total=len(regions)):
 
 ##
 # Assign high and low values for picked threshold
-p_thresh = 0.01
+p_thresh = 0.90
 for feature in features:
     df_save[feature + '_extremes'] = 0
-    df_save.loc[df_save[feature + '_q'] < p_thresh, feature + '_extremes'] = 1
+    df_save.loc[df_save[feature + '_q'] > p_thresh, feature + '_extremes'] = 1
 
 ##
 # Plot

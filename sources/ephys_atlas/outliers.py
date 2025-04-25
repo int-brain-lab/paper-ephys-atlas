@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.neighbors import KernelDensity
 from scipy import stats
-
+import matplotlib.pyplot as plt
 
 def detect_outliers_kde(train_data: np.ndarray, test_data: np.ndarray, kde=None):
     """
@@ -51,3 +51,16 @@ def detect_outlier_kstest(train_data: np.ndarray, test_data: np.ndarray):
         out[count] = ks_stat.statistic
     return out
 
+
+def plot_kde_fit(train_data: np.ndarray, ax = None, kde = None):
+    if not kde:
+        kde = KernelDensity()
+        kde.fit(train_data)
+    if not ax:
+        fig, ax = plt.subplots()
+
+    score_train = kde.score_samples(train_data)
+    ax.scatter(train_data[:,0], np.exp(score_train))
+    ax.text(-3.5, 0.31, "Gaussian Kernel Density")
+
+    return ax
