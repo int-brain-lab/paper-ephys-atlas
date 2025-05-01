@@ -444,16 +444,23 @@ def load_voltage_features(local_path, regions=None, mapping="Cosmos", dropna=Tru
         # this path contains channels.pqt, clusters.pqt and raw_ephys_features.pqt
         local_path = Path(config["paths"]["features"]).joinpath("latest")
     df_voltage, df_clusters, df_channels, df_probes = load_tables(Path(local_path))
-    df_voltage.replace([np.inf, -np.inf], np.nan, inplace=True)
     df_voltage = pd.merge(df_voltage, df_channels, left_index=True, right_index=True)
+    df_voltage = df_voltage.rename(
+        columns={"atlas_id": "Allen_id", "acronym": "Allen_acronym"}
+    )
+    df_voltage = prep_voltage_dataframe(df_voltage, mapping=mapping, regions=regions)
     df_voltage["pids"] = df_voltage.index.get_level_values(0)
     _logger.info(f"Loaded {df_voltage.shape[0]} channels")
     if dropna:
         df_voltage = df_voltage.dropna()
     _logger.info(f"Remains {df_voltage.shape[0]} channels after NaNs filtering")
-    df_voltage = df_voltage.rename(
-        columns={"atlas_id": "Allen_id", "acronym": "Allen_acronym"}
-    )
+
+    return df_voltage, df_clusters, df_channels, df_probes
+
+
+def prep_voltage_dataframe(df_voltage, mapping='Allen', regions=None):
+    regions = BrainRegions() if regions is None else regions
+    df_voltage.replace([np.inf, -np.inf], np.nan, inplace=True)
     if mapping != "Allen":
         df_voltage[mapping + "_id"] = regions.remap(
             df_voltage["Allen_id"], source_map="Allen", target_map=mapping
@@ -461,7 +468,8 @@ def load_voltage_features(local_path, regions=None, mapping="Cosmos", dropna=Tru
         df_voltage[mapping + "_acronym"] = regions.id2acronym(
             df_voltage[mapping + "_id"]
         )
-    return df_voltage, df_clusters, df_channels, df_probes
+    return df_voltage
+
 
 
 def load_tables(local_path, verify=False):

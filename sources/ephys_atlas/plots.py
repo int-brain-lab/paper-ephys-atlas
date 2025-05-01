@@ -6,15 +6,19 @@ import numpy as np
 import matplotlib.patches as patches
 from iblatlas.atlas import BrainRegions
 from ephys_atlas.data import compute_summary_stat
-import ephys_atlas.features
-
+from ephys_atlas.features import FEATURES_LIST
+from ephys_atlas.features import voltage_features_set
+from matplotlib import (
+    cm,
+)  # This is deprecated, but cannot import matplotlib.colormaps as cm
 from brainbox.plot_base import ProbePlot, arrange_channels2banks, plot_probe
 from brainbox.ephys_plots import plot_brain_regions
 from matplotlib.patches import Rectangle
 import matplotlib
+import scipy
 
 
-def color_map_feature(feature_list=None, cmap="Pastel1_r", n_inc=12):
+def color_map_feature(feature_list=FEATURES_LIST, cmap="Pastel1_r", n_inc=12):
     # color_map = cm.get_cmap(cmap, n_inc)
     # np.linspace(0, 1, num=len(feature_list))
     # color_alpha = color_map(np.linspace(0, 1, num=len(feature_list)))
@@ -24,10 +28,10 @@ def color_map_feature(feature_list=None, cmap="Pastel1_r", n_inc=12):
     # list_out = list()
     # for i_col in list_col:
     #     list_out.append(tuple(i_col))
-    if feature_list is None:
-        feature_list = ephys_atlas.features.FEATURES_LIST
+    # TODO above is correct but umpractical ?
     list_out = ["m", "g", "m", "b"]
-    assert len(list_out) == len(feature_list)
+    assert len(list_out) == len(FEATURES_LIST)
+
     return list_out
 
 
@@ -221,7 +225,7 @@ def plot_feature_colorbar(features_sort, val_sort, ax=None):
     ax.set_yticks(np.arange(features_sort.size))
     ax.set_yticklabels(features_sort)
     ax.set_xticks([])
-    plt.show()
+    # plt.show()
     if ax is None:
         return fig, ax
 
@@ -320,7 +324,52 @@ def plot_probe_rect(xy, color, ax, width=16, height=40):
         )
     ax.set_xlim([min(xy[:, 0]) - width / 2, max(xy[:, 0]) + width / 2])
     ax.set_ylim([min(xy[:, 1]) - height / 2, max(xy[:, 1]) + height / 2])
-    plt.show()
+    # plt.show()
+
+
+def plot_probe_rect2(xy, color, ax, width=16, height=40):
+    """
+    This function uses imshow to draw rectangles painted around the yx coordinates
+    :param xy:
+    :param color:
+    :param ax:
+    :param width:
+    :param height:
+    :return:
+    """
+
+    # HACK: stretch the probe in the X direction to improve readability of the plots with very
+    # long thin probes
+    xy = xy.copy()
+    k = 3
+    xy[:, 1] /= k
+
+    xmin, ymin = xy.min(axis=0)
+    ymin = 0
+    xmax, ymax = xy.max(axis=0)
+    hw, hh = width / 2, height / 2
+    # extent = [xmin - hw, xmax + hw, ymin - hh, ymax + hh]
+    extent = [xmin - hw, xmax + hw, ymin, ymax]
+    X = round(extent[1] - extent[0]) + 1
+    Y = round(extent[3] - extent[2]) + 1
+
+    im = np.zeros((Y, X, 4), dtype=np.float32)
+    im[..., 3] = 1
+
+    for a_x, a_y, a_color in zip(xy[:, 0], xy[:, 1], color):
+        i0 = max(0, round(a_y - hh))
+        i1 = min(Y, round(a_y + hh) + 1)
+        j0 = max(0, round(a_x - hw))
+        j1 = min(X, round(a_x + hw) + 1)
+        im[i0:i1, j0:j1, :3] = a_color.ravel()[:3]
+
+    ax.imshow(im, extent=extent, origin='lower', aspect='auto')
+
+    ax.set_xlim(*extent[:2])
+    ax.set_xticks([])
+    ax.set_ylim(ymin, ymax + 1)
+    yticks = np.arange(0, ymax, 500)
+    ax.set_yticks(yticks, labels=map(int, yticks * k))
 
 
 def figure_features_chspace_probeplot(pid_df, features, xy):
@@ -389,7 +438,8 @@ def get_color_feat(x, cmap_name="viridis"):
 
 
 def figure_features_chspace(
-    pid_df, features, xy, pid, fig=None, axs=None, br=None, mapping="Cosmos"
+    pid_df, features, xy, pid, fig=None, axs=None, br=None, mapping="Cosmos",
+    plot_rect=plot_probe_rect, cmap="viridis"
 ):
     """
 
@@ -414,8 +464,8 @@ def figure_features_chspace(
     for i_feat, feature in enumerate(features):
         feat_arr = pid_df[[feature]].to_numpy()
         # Plot feature
-        color = get_color_feat(feat_arr)
-        plot_probe_rect(xy, color, ax=axs[i_feat])
+        color = get_color_feat(feat_arr, cmap_name=cmap)
+        plot_rect(xy, color, ax=axs[i_feat])
         axs[i_feat].set_title(feature, rotation=90)
 
     # Plot brain region in space in unique colors
@@ -423,12 +473,12 @@ def figure_features_chspace(
     d_uni = np.unique(pid_df[mapping + "_id"].to_numpy(), return_inverse=True)[1]
     d_uni = d_uni.astype(np.float32)
     color = get_color_feat(d_uni)
-    plot_probe_rect(xy, color, ax=axs[len(features)])
+    plot_rect(xy, color, ax=axs[len(features)])
     axs[len(features)].set_title("unique region", rotation=90)
 
     # Plot brain region along probe depth with color code
     color = get_color_br(pid_df, br, mapping=mapping)
-    plot_probe_rect(xy, color, ax=axs[len(features) + 1])  # + 1
+    plot_rect(xy, color, ax=axs[len(features) + 1])  # + 1
     axs[len(features) + 1].set_title(mapping, rotation=90)
 
     # Add pid as suptitle
@@ -485,63 +535,52 @@ def plt_unit_acg(
     )
     return fig, ax
 
+## =========
+'''
+Plotting functions for outlier detection
+'''
+QUANTILES = [0.01, 0.1, 0.9, 0.99]
+BINS = 50
 
-def region_bars_horizontal(atlas_id, feature, regions=None, scale="linear", ylims=None, nrows=3, error_bars=None, title=None):
-    """
-    Plot horizontal bars for a given feature and regions.
+def select_series(df, features=None, acronym=None, id=None, mapping='Allen'):
+    if features is None:  # Take the whole set
+        features = voltage_features_set()
+    if acronym is not None:
+        series = df.loc[df[f'{mapping}_acronym'] == acronym, features]
+    elif id is not None:
+        series = df.loc[df[f'{mapping}_id'] == id, features]
+    return series
 
-    :param atlas_id: Atlas id (e.g., Allen)
-    :param feature: Feature to plot (e.g., a vector of features values')
-    :param regions: Brain regions object
-    :param scale: Scale for y-axis (linear or log)
-    :param ylims: Y-axis limits
-    :param nrows: Number of rows for the plot
-    :param error_bars: Error bars for the feature
-    :param title: Title for the plot
-    :return: Figure and axis
-    :return:
-    """
-    if regions is None:
-        regions = BrainRegions()
-    fs = 5
-    barwidth = 0.9
-    nfeats = feature.size
 
-    _, rids, fids = np.intersect1d(regions.id, atlas_id, return_indices=True)
-    ordre = np.flipud(np.argsort(rids))
-    _feature = feature[fids[ordre]]
-    rids = rids[ordre]
+def plot_histogram(series, ax=None, quantiles=None, bins=None, xlabel=None, title=None, normalise=False):
+    quantiles = quantiles if quantiles is not None else QUANTILES
+    quantile_values = np.quantile(series, quantiles)
 
-    fig, ax = plt.subplots(nrows=nrows, figsize=(12, 6))
-    ylims = ylims or [np.nanmin(_feature), np.nanmax(_feature)]
+    bins = bins if bins is not None else BINS
 
-    for k, k0 in zip(range(nrows), reversed(range(nrows))):
-        cind = slice(k0 * nfeats // nrows, (k0 + 1) * nfeats // nrows)
-        _colours = regions.rgb[rids[cind], :].astype(np.float32) / 255
-        _acronyms = regions.acronym[rids[cind]]
-        nbars = _colours.shape[0]
+    hist_values, bin_edges = np.histogram(series, bins=bins)
+    if normalise:
+        hist_values = hist_values/len(series)
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
 
-        bars = ax[k].bar(np.arange(nbars), _feature[cind], color=_colours, width=barwidth)
-        ax[k].set(yscale=scale, xticks=np.arange(nbars), ylim=ylims)
-        ax[k].tick_params(axis="x", pad=2, left=False)
-        ax[k].set_xticklabels(_acronyms, fontsize=fs, ha="center")
+    color_indices = np.digitize(bin_centers, quantile_values, right=True)
+    colors = cm.viridis(color_indices / color_indices.max())
 
-        # indicate 10% with black line
-        if error_bars is not None:
-            if error_bars.ndim == 2:
-                error_min = error_bars[ordre, 0][cind]
-                error_max = error_bars[ordre, 1][cind]
-            elif error_bars.ndim == 1:
-                error_min = _feature[cind] - error_bars[ordre][cind]
-                error_max = _feature[cind] + error_bars[ordre][cind]
-            xmin = np.array([plt.getp(item, 'x') for item in bars])
-            xmax = xmin + [plt.getp(item, 'width') for item in bars]
-            ax[k].hlines(error_min, xmin, xmax, linewidth=1, color=_colours)
-            ax[k].hlines(error_max, xmin, xmax, linewidth=1, color=_colours)
-            ax[k].vlines((xmin + xmax) / 2, error_min, error_max, color=_colours, linewidth=1, alpha=0.5)
+    ax.bar(bin_edges[:-1], hist_values, width=np.diff(bin_edges), color=colors, align='edge')
 
-        for xtick, color in zip(ax[k].get_xticklabels(), _colours):
-            xtick.set_color(color)
-    fig.suptitle(title) if title else None
-    fig.tight_layout()
-    return fig, ax
+    ax.set_xlabel(xlabel)
+    if normalise:
+        ax.set_ylabel('Normalised Count')
+    else:
+        ax.set_ylabel('Count')
+    ax.set_title(title)
+    ax.text(
+        0.95, 0.95, f"{len(series):,} samples",
+        transform=ax.transAxes, ha='right', va='top', fontsize=12,
+    )
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.tick_params(axis='both', which='both', direction='out', length=6)
+    ax.set_facecolor('#f9f9f9')
+    plt.tight_layout()
